@@ -1,0 +1,540 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		01B45B44B75447DAA9DB1059 /* NetraApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E318246702684E7C473C851F /* NetraApp.swift */; };
+		06DC4E2CF01B2AFD241D9DA0 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B24F19B32DB2190019D650BA /* AppDelegate.swift */; };
+		12083B8F071A1F89B68490A3 /* TranslateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47E36CDB1F326EC32C8B7572 /* TranslateView.swift */; };
+		1C2A99D03C5634FF0C892E3B /* HotKeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD43D37F904FA10CE7E857F8 /* HotKeyManager.swift */; };
+		31B3AF742DCB441FA4B832BA /* PreferencesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FD7348892426E9088F11C07 /* PreferencesView.swift */; };
+		3C23AAC57068AD4AE4A06AA1 /* ImageOCRWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9B6C5374AADE21ACFD15ADF /* ImageOCRWindowController.swift */; };
+		434CA04E6740FF29E1D41EB2 /* LaunchAtLoginManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A72B1C0356671FBE2C5747 /* LaunchAtLoginManager.swift */; };
+		56A3AA0B8C148A20B1CCC7F0 /* OCREngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF81AC61EAAA5650D9B904B0 /* OCREngine.swift */; };
+		57715387B789B042D520DE1E /* TextRecognizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A7BB35B548B8A508B89537 /* TextRecognizer.swift */; };
+		5AB9775D966FAE0D1687B2B0 /* CaptureCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2B3439D9E37DDAF6B30596A /* CaptureCoordinator.swift */; };
+		5D144F4590D8E3063AD1ABA6 /* ScanRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6E0FAE4282B7CB8CD4331AF /* ScanRecord.swift */; };
+		66B5812E684DFDEC33BFF826 /* ScanHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F88AB38935130B38B2580AAC /* ScanHistoryStore.swift */; };
+		73EF4D75B033B61D6E242D44 /* HotKeyDefinition.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80D7C1A3BEBB1E8A0593016D /* HotKeyDefinition.swift */; };
+		80F95C5E61F3793035AA70CA /* AppPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B3BF3CB6EED8CA2C72DFD74 /* AppPreferences.swift */; };
+		8A03802237D6F3C22BF6C9FE /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CECE5005AEBA53A7CE686E7 /* HistoryView.swift */; };
+		A00D5ED8759C56DA74C07F07 /* TesseractEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 837848A981D0E03F56C52F75 /* TesseractEngine.swift */; };
+		A2A088FE6652C78B4A2A22C9 /* TextToSpeechManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50924C5D172C4322EE440A30 /* TextToSpeechManager.swift */; };
+		A2BEC1057F2444968969255A /* tesseract in Resources */ = {isa = PBXBuildFile; fileRef = DA9A61D7F9815167F181D3ED /* tesseract */; };
+		AC0097F7638A018745C771ED /* ScreenCaptureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50422FD55F46CE60DDBA3DF8 /* ScreenCaptureManager.swift */; };
+		ACDFF3A75386B102B3C8F4A9 /* WindowPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57F7EA89BA2B0EC29E64CAB8 /* WindowPicker.swift */; };
+		B61A344DB4DB1C11DE664ADD /* ClipboardManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E1648ABF5DBC83A3DAC194B /* ClipboardManager.swift */; };
+		B8E6F922BA40BBDF148CB850 /* SelectionOverlayWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = D34C0EFAD6107D55B0205A71 /* SelectionOverlayWindow.swift */; };
+		C3F27ABEE6364DE936553948 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 38C235DD61BA1E8CEDB69904 /* Sparkle */; };
+		CDBF18EC9785589E257A06B4 /* OnboardingWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 022D0C312D3E5E5E1DFAB0BD /* OnboardingWindowController.swift */; };
+		D1890533A7AD30C2A875678D /* BarcodeEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A8405238C0EECCF962ACB67E /* BarcodeEngine.swift */; };
+		D2649926FA057FE8F763B254 /* HotKeyRecorderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 93F2AC4E68C32A14E160C83A /* HotKeyRecorderView.swift */; };
+		E61F8BEB4288E60F6737827F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F828F587D7C194B80DA51096 /* Assets.xcassets */; };
+		F9DB21D81D3A1D706CEF4C7D /* HUDWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36B52B6956E0525600C49413 /* HUDWindowController.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		022D0C312D3E5E5E1DFAB0BD /* OnboardingWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingWindowController.swift; sourceTree = "<group>"; };
+		0E1648ABF5DBC83A3DAC194B /* ClipboardManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardManager.swift; sourceTree = "<group>"; };
+		2E1BBF9B5BFC3E5DF655E643 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		2FD7348892426E9088F11C07 /* PreferencesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesView.swift; sourceTree = "<group>"; };
+		36B52B6956E0525600C49413 /* HUDWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HUDWindowController.swift; sourceTree = "<group>"; };
+		47E36CDB1F326EC32C8B7572 /* TranslateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslateView.swift; sourceTree = "<group>"; };
+		4CECE5005AEBA53A7CE686E7 /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
+		50422FD55F46CE60DDBA3DF8 /* ScreenCaptureManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenCaptureManager.swift; sourceTree = "<group>"; };
+		50924C5D172C4322EE440A30 /* TextToSpeechManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextToSpeechManager.swift; sourceTree = "<group>"; };
+		57F7EA89BA2B0EC29E64CAB8 /* WindowPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowPicker.swift; sourceTree = "<group>"; };
+		60A7BB35B548B8A508B89537 /* TextRecognizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextRecognizer.swift; sourceTree = "<group>"; };
+		80D7C1A3BEBB1E8A0593016D /* HotKeyDefinition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotKeyDefinition.swift; sourceTree = "<group>"; };
+		837848A981D0E03F56C52F75 /* TesseractEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TesseractEngine.swift; sourceTree = "<group>"; };
+		93F2AC4E68C32A14E160C83A /* HotKeyRecorderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotKeyRecorderView.swift; sourceTree = "<group>"; };
+		9B3BF3CB6EED8CA2C72DFD74 /* AppPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPreferences.swift; sourceTree = "<group>"; };
+		A8405238C0EECCF962ACB67E /* BarcodeEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarcodeEngine.swift; sourceTree = "<group>"; };
+		A9B6C5374AADE21ACFD15ADF /* ImageOCRWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageOCRWindowController.swift; sourceTree = "<group>"; };
+		AE13C3A4B2A8BCB04C8224FE /* Netra.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Netra.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B24F19B32DB2190019D650BA /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		BF81AC61EAAA5650D9B904B0 /* OCREngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCREngine.swift; sourceTree = "<group>"; };
+		C2A72B1C0356671FBE2C5747 /* LaunchAtLoginManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginManager.swift; sourceTree = "<group>"; };
+		D34C0EFAD6107D55B0205A71 /* SelectionOverlayWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectionOverlayWindow.swift; sourceTree = "<group>"; };
+		DA9A61D7F9815167F181D3ED /* tesseract */ = {isa = PBXFileReference; lastKnownFileType = folder; name = tesseract; path = Vendor/tesseract; sourceTree = SOURCE_ROOT; };
+		DD43D37F904FA10CE7E857F8 /* HotKeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotKeyManager.swift; sourceTree = "<group>"; };
+		E318246702684E7C473C851F /* NetraApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetraApp.swift; sourceTree = "<group>"; };
+		E6E0FAE4282B7CB8CD4331AF /* ScanRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanRecord.swift; sourceTree = "<group>"; };
+		F2B3439D9E37DDAF6B30596A /* CaptureCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureCoordinator.swift; sourceTree = "<group>"; };
+		F828F587D7C194B80DA51096 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		F88AB38935130B38B2580AAC /* ScanHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanHistoryStore.swift; sourceTree = "<group>"; };
+		FFB5143B80D5230F6FB06442 /* Netra.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Netra.entitlements; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		BF8902EEFC0BFDACC65685FC /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C3F27ABEE6364DE936553948 /* Sparkle in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		0826E9602D63364410BE64B6 /* Capture */ = {
+			isa = PBXGroup;
+			children = (
+				F2B3439D9E37DDAF6B30596A /* CaptureCoordinator.swift */,
+				0E1648ABF5DBC83A3DAC194B /* ClipboardManager.swift */,
+				36B52B6956E0525600C49413 /* HUDWindowController.swift */,
+				A9B6C5374AADE21ACFD15ADF /* ImageOCRWindowController.swift */,
+				50422FD55F46CE60DDBA3DF8 /* ScreenCaptureManager.swift */,
+				D34C0EFAD6107D55B0205A71 /* SelectionOverlayWindow.swift */,
+				57F7EA89BA2B0EC29E64CAB8 /* WindowPicker.swift */,
+			);
+			path = Capture;
+			sourceTree = "<group>";
+		};
+		183A3686E3531CD0A77585FB /* App */ = {
+			isa = PBXGroup;
+			children = (
+				B24F19B32DB2190019D650BA /* AppDelegate.swift */,
+				E318246702684E7C473C851F /* NetraApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		28EA9BBF68BF3F5AF4247086 /* History */ = {
+			isa = PBXGroup;
+			children = (
+				4CECE5005AEBA53A7CE686E7 /* HistoryView.swift */,
+				F88AB38935130B38B2580AAC /* ScanHistoryStore.swift */,
+				E6E0FAE4282B7CB8CD4331AF /* ScanRecord.swift */,
+			);
+			path = History;
+			sourceTree = "<group>";
+		};
+		3E8696CED90452192F360D16 /* Barcode */ = {
+			isa = PBXGroup;
+			children = (
+				A8405238C0EECCF962ACB67E /* BarcodeEngine.swift */,
+			);
+			path = Barcode;
+			sourceTree = "<group>";
+		};
+		53FE03D47D34D53AEF69EC5F /* Hotkey */ = {
+			isa = PBXGroup;
+			children = (
+				80D7C1A3BEBB1E8A0593016D /* HotKeyDefinition.swift */,
+				DD43D37F904FA10CE7E857F8 /* HotKeyManager.swift */,
+			);
+			path = Hotkey;
+			sourceTree = "<group>";
+		};
+		5FEC1B12BAB67428A243E023 /* OCR */ = {
+			isa = PBXGroup;
+			children = (
+				BF81AC61EAAA5650D9B904B0 /* OCREngine.swift */,
+				837848A981D0E03F56C52F75 /* TesseractEngine.swift */,
+				60A7BB35B548B8A508B89537 /* TextRecognizer.swift */,
+			);
+			path = OCR;
+			sourceTree = "<group>";
+		};
+		6F56D984F50E7199DCAE161C /* Onboarding */ = {
+			isa = PBXGroup;
+			children = (
+				022D0C312D3E5E5E1DFAB0BD /* OnboardingWindowController.swift */,
+			);
+			path = Onboarding;
+			sourceTree = "<group>";
+		};
+		8052D27BD21C735012927D67 /* LaunchAtLogin */ = {
+			isa = PBXGroup;
+			children = (
+				C2A72B1C0356671FBE2C5747 /* LaunchAtLoginManager.swift */,
+			);
+			path = LaunchAtLogin;
+			sourceTree = "<group>";
+		};
+		9676B5B4C96367CB82238F90 = {
+			isa = PBXGroup;
+			children = (
+				DA9A61D7F9815167F181D3ED /* tesseract */,
+				A721FC19E1044B0AD7538A16 /* Resources */,
+				A6649EE317E4EF431C436F93 /* Sources */,
+				F50BBD9382588A885FA8D2EC /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A6649EE317E4EF431C436F93 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				183A3686E3531CD0A77585FB /* App */,
+				3E8696CED90452192F360D16 /* Barcode */,
+				0826E9602D63364410BE64B6 /* Capture */,
+				28EA9BBF68BF3F5AF4247086 /* History */,
+				53FE03D47D34D53AEF69EC5F /* Hotkey */,
+				8052D27BD21C735012927D67 /* LaunchAtLogin */,
+				5FEC1B12BAB67428A243E023 /* OCR */,
+				6F56D984F50E7199DCAE161C /* Onboarding */,
+				D5A8A2C3E2F190F5854B19B9 /* Preferences */,
+				BA18A6640C2315FFF4960519 /* Speech */,
+				BAD60489C80C53E1248FEA16 /* Translate */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		A721FC19E1044B0AD7538A16 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				F828F587D7C194B80DA51096 /* Assets.xcassets */,
+				2E1BBF9B5BFC3E5DF655E643 /* Info.plist */,
+				FFB5143B80D5230F6FB06442 /* Netra.entitlements */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		BA18A6640C2315FFF4960519 /* Speech */ = {
+			isa = PBXGroup;
+			children = (
+				50924C5D172C4322EE440A30 /* TextToSpeechManager.swift */,
+			);
+			path = Speech;
+			sourceTree = "<group>";
+		};
+		BAD60489C80C53E1248FEA16 /* Translate */ = {
+			isa = PBXGroup;
+			children = (
+				47E36CDB1F326EC32C8B7572 /* TranslateView.swift */,
+			);
+			path = Translate;
+			sourceTree = "<group>";
+		};
+		D5A8A2C3E2F190F5854B19B9 /* Preferences */ = {
+			isa = PBXGroup;
+			children = (
+				9B3BF3CB6EED8CA2C72DFD74 /* AppPreferences.swift */,
+				93F2AC4E68C32A14E160C83A /* HotKeyRecorderView.swift */,
+				2FD7348892426E9088F11C07 /* PreferencesView.swift */,
+			);
+			path = Preferences;
+			sourceTree = "<group>";
+		};
+		F50BBD9382588A885FA8D2EC /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				AE13C3A4B2A8BCB04C8224FE /* Netra.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		952C2F9B5C411C51A0363FEF /* Netra */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 37C611836EE83A3764555E2C /* Build configuration list for PBXNativeTarget "Netra" */;
+			buildPhases = (
+				0842B05863B623F8896027C6 /* Sources */,
+				3E3F845B3C4103652B236369 /* Resources */,
+				BF8902EEFC0BFDACC65685FC /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Netra;
+			packageProductDependencies = (
+				38C235DD61BA1E8CEDB69904 /* Sparkle */,
+			);
+			productName = Netra;
+			productReference = AE13C3A4B2A8BCB04C8224FE /* Netra.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		F1423925B489BA569A5ABAF1 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					952C2F9B5C411C51A0363FEF = {
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 25A9C1E13DA27C02CA9DE150 /* Build configuration list for PBXProject "Netra" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 9676B5B4C96367CB82238F90;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				7F7A382C04851090AD7621D3 /* XCRemoteSwiftPackageReference "Sparkle" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = F50BBD9382588A885FA8D2EC /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				952C2F9B5C411C51A0363FEF /* Netra */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		3E3F845B3C4103652B236369 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E61F8BEB4288E60F6737827F /* Assets.xcassets in Resources */,
+				A2BEC1057F2444968969255A /* tesseract in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		0842B05863B623F8896027C6 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				06DC4E2CF01B2AFD241D9DA0 /* AppDelegate.swift in Sources */,
+				80F95C5E61F3793035AA70CA /* AppPreferences.swift in Sources */,
+				D1890533A7AD30C2A875678D /* BarcodeEngine.swift in Sources */,
+				5AB9775D966FAE0D1687B2B0 /* CaptureCoordinator.swift in Sources */,
+				B61A344DB4DB1C11DE664ADD /* ClipboardManager.swift in Sources */,
+				F9DB21D81D3A1D706CEF4C7D /* HUDWindowController.swift in Sources */,
+				8A03802237D6F3C22BF6C9FE /* HistoryView.swift in Sources */,
+				73EF4D75B033B61D6E242D44 /* HotKeyDefinition.swift in Sources */,
+				1C2A99D03C5634FF0C892E3B /* HotKeyManager.swift in Sources */,
+				D2649926FA057FE8F763B254 /* HotKeyRecorderView.swift in Sources */,
+				3C23AAC57068AD4AE4A06AA1 /* ImageOCRWindowController.swift in Sources */,
+				434CA04E6740FF29E1D41EB2 /* LaunchAtLoginManager.swift in Sources */,
+				01B45B44B75447DAA9DB1059 /* NetraApp.swift in Sources */,
+				56A3AA0B8C148A20B1CCC7F0 /* OCREngine.swift in Sources */,
+				CDBF18EC9785589E257A06B4 /* OnboardingWindowController.swift in Sources */,
+				31B3AF742DCB441FA4B832BA /* PreferencesView.swift in Sources */,
+				66B5812E684DFDEC33BFF826 /* ScanHistoryStore.swift in Sources */,
+				5D144F4590D8E3063AD1ABA6 /* ScanRecord.swift in Sources */,
+				AC0097F7638A018745C771ED /* ScreenCaptureManager.swift in Sources */,
+				B8E6F922BA40BBDF148CB850 /* SelectionOverlayWindow.swift in Sources */,
+				A00D5ED8759C56DA74C07F07 /* TesseractEngine.swift in Sources */,
+				57715387B789B042D520DE1E /* TextRecognizer.swift in Sources */,
+				A2A088FE6652C78B4A2A22C9 /* TextToSpeechManager.swift in Sources */,
+				12083B8F071A1F89B68490A3 /* TranslateView.swift in Sources */,
+				ACDFF3A75386B102B3C8F4A9 /* WindowPicker.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		1A2264F95F7A5989600EE872 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Resources/Netra.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.netra.app;
+				PRODUCT_NAME = Netra;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		9B1F42C197EF17B4CB10CF55 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		B2CCDF55BF39F448E757AC19 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Resources/Netra.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.netra.app;
+				PRODUCT_NAME = Netra;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		D1EBBA8F59FC78FADA56CFBB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		25A9C1E13DA27C02CA9DE150 /* Build configuration list for PBXProject "Netra" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D1EBBA8F59FC78FADA56CFBB /* Debug */,
+				9B1F42C197EF17B4CB10CF55 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		37C611836EE83A3764555E2C /* Build configuration list for PBXNativeTarget "Netra" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1A2264F95F7A5989600EE872 /* Debug */,
+				B2CCDF55BF39F448E757AC19 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		7F7A382C04851090AD7621D3 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.6.4;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		38C235DD61BA1E8CEDB69904 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7F7A382C04851090AD7621D3 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = F1423925B489BA569A5ABAF1 /* Project object */;
+}

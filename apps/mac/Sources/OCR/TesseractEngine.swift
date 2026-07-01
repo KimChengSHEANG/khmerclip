@@ -16,6 +16,7 @@ enum TesseractEngine {
     private static let languageMap: [String: String] = [
         "km-KH": "khm",
         "en-US": "eng",
+        "lo-LA": "lao",
     ]
 
     static func tesseractLanguages(from requested: [String]) -> [String] {

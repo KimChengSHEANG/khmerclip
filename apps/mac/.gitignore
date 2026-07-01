@@ -3,3 +3,4 @@ Netra/Netra.xcodeproj/
 Netra/build/
 DerivedData/
 *.xcuserstate
+build

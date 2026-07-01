@@ -4,7 +4,7 @@ struct PreferencesView: View {
     @EnvironmentObject var preferences: AppPreferences
 
     private let availableLanguages: [(code: String, name: String)] = [
-        ("km-KH", "Khmer"), ("en-US", "English"), ("fr-FR", "French"),
+        ("km-KH", "Khmer"), ("lo-LA", "Lao"), ("en-US", "English"), ("fr-FR", "French"),
         ("zh-Hans", "Chinese (Simplified)"), ("ja-JP", "Japanese"), ("ko-KR", "Korean"),
         ("th-TH", "Thai"), ("vi-VT", "Vietnamese"),
     ]
