@@ -29,6 +29,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let menu = NSMenu()
         menu.addItem(withTitle: "Capture Text", action: #selector(captureText), keyEquivalent: "")
         menu.addItem(withTitle: "Scan QR / Barcode", action: #selector(captureBarcode), keyEquivalent: "")
+        menu.addItem(withTitle: "OCR Image File…", action: #selector(showImageOCR), keyEquivalent: "")
         menu.addItem(.separator())
         menu.addItem(withTitle: "History…", action: #selector(showHistory), keyEquivalent: "")
         menu.addItem(withTitle: "Preferences…", action: #selector(showPreferences), keyEquivalent: ",")
@@ -59,6 +60,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func captureBarcode() {
         coordinator.beginCapture(mode: .barcode)
+    }
+
+    @objc private func showImageOCR() {
+        ImageOCRWindowPresenter.show(coordinator: coordinator)
     }
 
     @objc private func showHistory() {

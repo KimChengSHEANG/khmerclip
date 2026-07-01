@@ -35,4 +35,5 @@ targets:
         PRODUCT_NAME: Netra
         CODE_SIGN_STYLE: Automatic
         ENABLE_HARDENED_RUNTIME: true
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     dependencies: []

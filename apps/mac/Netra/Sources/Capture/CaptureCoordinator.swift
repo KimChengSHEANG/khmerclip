@@ -47,18 +47,28 @@ final class CaptureCoordinator {
             guard let self else { return }
             do {
                 let image = try await ScreenCaptureManager.captureImage(of: rect, screen: screen)
-                switch mode {
-                case .text:
-                    let text = try await TextRecognizer.recognizeText(in: image, languages: preferences.recognitionLanguages)
-                    await self.handleResult(text: text, kind: .text)
-                case .barcode:
-                    let payloads = try await BarcodeEngine.detectPayloads(in: image)
-                    await self.handleResult(text: payloads.joined(separator: "\n"), kind: .barcode)
-                }
+                try await self.recognize(image: image, mode: mode)
             } catch {
                 await self.handleFailure(error)
             }
         }
+    }
+
+    /// Runs OCR/barcode detection on an already-in-hand image (a screen capture,
+    /// or a file dropped/opened via the Image OCR window) and reports the result.
+    func recognize(image: CGImage, mode: CaptureMode) async throws {
+        switch mode {
+        case .text:
+            let text = try await TextRecognizer.recognizeText(in: image, languages: preferences.recognitionLanguages)
+            await handleResult(text: text, kind: .text)
+        case .barcode:
+            let payloads = try await BarcodeEngine.detectPayloads(in: image)
+            await handleResult(text: payloads.joined(separator: "\n"), kind: .barcode)
+        }
+    }
+
+    func reportFailure(_ error: Error) async {
+        await handleFailure(error)
     }
 
     private func handleResult(text: String, kind: ScanRecord.Kind) async {
