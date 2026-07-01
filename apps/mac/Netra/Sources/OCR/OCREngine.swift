@@ -1,17 +1,32 @@
 import Vision
 import AppKit
 
+enum OCREngineError: Error, LocalizedError {
+    case noSupportedLanguage([String])
+
+    var errorDescription: String? {
+        switch self {
+        case .noSupportedLanguage(let requested):
+            return "None of the selected languages (\(requested.joined(separator: ", "))) are supported by this recognizer."
+        }
+    }
+}
+
+/// Vision-based recognizer. Vision does not support Khmer (verified against
+/// VNRecognizeTextRequest.supportedRecognitionLanguages / RecognizeTextRequest
+/// on macOS 26) — Khmer capture is routed through TesseractEngine instead, see
+/// TextRecognizer.
 enum OCREngine {
-    /// Languages we ask Vision to recognize, filtered down to whatever the
-    /// installed OS build actually supports (Khmer support varies by macOS version).
-    static func supportedLanguages(from requested: [String]) -> [String] {
+    static func supportedLanguages(from requested: [String]) throws -> [String] {
         let supported = (try? VNRecognizeTextRequest.supportedRecognitionLanguages(for: .accurate, revision: VNRecognizeTextRequestRevision3)) ?? []
         let filtered = requested.filter { supported.contains($0) }
-        return filtered.isEmpty ? supported : filtered
+        guard !filtered.isEmpty else { throw OCREngineError.noSupportedLanguage(requested) }
+        return filtered
     }
 
     static func recognizeText(in image: CGImage, languages: [String]) async throws -> String {
-        try await withCheckedThrowingContinuation { continuation in
+        let resolvedLanguages = try supportedLanguages(from: languages)
+        return try await withCheckedThrowingContinuation { continuation in
             let request = VNRecognizeTextRequest { request, error in
                 if let error {
                     continuation.resume(throwing: error)
@@ -23,7 +38,7 @@ enum OCREngine {
             }
             request.recognitionLevel = .accurate
             request.usesLanguageCorrection = true
-            request.recognitionLanguages = supportedLanguages(from: languages)
+            request.recognitionLanguages = resolvedLanguages
 
             let handler = VNImageRequestHandler(cgImage: image, options: [:])
             do {

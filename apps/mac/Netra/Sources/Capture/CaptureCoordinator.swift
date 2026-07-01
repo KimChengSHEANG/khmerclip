@@ -49,7 +49,7 @@ final class CaptureCoordinator {
                 let image = try await ScreenCaptureManager.captureImage(of: rect, screen: screen)
                 switch mode {
                 case .text:
-                    let text = try await OCREngine.recognizeText(in: image, languages: preferences.recognitionLanguages)
+                    let text = try await TextRecognizer.recognizeText(in: image, languages: preferences.recognitionLanguages)
                     await self.handleResult(text: text, kind: .text)
                 case .barcode:
                     let payloads = try await BarcodeEngine.detectPayloads(in: image)

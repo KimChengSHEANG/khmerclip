@@ -13,6 +13,9 @@ targets:
     sources:
       - path: Sources
       - path: Resources
+      - path: Vendor/tesseract
+        type: folder
+        buildPhase: resources
     info:
       path: Resources/Info.plist
       properties:
