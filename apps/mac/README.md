@@ -17,6 +17,8 @@ Khmer OCR menu bar app for macOS — grab-select any text on screen, get instant
 - **Global hotkeys** — customizable (Carbon `RegisterEventHotKey`), one for text capture, one for QR/barcode.
 - **Launch at login** — `SMAppService`.
 - **Preferences window** — hotkey recorder, recognition language toggles, behavior toggles.
+- **Onboarding window** — shown once on first launch (menu bar → "Welcome / Permissions…" to re-open): explains the app, live-checks Screen Recording access via `CGPreflightScreenCaptureAccess()`, and links straight to the System Settings pane.
+- **Auto-update** — [Sparkle](https://sparkle-project.org) wired in via SPM ("Check for Updates…" in the menu). `SUFeedURL` is currently a placeholder (see "Auto-update" below).
 - **Menu bar only app** (`LSUIElement`), no dock icon, custom app icon.
 
 ## Khmer OCR engine
@@ -44,15 +46,16 @@ This environment has no window manager by default for the sandboxed shell tool, 
 - Opened "OCR Image File…" and confirmed the drop-zone window renders correctly (screenshot-verified). Clicking "Choose File…" spawned the real `com.apple.appkit.xpc.openAndSavePanelService` (visible in `lsappinfo`), confirming `NSOpenPanel` wiring is live, not dead code.
 - Verified the exact production OCR call chain (`TextRecognizer.recognizeText`) against a real CoreText-rendered Khmer+English+numeral string via a standalone compile of the unmodified source files — see above.
 - Compiled the app icon through `actool` with zero warnings and confirmed the resulting `.icns` renders correctly (rounded-square masking applied by the OS, as expected for a full-bleed source image).
+- Verified the **Vision** path specifically (not just Tesseract): same standalone-compile technique, but requesting only `fr-FR` (a language absent from `TesseractEngine`'s map, so `TextRecognizer` is forced through `OCREngine`/Vision). Rendered `"Bonjour le monde! Netra 2026"` and got an exact match — confirms the non-Khmer code path isn't just theoretical.
+- Launched the onboarding window for real and confirmed `CGPreflightScreenCaptureAccess()` reflects live state (screenshot-verified: warning icon + explanatory text render correctly).
+- Triggered "Check for Updates…" for real: confirmed in the unified log that Sparkle made an actual HTTPS request to the placeholder `SUFeedURL`, got a 404, and handled it gracefully (logged error, no crash) — the wiring is live, only the appcast hosting is a placeholder.
 
 What's still unconfirmed: the *exact string* a live capture returns landing in the clipboard/HUD/history in one continuous human-driven run (UI-automation timing made this fiddly to script reliably — clicks and drags each independently proved to work, but chaining all of them through AppleScript in one shot raced against SwiftUI's async accessibility tree). Functionally this is very low risk: it's the same `recognize(image:mode:)` method already proven correct, called from wiring that's each been independently proven to fire.
 
 ## Not yet implemented
 
-- Onboarding / permission-request flow (Screen Recording permission is requested implicitly on first capture — no explanatory pre-prompt screen).
-- Vision-language coverage beyond Khmer+English hasn't been exercised in a live capture (compiles, matches Apple's documented API, but no runtime test was run against e.g. French/Japanese selection).
 - Code signing with a real Developer ID, notarization, and distribution — see below, this needs credentials only you have.
-- Auto-update.
+- A real hosted appcast for Sparkle (`SUFeedURL` is a placeholder `https://example.com/...` — see "Auto-update" below).
 
 ## Code signing, notarization & distribution
 
@@ -74,6 +77,14 @@ xcrun notarytool submit build/export/Netra.app.zip --keychain-profile "netra-not
 # 4. Staple the ticket so it works offline.
 xcrun stapler staple build/export/Netra.app
 ```
+
+## Auto-update
+
+Sparkle is fully wired (menu item, `SPUStandardUpdaterController`, Info.plist keys), verified making real network requests — but it points at a placeholder feed. To make it real:
+
+1. Host an `appcast.xml` somewhere (GitHub Pages / Releases works fine) and point `SUFeedURL` in `project.yml` at it.
+2. Generate an EdDSA signing key with Sparkle's `generate_keys` tool and set `SUPublicEDKey` in `project.yml` — without this, Sparkle will refuse to install (unsigned) updates rather than silently trusting anything.
+3. Sign each release archive with `sign_update` (from the same Sparkle tool package) and reference it in the appcast entry.
 
 ## Project layout
 
@@ -111,3 +122,5 @@ open Netra.xcodeproj
 ```
 
 First capture will prompt for Screen Recording permission (System Settings → Privacy & Security → Screen Recording).
+
+**Gotcha:** if `xcodebuild` fails resolving the Sparkle package with `cannot use bare repository ... safe.bareRepository is 'explicit'`, that's a global git safety setting on the build machine, not a project problem — either build from Xcode's GUI (which doesn't hit this), or run with `GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.bareRepository GIT_CONFIG_VALUE_0=all` prefixed to the `xcodebuild` invocation (process-scoped, doesn't touch your global gitconfig).

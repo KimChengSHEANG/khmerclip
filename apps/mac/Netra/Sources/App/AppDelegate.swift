@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import Sparkle
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -11,6 +12,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var historyWindowController: NSWindowController?
     private var captureHotKeyID: UInt32?
     private var qrHotKeyID: UInt32?
+    /// Auto-update via Sparkle. SUFeedURL in Info.plist is a placeholder until
+    /// this app has a real hosted appcast — see README "Auto-update" section.
+    private let updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         coordinator = CaptureCoordinator(preferences: preferences, historyStore: historyStore)
@@ -19,6 +23,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         if preferences.launchAtLogin {
             LaunchAtLoginManager.setEnabled(true)
+        }
+
+        if OnboardingWindowPresenter.shouldShow {
+            OnboardingWindowPresenter.show()
         }
     }
 
@@ -33,10 +41,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(.separator())
         menu.addItem(withTitle: "History…", action: #selector(showHistory), keyEquivalent: "")
         menu.addItem(withTitle: "Preferences…", action: #selector(showPreferences), keyEquivalent: ",")
+        menu.addItem(withTitle: "Welcome / Permissions…", action: #selector(showOnboarding), keyEquivalent: "")
+        menu.addItem(.separator())
+        let updateItem = menu.addItem(withTitle: "Check for Updates…", action: #selector(SPUStandardUpdaterController.checkForUpdates(_:)), keyEquivalent: "")
+        updateItem.target = updaterController
         menu.addItem(.separator())
         menu.addItem(withTitle: "Quit Netra", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
 
-        for item in menu.items {
+        for item in menu.items where item.target == nil {
             item.target = self
         }
         statusItem.menu = menu
@@ -60,6 +72,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func captureBarcode() {
         coordinator.beginCapture(mode: .barcode)
+    }
+
+    @objc private func showOnboarding() {
+        OnboardingWindowPresenter.show()
     }
 
     @objc private func showImageOCR() {
