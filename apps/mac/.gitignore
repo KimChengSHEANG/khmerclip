@@ -1,0 +1,5 @@
+.DS_Store
+Netra/Netra.xcodeproj/
+Netra/build/
+DerivedData/
+*.xcuserstate
