@@ -26,19 +26,22 @@ final class HUDWindowController: NSWindowController {
     }
 
     private init(text: String, isError: Bool) {
-        let hosting = NSHostingController(rootView: ResultHUDView(text: text, isError: isError))
-        let window = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 360, height: 140),
+        let hosting = NSHostingController(rootView: StatusIconHUDView(isError: isError))
+        let window = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 64, height: 64),
                               styleMask: [.nonactivatingPanel, .titled, .fullSizeContentView],
                               backing: .buffered, defer: false)
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
-        window.isMovableByWindowBackground = true
+        window.isMovableByWindowBackground = false
         window.level = .floating
+        window.backgroundColor = .clear
+        window.isOpaque = false
+        window.hasShadow = false
+        window.ignoresMouseEvents = true
         window.contentViewController = hosting
-        window.center()
         if let screen = NSScreen.main {
             let frame = window.frame
-            window.setFrameOrigin(NSPoint(x: screen.frame.midX - frame.width / 2, y: screen.frame.maxY - frame.height - 80))
+            window.setFrameOrigin(NSPoint(x: screen.frame.midX - frame.width / 2, y: screen.frame.minY + 80))
         }
         super.init(window: window)
     }
@@ -46,49 +49,22 @@ final class HUDWindowController: NSWindowController {
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
     private func showAndAutoDismiss() {
-        window?.makeKeyAndOrderFront(nil)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 6) { [weak self] in
+        window?.orderFrontRegardless()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) { [weak self] in
             self?.close()
         }
     }
 }
 
-private struct ResultHUDView: View {
-    let text: String
+private struct StatusIconHUDView: View {
     let isError: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Image(systemName: isError ? "exclamationmark.triangle" : "checkmark.circle.fill")
-                    .foregroundStyle(isError ? .orange : .green)
-                Text(isError ? "Netra" : "Text Copied")
-                    .font(.headline)
-                Spacer()
-            }
-            ScrollView {
-                Text(text)
-                    .font(.system(size: 12))
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .frame(maxHeight: 70)
-
-            if !isError {
-                HStack {
-                    Button("Speak") { TextToSpeechManager.shared.speak(text) }
-                    Button("Translate") { openTranslateWindow(text: text) }
-                    Spacer()
-                }
-                .font(.caption)
-            }
-        }
-        .padding(12)
-        .frame(width: 360)
-    }
-
-    private func openTranslateWindow(text: String) {
-        TranslateWindowPresenter.show(text: text)
+        Image(systemName: isError ? "xmark.circle.fill" : "checkmark.circle.fill")
+            .resizable()
+            .frame(width: 44, height: 44)
+            .foregroundStyle(isError ? .red : .green)
+            .padding(10)
     }
 }
 
