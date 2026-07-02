@@ -2,9 +2,6 @@ import Foundation
 import Combine
 
 final class AppPreferences: ObservableObject {
-    @Published var recognitionLanguages: [String] {
-        didSet { UserDefaults.standard.set(recognitionLanguages, forKey: Keys.recognitionLanguages) }
-    }
     @Published var autoCopyToClipboard: Bool {
         didSet { UserDefaults.standard.set(autoCopyToClipboard, forKey: Keys.autoCopy) }
     }
@@ -25,7 +22,6 @@ final class AppPreferences: ObservableObject {
     }
 
     private enum Keys {
-        static let recognitionLanguages = "recognitionLanguages"
         static let autoCopy = "autoCopyToClipboard"
         static let showHUD = "showResultHUD"
         static let playSound = "playCaptureSound"
@@ -36,7 +32,6 @@ final class AppPreferences: ObservableObject {
 
     init() {
         let defaults = UserDefaults.standard
-        self.recognitionLanguages = defaults.stringArray(forKey: Keys.recognitionLanguages) ?? ["km-KH", "en-US"]
         self.autoCopyToClipboard = defaults.object(forKey: Keys.autoCopy) as? Bool ?? true
         self.showResultHUD = defaults.object(forKey: Keys.showHUD) as? Bool ?? true
         self.playCaptureSound = defaults.object(forKey: Keys.playSound) as? Bool ?? true

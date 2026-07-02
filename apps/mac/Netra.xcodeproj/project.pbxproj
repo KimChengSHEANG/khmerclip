@@ -14,8 +14,6 @@
 		31B3AF742DCB441FA4B832BA /* PreferencesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FD7348892426E9088F11C07 /* PreferencesView.swift */; };
 		3C23AAC57068AD4AE4A06AA1 /* ImageOCRWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9B6C5374AADE21ACFD15ADF /* ImageOCRWindowController.swift */; };
 		434CA04E6740FF29E1D41EB2 /* LaunchAtLoginManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A72B1C0356671FBE2C5747 /* LaunchAtLoginManager.swift */; };
-		56A3AA0B8C148A20B1CCC7F0 /* OCREngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF81AC61EAAA5650D9B904B0 /* OCREngine.swift */; };
-		57715387B789B042D520DE1E /* TextRecognizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60A7BB35B548B8A508B89537 /* TextRecognizer.swift */; };
 		5AB9775D966FAE0D1687B2B0 /* CaptureCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2B3439D9E37DDAF6B30596A /* CaptureCoordinator.swift */; };
 		5D144F4590D8E3063AD1ABA6 /* ScanRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6E0FAE4282B7CB8CD4331AF /* ScanRecord.swift */; };
 		66B5812E684DFDEC33BFF826 /* ScanHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F88AB38935130B38B2580AAC /* ScanHistoryStore.swift */; };
@@ -48,7 +46,6 @@
 		50422FD55F46CE60DDBA3DF8 /* ScreenCaptureManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenCaptureManager.swift; sourceTree = "<group>"; };
 		50924C5D172C4322EE440A30 /* TextToSpeechManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextToSpeechManager.swift; sourceTree = "<group>"; };
 		57F7EA89BA2B0EC29E64CAB8 /* WindowPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowPicker.swift; sourceTree = "<group>"; };
-		60A7BB35B548B8A508B89537 /* TextRecognizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextRecognizer.swift; sourceTree = "<group>"; };
 		80D7C1A3BEBB1E8A0593016D /* HotKeyDefinition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotKeyDefinition.swift; sourceTree = "<group>"; };
 		837848A981D0E03F56C52F75 /* TesseractEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TesseractEngine.swift; sourceTree = "<group>"; };
 		93F2AC4E68C32A14E160C83A /* HotKeyRecorderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotKeyRecorderView.swift; sourceTree = "<group>"; };
@@ -57,7 +54,6 @@
 		A9B6C5374AADE21ACFD15ADF /* ImageOCRWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageOCRWindowController.swift; sourceTree = "<group>"; };
 		AE13C3A4B2A8BCB04C8224FE /* Netra.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Netra.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B24F19B32DB2190019D650BA /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		BF81AC61EAAA5650D9B904B0 /* OCREngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCREngine.swift; sourceTree = "<group>"; };
 		C2A72B1C0356671FBE2C5747 /* LaunchAtLoginManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginManager.swift; sourceTree = "<group>"; };
 		D34C0EFAD6107D55B0205A71 /* SelectionOverlayWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectionOverlayWindow.swift; sourceTree = "<group>"; };
 		DA9A61D7F9815167F181D3ED /* tesseract */ = {isa = PBXFileReference; lastKnownFileType = folder; name = tesseract; path = Vendor/tesseract; sourceTree = SOURCE_ROOT; };
@@ -135,9 +131,7 @@
 		5FEC1B12BAB67428A243E023 /* OCR */ = {
 			isa = PBXGroup;
 			children = (
-				BF81AC61EAAA5650D9B904B0 /* OCREngine.swift */,
 				837848A981D0E03F56C52F75 /* TesseractEngine.swift */,
-				60A7BB35B548B8A508B89537 /* TextRecognizer.swift */,
 			);
 			path = OCR;
 			sourceTree = "<group>";
@@ -319,7 +313,6 @@
 				3C23AAC57068AD4AE4A06AA1 /* ImageOCRWindowController.swift in Sources */,
 				434CA04E6740FF29E1D41EB2 /* LaunchAtLoginManager.swift in Sources */,
 				01B45B44B75447DAA9DB1059 /* NetraApp.swift in Sources */,
-				56A3AA0B8C148A20B1CCC7F0 /* OCREngine.swift in Sources */,
 				CDBF18EC9785589E257A06B4 /* OnboardingWindowController.swift in Sources */,
 				31B3AF742DCB441FA4B832BA /* PreferencesView.swift in Sources */,
 				66B5812E684DFDEC33BFF826 /* ScanHistoryStore.swift in Sources */,
@@ -327,7 +320,6 @@
 				AC0097F7638A018745C771ED /* ScreenCaptureManager.swift in Sources */,
 				B8E6F922BA40BBDF148CB850 /* SelectionOverlayWindow.swift in Sources */,
 				A00D5ED8759C56DA74C07F07 /* TesseractEngine.swift in Sources */,
-				57715387B789B042D520DE1E /* TextRecognizer.swift in Sources */,
 				A2A088FE6652C78B4A2A22C9 /* TextToSpeechManager.swift in Sources */,
 				12083B8F071A1F89B68490A3 /* TranslateView.swift in Sources */,
 				ACDFF3A75386B102B3C8F4A9 /* WindowPicker.swift in Sources */,

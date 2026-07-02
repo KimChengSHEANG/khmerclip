@@ -53,7 +53,7 @@ struct OnboardingView: View {
             VStack(alignment: .leading, spacing: 8) {
                 Label("Lives in your menu bar — look for the scan icon.", systemImage: "menubar.rectangle")
                 Label("Press your capture hotkey, drag a box, get text on your clipboard.", systemImage: "selection.pin.in.out")
-                Label("Khmer OCR runs on a bundled engine; other languages use Apple's Vision.", systemImage: "character.book.closed")
+                Label("Khmer text recognition runs on a bundled OCR engine.", systemImage: "character.book.closed")
             }
             .font(.callout)
 
