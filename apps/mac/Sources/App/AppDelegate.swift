@@ -5,13 +5,15 @@ import MASShortcut
 import Carbon.HIToolbox
 
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     let preferences = AppPreferences()
     let historyStore = ScanHistoryStore()
 
     private var statusItem: NSStatusItem!
     private var coordinator: CaptureCoordinator!
     private var historyWindowController: NSWindowController?
+    private var captureMenuItem: NSMenuItem!
+    private var qrMenuItem: NSMenuItem!
     /// Auto-update via Sparkle. SUFeedURL in Info.plist is a placeholder until
     /// this app has a real hosted appcast — see README "Auto-update" section.
     private let updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
@@ -35,8 +37,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem.button?.image = NSImage(systemSymbolName: "text.viewfinder", accessibilityDescription: "Netra")
 
         let menu = NSMenu()
-        menu.addItem(withTitle: "Capture Text", action: #selector(captureText), keyEquivalent: "")
-        menu.addItem(withTitle: "Scan QR / Barcode", action: #selector(captureBarcode), keyEquivalent: "")
+        menu.delegate = self
+        captureMenuItem = menu.addItem(withTitle: "Capture Text", action: #selector(captureText), keyEquivalent: "")
+        qrMenuItem = menu.addItem(withTitle: "Scan QR / Barcode", action: #selector(captureBarcode), keyEquivalent: "")
         menu.addItem(withTitle: "OCR Image File…", action: #selector(showImageOCR), keyEquivalent: "")
         menu.addItem(.separator())
         menu.addItem(withTitle: "History…", action: #selector(showHistory), keyEquivalent: "")
@@ -66,6 +69,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         MASShortcutBinder.shared().bindShortcut(withDefaultsKey: AppPreferences.ShortcutKeys.qr) { [weak self] in
             self?.coordinator.beginCapture(mode: .barcode)
         }
+    }
+
+    /// Keeps the menu's key equivalents in sync with whatever the user last set in
+    /// Preferences; refreshed on every open rather than once, since MASShortcutBinder
+    /// doesn't offer a change callback we can hook here.
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        applyShortcut(forKey: AppPreferences.ShortcutKeys.capture, to: captureMenuItem)
+        applyShortcut(forKey: AppPreferences.ShortcutKeys.qr, to: qrMenuItem)
+    }
+
+    private func applyShortcut(forKey key: String, to item: NSMenuItem) {
+        guard let data = UserDefaults.standard.data(forKey: key),
+              let shortcut = try? NSKeyedUnarchiver.unarchivedObject(ofClass: MASShortcut.self, from: data),
+              let keyEquivalent = shortcut.keyCodeStringForKeyEquivalent else {
+            item.keyEquivalent = ""
+            item.keyEquivalentModifierMask = []
+            return
+        }
+        item.keyEquivalent = keyEquivalent.lowercased()
+        item.keyEquivalentModifierMask = shortcut.modifierFlags
     }
 
     @objc private func captureText() {
