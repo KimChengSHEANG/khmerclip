@@ -32,9 +32,11 @@ final class CaptureCoordinator {
             overlayWindows.append(window)
         }
         NSApp.activate(ignoringOtherApps: true)
+        NSCursor.hide()
     }
 
     private func finishSelection(rect: CGRect?, screen: NSScreen, mode: CaptureMode) {
+        NSCursor.unhide()
         overlayWindows.forEach { $0.orderOut(nil) }
         overlayWindows.removeAll()
 

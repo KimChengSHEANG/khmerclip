@@ -24,6 +24,7 @@ final class SelectionOverlayView: NSView {
     private var dragStart: NSPoint?
     private var currentRect: CGRect = .zero
     private let dimColor = NSColor.black.withAlphaComponent(0.25)
+    private var mouseLocation: NSPoint = .zero
 
     /// Space bar toggles "click a window" mode, same as macOS's own screenshot tool.
     private var isWindowMode = false
@@ -42,29 +43,92 @@ final class SelectionOverlayView: NSView {
         bounds.fill()
 
         if isWindowMode {
-            guard let rect = hoveredWindowRect else { return }
+            if let rect = hoveredWindowRect {
+                NSColor.clear.setFill()
+                rect.fill(using: .copy)
+                NSColor.systemBlue.setStroke()
+                let border = NSBezierPath(rect: rect)
+                border.lineWidth = 2
+                border.stroke()
+            }
+        } else if currentRect != .zero {
             NSColor.clear.setFill()
-            rect.fill(using: .copy)
-            NSColor.systemBlue.setStroke()
-            let border = NSBezierPath(rect: rect)
-            border.lineWidth = 2
+            currentRect.fill(using: .copy)
+
+            NSColor.white.setStroke()
+            let border = NSBezierPath(rect: currentRect)
+            border.lineWidth = 1.5
             border.stroke()
-            return
+
+            drawLabel(String(format: "%.0f × %.0f", currentRect.width, currentRect.height), near: mouseLocation)
         }
 
-        guard currentRect != .zero else { return }
-        NSColor.clear.setFill()
-        currentRect.fill(using: .copy)
-
-        NSColor.white.setStroke()
-        let border = NSBezierPath(rect: currentRect)
-        border.lineWidth = 1.5
-        border.stroke()
+        drawCrosshairCursor()
+        if !isWindowMode && currentRect == .zero {
+            drawCoordinateNumbers()
+        }
     }
 
     override func mouseMoved(with event: NSEvent) {
-        guard isWindowMode else { return }
-        updateHoveredWindow(at: event.locationInWindow)
+        mouseLocation = convert(event.locationInWindow, from: nil)
+        if isWindowMode {
+            updateHoveredWindow(at: event.locationInWindow)
+        } else {
+            needsDisplay = true
+        }
+    }
+
+    /// Draws a target-reticle cursor (circle + crosshair) since the real cursor is hidden during capture.
+    private func drawCrosshairCursor() {
+        let armLength: CGFloat = 16
+        let radius: CGFloat = 5
+
+        NSColor.black.setStroke()
+        let plus = NSBezierPath()
+        plus.lineWidth = 1.5
+        plus.move(to: NSPoint(x: mouseLocation.x - armLength, y: mouseLocation.y))
+        plus.line(to: NSPoint(x: mouseLocation.x + armLength, y: mouseLocation.y))
+        plus.move(to: NSPoint(x: mouseLocation.x, y: mouseLocation.y - armLength))
+        plus.line(to: NSPoint(x: mouseLocation.x, y: mouseLocation.y + armLength))
+        plus.stroke()
+
+        let circleRect = NSRect(x: mouseLocation.x - radius, y: mouseLocation.y - radius, width: radius * 2, height: radius * 2)
+        let circle = NSBezierPath(ovalIn: circleRect)
+        NSColor.white.setFill()
+        // circle.fill()
+        circle.lineWidth = 1.5
+        circle.stroke()
+    }
+
+    /// Shows the pointer's screen-pixel coordinates stacked below the reticle, mirroring macOS's own screenshot tool.
+    private func drawCoordinateNumbers() {
+        guard let screen = window?.screen else { return }
+        let globalAppKitPoint = NSPoint(x: screen.frame.origin.x + mouseLocation.x, y: screen.frame.origin.y + mouseLocation.y)
+        let primaryHeight = NSScreen.screens.first(where: { $0.frame.origin == .zero })?.frame.height ?? screen.frame.height
+        let x = Int(globalAppKitPoint.x)
+        let y = Int(primaryHeight - globalAppKitPoint.y)
+
+        let attributed = NSAttributedString(string: "\(x)\n\(y)", attributes: [
+            .font: NSFont.boldSystemFont(ofSize: 13),
+            .foregroundColor: NSColor.black
+        ])
+        let size = attributed.size()
+        attributed.draw(at: NSPoint(x: mouseLocation.x + 10, y: mouseLocation.y - size.height - 2))
+    }
+
+    private func drawLabel(_ text: String, near point: NSPoint) {
+        let attributed = NSAttributedString(string: text, attributes: [
+            .font: NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .medium),
+            .foregroundColor: NSColor.white
+        ])
+        let padding = NSSize(width: 8, height: 4)
+        let textSize = attributed.size()
+        let origin = NSPoint(x: point.x + 14, y: point.y + 14)
+        let boxRect = NSRect(x: origin.x, y: origin.y, width: textSize.width + padding.width * 2, height: textSize.height + padding.height * 2)
+
+        NSColor.black.withAlphaComponent(0.75).setFill()
+        NSBezierPath(roundedRect: boxRect, xRadius: 4, yRadius: 4).fill()
+        attributed.draw(at: NSPoint(x: boxRect.minX + padding.width, y: boxRect.minY + padding.height))
     }
 
     private func updateHoveredWindow(at locationInWindow: NSPoint) {
@@ -100,6 +164,7 @@ final class SelectionOverlayView: NSView {
     override func mouseDragged(with event: NSEvent) {
         guard !isWindowMode, let start = dragStart else { return }
         let point = convert(event.locationInWindow, from: nil)
+        mouseLocation = point
         currentRect = NSRect(
             x: min(start.x, point.x),
             y: min(start.y, point.y),
