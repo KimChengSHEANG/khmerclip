@@ -231,6 +231,11 @@ final class SelectionOverlayView: NSView {
     }
 
     override var acceptsFirstResponder: Bool { true }
+
+    /// Deliver the very first click to the view even when the overlay isn't the active
+    /// window yet — otherwise macOS eats the first mouseDown just to activate the window,
+    /// forcing the user to click-drag a second time.
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 }
 
 private extension NSPoint {
