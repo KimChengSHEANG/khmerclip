@@ -59,7 +59,7 @@ final class SelectionOverlayView: NSView {
                 border.stroke()
             }
         } else if currentRect != .zero {
-            NSColor.clear.setFill()
+            NSColor.black.withAlphaComponent(0.3).setFill()
             currentRect.fill(using: .copy)
 
             NSColor.white.setStroke()
