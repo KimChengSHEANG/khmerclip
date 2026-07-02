@@ -7,9 +7,12 @@ enum TesseractError: Error {
 }
 
 /// Wraps a vendored, self-contained Tesseract binary (see Vendor/tesseract) to
-/// recognize Khmer script, which Vision cannot recognize at all. The binary and
-/// its dylibs were rewritten with `dylibbundler` to `@executable_path`-relative
-/// install names so it runs without a Homebrew install on the end user's Mac.
+/// recognize Khmer script, which Vision cannot recognize at all. Runs with
+/// `khm+eng` so Khmer text mixed with English (common in real captures, e.g.
+/// "ដក language ផ្សេងទៀត") recognizes correctly instead of just the Khmer runs.
+/// The binary and its dylibs were rewritten with `dylibbundler` to
+/// `@executable_path`-relative install names so it runs without a Homebrew
+/// install on the end user's Mac.
 enum TesseractEngine {
     private static var resourceRoot: URL? {
         Bundle.main.resourceURL?.appendingPathComponent("tesseract", isDirectory: true)
@@ -29,7 +32,7 @@ enum TesseractEngine {
             process.arguments = [
                 imageURL.path, "stdout",
                 "--tessdata-dir", tessdata.path,
-                "-l", "khm",
+                "-l", "khm+eng",
                 "--psm", "6",
             ]
             let outPipe = Pipe()
