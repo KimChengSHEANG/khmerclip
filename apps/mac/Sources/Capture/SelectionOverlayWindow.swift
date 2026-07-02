@@ -85,19 +85,19 @@ final class SelectionOverlayView: NSView {
 
         NSColor.black.setStroke()
         let plus = NSBezierPath()
-        plus.lineWidth = 1.5
+        plus.lineWidth = 1.2
         plus.move(to: NSPoint(x: mouseLocation.x - armLength, y: mouseLocation.y))
         plus.line(to: NSPoint(x: mouseLocation.x + armLength, y: mouseLocation.y))
         plus.move(to: NSPoint(x: mouseLocation.x, y: mouseLocation.y - armLength))
         plus.line(to: NSPoint(x: mouseLocation.x, y: mouseLocation.y + armLength))
         plus.stroke()
 
-        let circleRect = NSRect(x: mouseLocation.x - radius, y: mouseLocation.y - radius, width: radius * 2, height: radius * 2)
-        let circle = NSBezierPath(ovalIn: circleRect)
-        NSColor.white.setFill()
+        // let circleRect = NSRect(x: mouseLocation.x - radius, y: mouseLocation.y - radius, width: radius * 2, height: radius * 2)
+        // let circle = NSBezierPath(ovalIn: circleRect)
+        // NSColor.white.setFill()
         // circle.fill()
-        circle.lineWidth = 1.5
-        circle.stroke()
+        // circle.lineWidth = 1.5
+        // circle.stroke()
     }
 
     /// Shows the pointer's screen-pixel coordinates stacked below the reticle, mirroring macOS's own screenshot tool.
