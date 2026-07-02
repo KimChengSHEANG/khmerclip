@@ -23,7 +23,7 @@ final class SelectionOverlayView: NSView {
 
     private var dragStart: NSPoint?
     private var currentRect: CGRect = .zero
-    private let dimColor = NSColor.black.withAlphaComponent(0.25)
+    private let dimColor = NSColor.clear
     private var mouseLocation: NSPoint = .zero
 
     /// Space bar toggles "click a window" mode, same as macOS's own screenshot tool.
