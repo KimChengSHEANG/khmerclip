@@ -46,7 +46,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let updateItem = menu.addItem(withTitle: "Check for Updates…", action: #selector(SPUStandardUpdaterController.checkForUpdates(_:)), keyEquivalent: "")
         updateItem.target = updaterController
         menu.addItem(.separator())
-        menu.addItem(withTitle: "Quit Netra", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        let quitItem = menu.addItem(withTitle: "Quit Netra", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        quitItem.target = NSApp
 
         for item in menu.items where item.target == nil {
             item.target = self
