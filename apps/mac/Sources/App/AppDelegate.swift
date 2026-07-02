@@ -98,9 +98,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func showPreferences() {
-        NSApp.activate(ignoringOtherApps: true)
-        if #available(macOS 14.0, *) {
-            NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
-        }
+        NotificationCenter.default.post(name: .settingsOpenerRequest, object: nil)
+    }
+
+    // Netra has no Dock icon and lives entirely in the status bar; closing/hiding
+    // its windows (including the hidden Settings-opener window) must never quit it.
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        false
     }
 }
