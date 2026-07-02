@@ -80,8 +80,15 @@ final class SelectionOverlayView: NSView {
 
     /// Draws a target-reticle cursor (circle + crosshair) since the real cursor is hidden during capture.
     private func drawCrosshairCursor() {
-        let armLength: CGFloat = 16
+        let armLength: CGFloat = 12
         let radius: CGFloat = 5
+
+        NSGraphicsContext.saveGraphicsState()
+        let shadow = NSShadow()
+        shadow.shadowColor = NSColor.white.withAlphaComponent(0.9)
+        shadow.shadowBlurRadius = 1.5
+        shadow.shadowOffset = .zero
+        shadow.set()
 
         NSColor.black.setStroke()
         let plus = NSBezierPath()
@@ -91,6 +98,8 @@ final class SelectionOverlayView: NSView {
         plus.move(to: NSPoint(x: mouseLocation.x, y: mouseLocation.y - armLength))
         plus.line(to: NSPoint(x: mouseLocation.x, y: mouseLocation.y + armLength))
         plus.stroke()
+
+        NSGraphicsContext.restoreGraphicsState()
 
         // let circleRect = NSRect(x: mouseLocation.x - radius, y: mouseLocation.y - radius, width: radius * 2, height: radius * 2)
         // let circle = NSBezierPath(ovalIn: circleRect)
@@ -108,9 +117,15 @@ final class SelectionOverlayView: NSView {
         let x = Int(globalAppKitPoint.x)
         let y = Int(primaryHeight - globalAppKitPoint.y)
 
+        let textShadow = NSShadow()
+        textShadow.shadowColor = NSColor.white.withAlphaComponent(0.9)
+        textShadow.shadowBlurRadius = 1.5
+        textShadow.shadowOffset = .zero
+
         let attributed = NSAttributedString(string: "\(x)\n\(y)", attributes: [
             .font: NSFont.boldSystemFont(ofSize: 13),
-            .foregroundColor: NSColor.black
+            .foregroundColor: NSColor.black,
+            .shadow: textShadow
         ])
         let size = attributed.size()
         attributed.draw(at: NSPoint(x: mouseLocation.x + 10, y: mouseLocation.y - size.height - 2))
