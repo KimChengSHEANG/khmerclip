@@ -29,6 +29,8 @@ final class CaptureCoordinator {
             }
             window.contentView = view
             window.makeKeyAndOrderFront(nil)
+            let locationInWindow = window.convertPoint(fromScreen: NSEvent.mouseLocation)
+            view.primeMouseLocation(locationInWindow)
             overlayWindows.append(window)
         }
         NSApp.activate(ignoringOtherApps: true)

@@ -38,6 +38,13 @@ final class SelectionOverlayView: NSView {
 
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
 
+    /// Primes the reticle/coordinate readout with the cursor's current position so they
+    /// render immediately on activation instead of waiting for the first mouse move.
+    func primeMouseLocation(_ locationInWindow: NSPoint) {
+        mouseLocation = convert(locationInWindow, from: nil)
+        needsDisplay = true
+    }
+
     override func draw(_ dirtyRect: NSRect) {
         dimColor.setFill()
         bounds.fill()
