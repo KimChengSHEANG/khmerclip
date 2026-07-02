@@ -1,6 +1,8 @@
 import AppKit
 import SwiftUI
 import Sparkle
+import MASShortcut
+import Carbon.HIToolbox
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -10,8 +12,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var coordinator: CaptureCoordinator!
     private var historyWindowController: NSWindowController?
-    private var captureHotKeyID: UInt32?
-    private var qrHotKeyID: UInt32?
     /// Auto-update via Sparkle. SUFeedURL in Info.plist is a placeholder until
     /// this app has a real hosted appcast — see README "Auto-update" section.
     private let updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
@@ -56,13 +56,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func registerHotKeys() {
-        if let id = captureHotKeyID { HotKeyManager.shared.unregister(id) }
-        if let id = qrHotKeyID { HotKeyManager.shared.unregister(id) }
-
-        captureHotKeyID = HotKeyManager.shared.register(preferences.captureHotKey) { [weak self] in
+        MASShortcutBinder.shared().registerDefaultShortcuts([
+            AppPreferences.ShortcutKeys.capture: MASShortcut(keyCode: Int(kVK_ANSI_2), modifierFlags: [.command, .shift]),
+            AppPreferences.ShortcutKeys.qr: MASShortcut(keyCode: Int(kVK_ANSI_3), modifierFlags: [.command, .shift]),
+        ])
+        MASShortcutBinder.shared().bindShortcut(withDefaultsKey: AppPreferences.ShortcutKeys.capture) { [weak self] in
             self?.coordinator.beginCapture(mode: .text)
         }
-        qrHotKeyID = HotKeyManager.shared.register(preferences.qrHotKey) { [weak self] in
+        MASShortcutBinder.shared().bindShortcut(withDefaultsKey: AppPreferences.ShortcutKeys.qr) { [weak self] in
             self?.coordinator.beginCapture(mode: .barcode)
         }
     }

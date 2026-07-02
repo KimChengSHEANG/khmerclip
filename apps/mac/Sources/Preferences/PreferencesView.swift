@@ -7,11 +7,11 @@ struct PreferencesView: View {
         Form {
             Section("Shortcuts") {
                 LabeledContent("Capture Text") {
-                    HotKeyRecorderView(definition: $preferences.captureHotKey)
+                    HotKeyRecorderView(defaultsKey: AppPreferences.ShortcutKeys.capture)
                         .frame(width: 140, height: 24)
                 }
                 LabeledContent("Scan QR / Barcode") {
-                    HotKeyRecorderView(definition: $preferences.qrHotKey)
+                    HotKeyRecorderView(defaultsKey: AppPreferences.ShortcutKeys.qr)
                         .frame(width: 140, height: 24)
                 }
             }

@@ -14,11 +14,11 @@ final class AppPreferences: ObservableObject {
     @Published var launchAtLogin: Bool {
         didSet { UserDefaults.standard.set(launchAtLogin, forKey: Keys.launchAtLogin) }
     }
-    @Published var captureHotKey: HotKeyDefinition {
-        didSet { HotKeyDefinition.save(captureHotKey, key: Keys.captureHotKey) }
-    }
-    @Published var qrHotKey: HotKeyDefinition {
-        didSet { HotKeyDefinition.save(qrHotKey, key: Keys.qrHotKey) }
+
+    /// Defaults keys MASShortcutView/MASShortcutBinder read and write shortcuts under.
+    enum ShortcutKeys {
+        static let capture = "captureShortcut"
+        static let qr = "qrShortcut"
     }
 
     private enum Keys {
@@ -26,8 +26,6 @@ final class AppPreferences: ObservableObject {
         static let showHUD = "showResultHUD"
         static let playSound = "playCaptureSound"
         static let launchAtLogin = "launchAtLogin"
-        static let captureHotKey = "captureHotKey"
-        static let qrHotKey = "qrHotKey"
     }
 
     init() {
@@ -36,7 +34,5 @@ final class AppPreferences: ObservableObject {
         self.showResultHUD = defaults.object(forKey: Keys.showHUD) as? Bool ?? true
         self.playCaptureSound = defaults.object(forKey: Keys.playSound) as? Bool ?? true
         self.launchAtLogin = defaults.object(forKey: Keys.launchAtLogin) as? Bool ?? false
-        self.captureHotKey = HotKeyDefinition.load(key: Keys.captureHotKey) ?? .defaultCapture
-        self.qrHotKey = HotKeyDefinition.load(key: Keys.qrHotKey) ?? .defaultQR
     }
 }
