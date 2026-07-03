@@ -49,3 +49,15 @@ targets:
     dependencies:
       - package: Sparkle
       - package: MASShortcut
+  NetraTests:
+    type: bundle.unit-test
+    platform: macOS
+    # Compiles the units under test directly (no TEST_HOST) so the suite runs as a
+    # pure logic test without launching the menu-bar app.
+    sources:
+      - path: Tests
+      - path: Sources/Capture/WindowPicker.swift
+      - path: Sources/History/ScanRecord.swift
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.netra.tests

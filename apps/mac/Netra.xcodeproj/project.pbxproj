@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		01B45B44B75447DAA9DB1059 /* NetraApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E318246702684E7C473C851F /* NetraApp.swift */; };
 		06DC4E2CF01B2AFD241D9DA0 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B24F19B32DB2190019D650BA /* AppDelegate.swift */; };
+		0B6660B0196176E5ECAC269B /* GeometryAndRecordTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A69FC4F2C9E5A305ADA03727 /* GeometryAndRecordTests.swift */; };
 		12083B8F071A1F89B68490A3 /* TranslateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47E36CDB1F326EC32C8B7572 /* TranslateView.swift */; };
 		31B3AF742DCB441FA4B832BA /* PreferencesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FD7348892426E9088F11C07 /* PreferencesView.swift */; };
 		3C23AAC57068AD4AE4A06AA1 /* ImageOCRWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9B6C5374AADE21ACFD15ADF /* ImageOCRWindowController.swift */; };
@@ -17,10 +18,12 @@
 		5D144F4590D8E3063AD1ABA6 /* ScanRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6E0FAE4282B7CB8CD4331AF /* ScanRecord.swift */; };
 		66B5812E684DFDEC33BFF826 /* ScanHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F88AB38935130B38B2580AAC /* ScanHistoryStore.swift */; };
 		80F95C5E61F3793035AA70CA /* AppPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B3BF3CB6EED8CA2C72DFD74 /* AppPreferences.swift */; };
+		8519A02C6447DD4FB5582DAE /* ScanRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6E0FAE4282B7CB8CD4331AF /* ScanRecord.swift */; };
 		8A03802237D6F3C22BF6C9FE /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CECE5005AEBA53A7CE686E7 /* HistoryView.swift */; };
 		A00D5ED8759C56DA74C07F07 /* TesseractEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 837848A981D0E03F56C52F75 /* TesseractEngine.swift */; };
 		A2A088FE6652C78B4A2A22C9 /* TextToSpeechManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50924C5D172C4322EE440A30 /* TextToSpeechManager.swift */; };
 		A2BEC1057F2444968969255A /* tesseract in Resources */ = {isa = PBXBuildFile; fileRef = DA9A61D7F9815167F181D3ED /* tesseract */; };
+		A93A33E626C0E791559B703E /* WindowPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57F7EA89BA2B0EC29E64CAB8 /* WindowPicker.swift */; };
 		AC0097F7638A018745C771ED /* ScreenCaptureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50422FD55F46CE60DDBA3DF8 /* ScreenCaptureManager.swift */; };
 		ACDFF3A75386B102B3C8F4A9 /* WindowPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57F7EA89BA2B0EC29E64CAB8 /* WindowPicker.swift */; };
 		B61A344DB4DB1C11DE664ADD /* ClipboardManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E1648ABF5DBC83A3DAC194B /* ClipboardManager.swift */; };
@@ -45,9 +48,11 @@
 		50422FD55F46CE60DDBA3DF8 /* ScreenCaptureManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenCaptureManager.swift; sourceTree = "<group>"; };
 		50924C5D172C4322EE440A30 /* TextToSpeechManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextToSpeechManager.swift; sourceTree = "<group>"; };
 		57F7EA89BA2B0EC29E64CAB8 /* WindowPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowPicker.swift; sourceTree = "<group>"; };
+		669B58EA0BF8362E8BD414AA /* NetraTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NetraTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		837848A981D0E03F56C52F75 /* TesseractEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TesseractEngine.swift; sourceTree = "<group>"; };
 		93F2AC4E68C32A14E160C83A /* HotKeyRecorderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotKeyRecorderView.swift; sourceTree = "<group>"; };
 		9B3BF3CB6EED8CA2C72DFD74 /* AppPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPreferences.swift; sourceTree = "<group>"; };
+		A69FC4F2C9E5A305ADA03727 /* GeometryAndRecordTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeometryAndRecordTests.swift; sourceTree = "<group>"; };
 		A8405238C0EECCF962ACB67E /* BarcodeEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarcodeEngine.swift; sourceTree = "<group>"; };
 		A9B6C5374AADE21ACFD15ADF /* ImageOCRWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageOCRWindowController.swift; sourceTree = "<group>"; };
 		AE13C3A4B2A8BCB04C8224FE /* Netra.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Netra.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -109,6 +114,14 @@
 			path = History;
 			sourceTree = "<group>";
 		};
+		2BC48FC5B0D6F6D714922FA4 /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				A69FC4F2C9E5A305ADA03727 /* GeometryAndRecordTests.swift */,
+			);
+			path = Tests;
+			sourceTree = "<group>";
+		};
 		3E8696CED90452192F360D16 /* Barcode */ = {
 			isa = PBXGroup;
 			children = (
@@ -147,6 +160,7 @@
 				DA9A61D7F9815167F181D3ED /* tesseract */,
 				A721FC19E1044B0AD7538A16 /* Resources */,
 				A6649EE317E4EF431C436F93 /* Sources */,
+				2BC48FC5B0D6F6D714922FA4 /* Tests */,
 				F50BBD9382588A885FA8D2EC /* Products */,
 			);
 			sourceTree = "<group>";
@@ -208,6 +222,7 @@
 			isa = PBXGroup;
 			children = (
 				AE13C3A4B2A8BCB04C8224FE /* Netra.app */,
+				669B58EA0BF8362E8BD414AA /* NetraTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -235,6 +250,23 @@
 			productName = Netra;
 			productReference = AE13C3A4B2A8BCB04C8224FE /* Netra.app */;
 			productType = "com.apple.product-type.application";
+		};
+		BD2239E64949036F5727B643 /* NetraTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5D00E120993382900B3B02CD /* Build configuration list for PBXNativeTarget "NetraTests" */;
+			buildPhases = (
+				56D74BB00C286498AD9A35FD /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = NetraTests;
+			packageProductDependencies = (
+			);
+			productName = NetraTests;
+			productReference = 669B58EA0BF8362E8BD414AA /* NetraTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
 
@@ -269,6 +301,7 @@
 			projectRoot = "";
 			targets = (
 				952C2F9B5C411C51A0363FEF /* Netra */,
+				BD2239E64949036F5727B643 /* NetraTests */,
 			);
 		};
 /* End PBXProject section */
@@ -314,6 +347,16 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		56D74BB00C286498AD9A35FD /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0B6660B0196176E5ECAC269B /* GeometryAndRecordTests.swift in Sources */,
+				8519A02C6447DD4FB5582DAE /* ScanRecord.swift in Sources */,
+				A93A33E626C0E791559B703E /* WindowPicker.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
@@ -335,6 +378,21 @@
 				SDKROOT = macosx;
 			};
 			name = Debug;
+		};
+		88A4211FEB7BEBED1F728C18 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.netra.tests;
+				SDKROOT = macosx;
+			};
+			name = Release;
 		};
 		9B1F42C197EF17B4CB10CF55 /* Release */ = {
 			isa = XCBuildConfiguration;
@@ -474,6 +532,21 @@
 			};
 			name = Debug;
 		};
+		DC2E2D1937F3E1EA5DCE33DC /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.netra.tests;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -491,6 +564,15 @@
 			buildConfigurations = (
 				1A2264F95F7A5989600EE872 /* Debug */,
 				B2CCDF55BF39F448E757AC19 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		5D00E120993382900B3B02CD /* Build configuration list for PBXNativeTarget "NetraTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DC2E2D1937F3E1EA5DCE33DC /* Debug */,
+				88A4211FEB7BEBED1F728C18 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
