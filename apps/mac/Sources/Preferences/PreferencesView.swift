@@ -10,10 +10,6 @@ struct PreferencesView: View {
                     HotKeyRecorderView(defaultsKey: AppPreferences.ShortcutKeys.capture)
                         .frame(width: 140, height: 24)
                 }
-                LabeledContent("Scan QR / Barcode") {
-                    HotKeyRecorderView(defaultsKey: AppPreferences.ShortcutKeys.qr)
-                        .frame(width: 140, height: 24)
-                }
             }
 
             Section("Behavior") {

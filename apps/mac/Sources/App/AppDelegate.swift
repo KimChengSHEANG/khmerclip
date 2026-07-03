@@ -13,7 +13,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var coordinator: CaptureCoordinator!
     private var historyWindowController: NSWindowController?
     private var captureMenuItem: NSMenuItem!
-    private var qrMenuItem: NSMenuItem!
     /// Auto-update via Sparkle. SUFeedURL in Info.plist is a placeholder until
     /// this app has a real hosted appcast — see README "Auto-update" section.
     private let updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
@@ -39,8 +38,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let menu = NSMenu()
         menu.delegate = self
         captureMenuItem = menu.addItem(withTitle: "Capture Text", action: #selector(captureText), keyEquivalent: "")
-        qrMenuItem = menu.addItem(withTitle: "Scan QR / Barcode", action: #selector(captureBarcode), keyEquivalent: "")
-        menu.addItem(withTitle: "OCR Image File…", action: #selector(showImageOCR), keyEquivalent: "")
         menu.addItem(.separator())
         menu.addItem(withTitle: "History…", action: #selector(showHistory), keyEquivalent: "")
         menu.addItem(withTitle: "Preferences…", action: #selector(showPreferences), keyEquivalent: ",")
@@ -61,13 +58,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func registerHotKeys() {
         MASShortcutBinder.shared().registerDefaultShortcuts([
             AppPreferences.ShortcutKeys.capture: MASShortcut(keyCode: Int(kVK_ANSI_6), modifierFlags: [.command, .shift]),
-            AppPreferences.ShortcutKeys.qr: MASShortcut(keyCode: Int(kVK_ANSI_7), modifierFlags: [.command, .shift]),
         ])
         MASShortcutBinder.shared().bindShortcut(withDefaultsKey: AppPreferences.ShortcutKeys.capture) { [weak self] in
             self?.coordinator.beginCapture(mode: .text)
-        }
-        MASShortcutBinder.shared().bindShortcut(withDefaultsKey: AppPreferences.ShortcutKeys.qr) { [weak self] in
-            self?.coordinator.beginCapture(mode: .barcode)
         }
     }
 
@@ -76,7 +69,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// doesn't offer a change callback we can hook here.
     func menuNeedsUpdate(_ menu: NSMenu) {
         applyShortcut(forKey: AppPreferences.ShortcutKeys.capture, to: captureMenuItem)
-        applyShortcut(forKey: AppPreferences.ShortcutKeys.qr, to: qrMenuItem)
     }
 
     private func applyShortcut(forKey key: String, to item: NSMenuItem) {
@@ -95,16 +87,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         coordinator.beginCapture(mode: .text)
     }
 
-    @objc private func captureBarcode() {
-        coordinator.beginCapture(mode: .barcode)
-    }
-
     @objc private func showOnboarding() {
         OnboardingWindowPresenter.show()
-    }
-
-    @objc private func showImageOCR() {
-        ImageOCRWindowPresenter.show(coordinator: coordinator)
     }
 
     @objc private func showHistory() {
