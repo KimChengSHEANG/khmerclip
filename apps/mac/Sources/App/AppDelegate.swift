@@ -57,7 +57,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func registerHotKeys() {
         MASShortcutBinder.shared().registerDefaultShortcuts([
-            AppPreferences.ShortcutKeys.capture: MASShortcut(keyCode: Int(kVK_ANSI_6), modifierFlags: [.command, .shift]),
+            AppPreferences.ShortcutKeys.capture: MASShortcut(keyCode: Int(kVK_ANSI_7), modifierFlags: [.command, .shift]),
         ])
         MASShortcutBinder.shared().bindShortcut(withDefaultsKey: AppPreferences.ShortcutKeys.capture) { [weak self] in
             self?.coordinator.beginCapture(mode: .text)

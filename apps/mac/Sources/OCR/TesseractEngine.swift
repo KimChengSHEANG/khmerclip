@@ -14,8 +14,14 @@ enum TesseractError: Error {
 /// `@executable_path`-relative install names so it runs without a Homebrew
 /// install on the end user's Mac.
 enum TesseractEngine {
+    /// Points at the folder containing `bin/tesseract` + `tessdata`. Normally the
+    /// app's bundled `tesseract` resource; tests set this to the repo's
+    /// `Vendor/tesseract` so OCR can run in a hostless test bundle (no Bundle.main).
+    static var resourceRootOverride: URL?
+
     private static var resourceRoot: URL? {
-        Bundle.main.resourceURL?.appendingPathComponent("tesseract", isDirectory: true)
+        resourceRootOverride
+            ?? Bundle.main.resourceURL?.appendingPathComponent("tesseract", isDirectory: true)
     }
 
     static func recognizeText(in image: CGImage) async throws -> String {

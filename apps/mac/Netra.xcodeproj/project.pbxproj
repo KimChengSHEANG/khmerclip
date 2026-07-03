@@ -11,7 +11,10 @@
 		06DC4E2CF01B2AFD241D9DA0 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B24F19B32DB2190019D650BA /* AppDelegate.swift */; };
 		0B6660B0196176E5ECAC269B /* GeometryAndRecordTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A69FC4F2C9E5A305ADA03727 /* GeometryAndRecordTests.swift */; };
 		12083B8F071A1F89B68490A3 /* TranslateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47E36CDB1F326EC32C8B7572 /* TranslateView.swift */; };
+		22BF6762FA1A28930F727B44 /* 1.txt in Resources */ = {isa = PBXBuildFile; fileRef = 5FBC70ACE291463E59B303D4 /* 1.txt */; };
 		31B3AF742DCB441FA4B832BA /* PreferencesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FD7348892426E9088F11C07 /* PreferencesView.swift */; };
+		35D1966AD815EDED69139CC8 /* TesseractEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 837848A981D0E03F56C52F75 /* TesseractEngine.swift */; };
+		3BE07988DB5B5C5EC36D90AA /* 1.png in Resources */ = {isa = PBXBuildFile; fileRef = E2A7C9AB5FC2CC46036C8982 /* 1.png */; };
 		3C23AAC57068AD4AE4A06AA1 /* ImageOCRWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9B6C5374AADE21ACFD15ADF /* ImageOCRWindowController.swift */; };
 		434CA04E6740FF29E1D41EB2 /* LaunchAtLoginManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A72B1C0356671FBE2C5747 /* LaunchAtLoginManager.swift */; };
 		5AB9775D966FAE0D1687B2B0 /* CaptureCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2B3439D9E37DDAF6B30596A /* CaptureCoordinator.swift */; };
@@ -26,6 +29,7 @@
 		A93A33E626C0E791559B703E /* WindowPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57F7EA89BA2B0EC29E64CAB8 /* WindowPicker.swift */; };
 		AC0097F7638A018745C771ED /* ScreenCaptureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50422FD55F46CE60DDBA3DF8 /* ScreenCaptureManager.swift */; };
 		ACDFF3A75386B102B3C8F4A9 /* WindowPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57F7EA89BA2B0EC29E64CAB8 /* WindowPicker.swift */; };
+		AF877CE63C59D6DDC8E231C4 /* OCRTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD837C4E8A5F5A0F243102C3 /* OCRTests.swift */; };
 		B61A344DB4DB1C11DE664ADD /* ClipboardManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E1648ABF5DBC83A3DAC194B /* ClipboardManager.swift */; };
 		B8E6F922BA40BBDF148CB850 /* SelectionOverlayWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = D34C0EFAD6107D55B0205A71 /* SelectionOverlayWindow.swift */; };
 		BCE30AB2B80631891D84500B /* MASShortcut in Frameworks */ = {isa = PBXBuildFile; productRef = 395397FE0D27358A466D5104 /* MASShortcut */; };
@@ -48,6 +52,7 @@
 		50422FD55F46CE60DDBA3DF8 /* ScreenCaptureManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenCaptureManager.swift; sourceTree = "<group>"; };
 		50924C5D172C4322EE440A30 /* TextToSpeechManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextToSpeechManager.swift; sourceTree = "<group>"; };
 		57F7EA89BA2B0EC29E64CAB8 /* WindowPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowPicker.swift; sourceTree = "<group>"; };
+		5FBC70ACE291463E59B303D4 /* 1.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = 1.txt; sourceTree = "<group>"; };
 		669B58EA0BF8362E8BD414AA /* NetraTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NetraTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		837848A981D0E03F56C52F75 /* TesseractEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TesseractEngine.swift; sourceTree = "<group>"; };
 		93F2AC4E68C32A14E160C83A /* HotKeyRecorderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotKeyRecorderView.swift; sourceTree = "<group>"; };
@@ -58,8 +63,10 @@
 		AE13C3A4B2A8BCB04C8224FE /* Netra.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Netra.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B24F19B32DB2190019D650BA /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		C2A72B1C0356671FBE2C5747 /* LaunchAtLoginManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginManager.swift; sourceTree = "<group>"; };
+		CD837C4E8A5F5A0F243102C3 /* OCRTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCRTests.swift; sourceTree = "<group>"; };
 		D34C0EFAD6107D55B0205A71 /* SelectionOverlayWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectionOverlayWindow.swift; sourceTree = "<group>"; };
 		DA9A61D7F9815167F181D3ED /* tesseract */ = {isa = PBXFileReference; lastKnownFileType = folder; name = tesseract; path = Vendor/tesseract; sourceTree = SOURCE_ROOT; };
+		E2A7C9AB5FC2CC46036C8982 /* 1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = 1.png; sourceTree = "<group>"; };
 		E318246702684E7C473C851F /* NetraApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetraApp.swift; sourceTree = "<group>"; };
 		E6E0FAE4282B7CB8CD4331AF /* ScanRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanRecord.swift; sourceTree = "<group>"; };
 		F2B3439D9E37DDAF6B30596A /* CaptureCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureCoordinator.swift; sourceTree = "<group>"; };
@@ -118,6 +125,8 @@
 			isa = PBXGroup;
 			children = (
 				A69FC4F2C9E5A305ADA03727 /* GeometryAndRecordTests.swift */,
+				CD837C4E8A5F5A0F243102C3 /* OCRTests.swift */,
+				8064F3823E61D788C71EB1C4 /* Fixtures */,
 			);
 			path = Tests;
 			sourceTree = "<group>";
@@ -154,6 +163,14 @@
 			path = LaunchAtLogin;
 			sourceTree = "<group>";
 		};
+		8064F3823E61D788C71EB1C4 /* Fixtures */ = {
+			isa = PBXGroup;
+			children = (
+				9C9B95CFE16FA7EE60617196 /* ocr */,
+			);
+			path = Fixtures;
+			sourceTree = "<group>";
+		};
 		9676B5B4C96367CB82238F90 = {
 			isa = PBXGroup;
 			children = (
@@ -163,6 +180,15 @@
 				2BC48FC5B0D6F6D714922FA4 /* Tests */,
 				F50BBD9382588A885FA8D2EC /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		9C9B95CFE16FA7EE60617196 /* ocr */ = {
+			isa = PBXGroup;
+			children = (
+				E2A7C9AB5FC2CC46036C8982 /* 1.png */,
+				5FBC70ACE291463E59B303D4 /* 1.txt */,
+			);
+			path = ocr;
 			sourceTree = "<group>";
 		};
 		A6649EE317E4EF431C436F93 /* Sources */ = {
@@ -256,6 +282,7 @@
 			buildConfigurationList = 5D00E120993382900B3B02CD /* Build configuration list for PBXNativeTarget "NetraTests" */;
 			buildPhases = (
 				56D74BB00C286498AD9A35FD /* Sources */,
+				643537F08F6063FA3F963D91 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -316,6 +343,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		643537F08F6063FA3F963D91 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3BE07988DB5B5C5EC36D90AA /* 1.png in Resources */,
+				22BF6762FA1A28930F727B44 /* 1.txt in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -352,7 +388,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				0B6660B0196176E5ECAC269B /* GeometryAndRecordTests.swift in Sources */,
+				AF877CE63C59D6DDC8E231C4 /* OCRTests.swift in Sources */,
 				8519A02C6447DD4FB5582DAE /* ScanRecord.swift in Sources */,
+				35D1966AD815EDED69139CC8 /* TesseractEngine.swift in Sources */,
 				A93A33E626C0E791559B703E /* WindowPicker.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

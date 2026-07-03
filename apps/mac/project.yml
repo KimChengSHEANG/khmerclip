@@ -58,6 +58,10 @@ targets:
       - path: Tests
       - path: Sources/Capture/WindowPicker.swift
       - path: Sources/History/ScanRecord.swift
+      - path: Sources/OCR/TesseractEngine.swift
+      # The vendored tesseract binary + tessdata the OCR test spawns. The test
+      # points TesseractEngine at Vendor/tesseract directly, so this need not be
+      # bundled — kept out of sources on purpose.
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.netra.tests
