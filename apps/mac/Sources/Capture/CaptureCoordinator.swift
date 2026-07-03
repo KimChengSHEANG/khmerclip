@@ -19,13 +19,13 @@ final class CaptureCoordinator {
         self.historyStore = historyStore
     }
 
-    func beginCapture(mode: CaptureMode) {
+    func beginCapture(mode: CaptureMode, saveFixture: Bool = false) {
         guard overlayWindows.isEmpty else { return }
         for screen in NSScreen.screens {
             let window = SelectionOverlayWindow(screen: screen)
             let view = SelectionOverlayView(frame: screen.frame)
             view.onComplete = { [weak self] rect in
-                self?.finishSelection(rect: rect, screen: screen, mode: mode)
+                self?.finishSelection(rect: rect, screen: screen, mode: mode, saveFixture: saveFixture)
             }
             window.contentView = view
             window.makeKeyAndOrderFront(nil)
@@ -37,7 +37,7 @@ final class CaptureCoordinator {
         NSCursor.hide()
     }
 
-    private func finishSelection(rect: CGRect?, screen: NSScreen, mode: CaptureMode) {
+    private func finishSelection(rect: CGRect?, screen: NSScreen, mode: CaptureMode, saveFixture: Bool = false) {
         NSCursor.unhide()
         overlayWindows.forEach { $0.orderOut(nil) }
         overlayWindows.removeAll()
@@ -51,7 +51,13 @@ final class CaptureCoordinator {
             guard let self else { return }
             do {
                 let image = try await ScreenCaptureManager.captureImage(of: rect, screen: screen)
-                try await self.recognize(image: image, mode: mode)
+                if saveFixture {
+                    let text = try await TesseractEngine.recognizeText(in: image)
+                    try self.writeFixture(image: image, text: text)
+                    await self.handleResult(text: text, kind: .text)
+                } else {
+                    try await self.recognize(image: image, mode: mode)
+                }
             } catch {
                 await self.handleFailure(error)
             }
@@ -91,5 +97,32 @@ final class CaptureCoordinator {
 
     private func handleFailure(_ error: Error) async {
         hudWindowController = HUDWindowController.showMessage("Capture failed: \(error.localizedDescription)")
+    }
+
+    /// Dev-only: dumps the capture plus its OCR text into the repo's OCR fixtures
+    /// so a new regression case can be added with one hotkey. Uses #filePath to
+    /// locate the source tree, so it only writes anything on the dev machine.
+    /// Ordinal starts at 3 and continues past the highest existing `<n>.png`.
+    private func writeFixture(image: CGImage, text: String) throws {
+        let dir = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()   // Sources/Capture
+            .deletingLastPathComponent()   // Sources
+            .deletingLastPathComponent()   // repo root
+            .appendingPathComponent("Tests/Fixtures/ocr")
+        let fm = FileManager.default
+        try fm.createDirectory(at: dir, withIntermediateDirectories: true)
+
+        let existing = (try? fm.contentsOfDirectory(atPath: dir.path)) ?? []
+        let maxOrdinal = existing
+            .filter { $0.hasSuffix(".png") }
+            .compactMap { Int($0.dropLast(4)) }
+            .max() ?? 0
+        let index = max(3, maxOrdinal + 1)
+
+        guard let png = NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:]) else {
+            throw CocoaError(.fileWriteUnknown)
+        }
+        try png.write(to: dir.appendingPathComponent("\(index).png"))
+        try text.write(to: dir.appendingPathComponent("\(index).txt"), atomically: true, encoding: .utf8)
     }
 }

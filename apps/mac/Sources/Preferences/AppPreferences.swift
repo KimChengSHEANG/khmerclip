@@ -18,6 +18,7 @@ final class AppPreferences: ObservableObject {
     /// Defaults keys MASShortcutView/MASShortcutBinder read and write shortcuts under.
     enum ShortcutKeys {
         static let capture = "captureShortcut"
+        static let captureFixture = "captureFixtureShortcut"
         static let qr = "qrShortcut"
     }
 
