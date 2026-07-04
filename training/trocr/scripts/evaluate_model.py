@@ -3,9 +3,9 @@ import argparse
 import evaluate
 import torch
 from datasets import load_dataset
-from transformers import Seq2SeqTrainer, Seq2SeqTrainingArguments, TrOCRProcessor, VisionEncoderDecoderModel
+from transformers import Seq2SeqTrainer, Seq2SeqTrainingArguments, VisionEncoderDecoderModel
 
-from trocr_khmer import MAX_LABEL_LEN, OCRDataset, build_compute_metrics
+from trocr_khmer import MAX_LABEL_LEN, OCRDataset, build_compute_metrics, load_trocr_processor
 
 MODEL_NAME = "microsoft/trocr-base-printed"
 
@@ -27,7 +27,7 @@ def main():
     if args.max_eval_samples is not None:
         split["test"] = split["test"].select(range(min(args.max_eval_samples, len(split["test"]))))
 
-    processor = TrOCRProcessor.from_pretrained(args.model_dir)
+    processor = load_trocr_processor(args.model_dir)
     model = VisionEncoderDecoderModel.from_pretrained(args.model_dir)
 
     model.config.decoder_start_token_id = processor.tokenizer.cls_token_id

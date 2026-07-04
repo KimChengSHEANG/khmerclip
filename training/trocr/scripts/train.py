@@ -13,11 +13,10 @@ from datasets import load_dataset
 from transformers import (
     Seq2SeqTrainer,
     Seq2SeqTrainingArguments,
-    TrOCRProcessor,
     VisionEncoderDecoderModel,
 )
 
-from trocr_khmer import MAX_LABEL_LEN, OCRDataset, build_compute_metrics
+from trocr_khmer import MAX_LABEL_LEN, OCRDataset, build_compute_metrics, load_trocr_processor
 
 MODEL_NAME = "microsoft/trocr-base-printed"
 
@@ -46,7 +45,7 @@ def main():
         dataset = load_dataset("SoyVitou/62k-images-khmer-printed-dataset", split="train")
     split = dataset.train_test_split(test_size=0.03, seed=42)
 
-    processor = TrOCRProcessor.from_pretrained(MODEL_NAME)
+    processor = load_trocr_processor(MODEL_NAME)
     model = VisionEncoderDecoderModel.from_pretrained(MODEL_NAME)
 
     model.config.decoder_start_token_id = processor.tokenizer.cls_token_id

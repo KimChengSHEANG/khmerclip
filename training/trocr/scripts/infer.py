@@ -6,7 +6,9 @@ import sys
 
 import torch
 from PIL import Image
-from transformers import TrOCRProcessor, VisionEncoderDecoderModel
+from transformers import VisionEncoderDecoderModel
+
+from trocr_khmer import load_trocr_processor
 
 
 def main():
@@ -16,7 +18,7 @@ def main():
     model_dir, image_paths = sys.argv[1], sys.argv[2:]
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    processor = TrOCRProcessor.from_pretrained(model_dir)
+    processor = load_trocr_processor(model_dir)
     model = VisionEncoderDecoderModel.from_pretrained(model_dir).to(device).eval()
 
     images = [Image.open(p).convert("RGB") for p in image_paths]

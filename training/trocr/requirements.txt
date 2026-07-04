@@ -1,4 +1,4 @@
-transformers>=4.41
+transformers>=4.41,<5
 datasets>=2.19
 evaluate
 jiwer

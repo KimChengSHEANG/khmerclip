@@ -67,3 +67,4 @@ runs/
 
 # Logs
 *.log
+.python-version

@@ -9,7 +9,7 @@ description = "Fine-tune TrOCR for Khmer printed text OCR"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "transformers>=4.40.0",
+    "transformers>=4.40.0,<5",
     "datasets>=2.18.0",
     "evaluate>=0.4.0",
     "pillow>=10.0.0",
