@@ -37,11 +37,13 @@ enum TrOCREngine {
     static func recognizeText(
         in image: CGImage,
         model size: TrOCRModelSize,
-        progress: (@MainActor (Double) -> Void)? = nil
+        progress: (@MainActor (OCRProgress) -> Void)? = nil
     ) async throws -> String {
         guard let root = resourceRoot else { throw TrOCRError.resourceMissing(size) }
+        await progress?(.loadingModel)
         let (encoder, decoder, tokenizer) = try await ModelCache.shared.models(for: size, resourceRoot: root)
 
+        await progress?(.encoding)
         let pixelValues = try preprocess(image: image)
         let encoderOutput = try await encoder.prediction(from: MLDictionaryFeatureProvider(dictionary: [
             "pixel_values": MLFeatureValue(multiArray: pixelValues),
@@ -52,6 +54,7 @@ enum TrOCREngine {
 
         var ids = [tokenizer.decoderStartId]
         while ids.count < maxLength {
+            try Task.checkCancellation()
             let inputIds = try MLMultiArray(shape: [1, NSNumber(value: ids.count)], dataType: .int32)
             let idsPtr = inputIds.dataPointer.bindMemory(to: Int32.self, capacity: ids.count)
             for (i, id) in ids.enumerated() { idsPtr[i] = Int32(id) }
@@ -65,7 +68,7 @@ enum TrOCREngine {
             }
             let nextId = argmaxLastStep(logits)
             ids.append(nextId)
-            await progress?(Double(ids.count) / Double(maxLength))
+            await progress?(.reading(Double(ids.count) / Double(maxLength)))
             if nextId == tokenizer.eosId { break }
         }
 

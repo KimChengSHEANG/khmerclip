@@ -47,12 +47,19 @@ protocol OCREngine {
 
 extension TesseractEngine: OCREngine {}
 
+/// A phase + optional completion fraction for the OCR progress box.
+/// `fraction == nil` means indeterminate (spinner); otherwise 0...1.
+struct OCRProgress {
+    var label: String
+    var fraction: Double?
+}
+
 enum OCRDispatcher {
     static func recognizeText(
         in image: CGImage,
         engine: OCREngineKind,
         trocrModel: TrOCRModelSize,
-        progress: (@MainActor (Double) -> Void)? = nil
+        progress: (@MainActor (OCRProgress) -> Void)? = nil
     ) async throws -> String {
         switch engine {
         case .tesseract:
@@ -60,5 +67,14 @@ enum OCRDispatcher {
         case .trocr:
             return try await TrOCREngine.recognizeText(in: image, model: trocrModel, progress: progress)
         }
+    }
+}
+
+extension OCRProgress {
+    static let preparing = OCRProgress(label: "Preparing…", fraction: nil)
+    static let loadingModel = OCRProgress(label: "Loading model…", fraction: nil)
+    static let encoding = OCRProgress(label: "Encoding image…", fraction: nil)
+    static func reading(_ fraction: Double) -> OCRProgress {
+        OCRProgress(label: "Reading text…", fraction: fraction)
     }
 }

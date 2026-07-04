@@ -56,10 +56,12 @@
 		E356C828D7BF328078573646 /* 6.png in Resources */ = {isa = PBXBuildFile; fileRef = 5D50B189EBD2C7F38B8DE09E /* 6.png */; };
 		E61F8BEB4288E60F6737827F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F828F587D7C194B80DA51096 /* Assets.xcassets */; };
 		E765D897483A794C48BB5C41 /* 3.png in Resources */ = {isa = PBXBuildFile; fileRef = E0B7659CE9629C4236D88C49 /* 3.png */; };
+		F5B47F796457AC5CC5D9476A /* OCRProgressController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 021F2413951426CD798536F1 /* OCRProgressController.swift */; };
 		F9DB21D81D3A1D706CEF4C7D /* HUDWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36B52B6956E0525600C49413 /* HUDWindowController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		021F2413951426CD798536F1 /* OCRProgressController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCRProgressController.swift; sourceTree = "<group>"; };
 		022D0C312D3E5E5E1DFAB0BD /* OnboardingWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingWindowController.swift; sourceTree = "<group>"; };
 		0348B7CE680ADAB92F8C3DD3 /* 4.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = 4.png; sourceTree = "<group>"; };
 		0E1648ABF5DBC83A3DAC194B /* ClipboardManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardManager.swift; sourceTree = "<group>"; };
@@ -128,6 +130,7 @@
 				0E1648ABF5DBC83A3DAC194B /* ClipboardManager.swift */,
 				36B52B6956E0525600C49413 /* HUDWindowController.swift */,
 				A9B6C5374AADE21ACFD15ADF /* ImageOCRWindowController.swift */,
+				021F2413951426CD798536F1 /* OCRProgressController.swift */,
 				50422FD55F46CE60DDBA3DF8 /* ScreenCaptureManager.swift */,
 				D34C0EFAD6107D55B0205A71 /* SelectionOverlayWindow.swift */,
 				57F7EA89BA2B0EC29E64CAB8 /* WindowPicker.swift */,
@@ -430,6 +433,7 @@
 				434CA04E6740FF29E1D41EB2 /* LaunchAtLoginManager.swift in Sources */,
 				01B45B44B75447DAA9DB1059 /* NetraApp.swift in Sources */,
 				56A3AA0B8C148A20B1CCC7F0 /* OCREngine.swift in Sources */,
+				F5B47F796457AC5CC5D9476A /* OCRProgressController.swift in Sources */,
 				CDBF18EC9785589E257A06B4 /* OnboardingWindowController.swift in Sources */,
 				31B3AF742DCB441FA4B832BA /* PreferencesView.swift in Sources */,
 				66B5812E684DFDEC33BFF826 /* ScanHistoryStore.swift in Sources */,

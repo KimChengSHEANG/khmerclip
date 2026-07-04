@@ -13,10 +13,16 @@ final class CaptureCoordinator {
     private let preferences: AppPreferences
     private let historyStore: ScanHistoryStore
     private var hudWindowController: HUDWindowController?
+    private var recognitionTask: Task<Void, Never>?
 
-    /// Reports OCR progress (0...1) for display in the menubar; nil means idle.
-    /// Only TrOCR reports meaningful progress -- Tesseract runs fast enough not to need it.
-    var onOCRProgress: (@MainActor (Double?) -> Void)?
+    /// Drives the bottom-of-screen progress box; nil means idle (tear down).
+    /// Only TrOCR reports phases -- Tesseract runs fast enough not to need it.
+    var onOCRProgress: (@MainActor (OCRProgress?) -> Void)?
+
+    /// Cancels an in-flight recognition (from the progress box's Cancel button).
+    func cancelCapture() {
+        recognitionTask?.cancel()
+    }
 
     init(preferences: AppPreferences, historyStore: ScanHistoryStore) {
         self.preferences = preferences
@@ -51,7 +57,7 @@ final class CaptureCoordinator {
             NSSound(named: "Grab")?.play()
         }
 
-        Task { [weak self] in
+        recognitionTask = Task { [weak self] in
             guard let self else { return }
             do {
                 let image = try await ScreenCaptureManager.captureImage(of: rect, screen: screen)
@@ -62,6 +68,8 @@ final class CaptureCoordinator {
                 } else {
                     try await self.recognize(image: image, mode: mode)
                 }
+            } catch is CancellationError {
+                // User hit Cancel; the progress box already tore down, nothing to show.
             } catch {
                 await self.handleFailure(error)
             }
@@ -74,11 +82,12 @@ final class CaptureCoordinator {
         switch mode {
         case .text:
             defer { onOCRProgress?(nil) }
+            onOCRProgress?(.preparing)   // box shows instantly, before model/encoder work
             let text = try await OCRDispatcher.recognizeText(
                 in: image,
                 engine: preferences.ocrEngine,
                 trocrModel: preferences.trocrModel,
-                progress: { [onOCRProgress] value in onOCRProgress?(value) }
+                progress: { [onOCRProgress] info in onOCRProgress?(info) }
             )
             await handleResult(text: text, kind: .text)
         case .barcode:

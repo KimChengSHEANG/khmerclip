@@ -22,8 +22,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         setUpStatusItem()
         registerHotKeys()
 
-        coordinator.onOCRProgress = { [weak self] progress in
-            self?.updateStatusItemProgress(progress)
+        coordinator.onOCRProgress = { [weak self] info in
+            OCRProgressController.update(info: info) { self?.coordinator.cancelCapture() }
         }
 
         if preferences.launchAtLogin {
@@ -78,17 +78,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// doesn't offer a change callback we can hook here.
     func menuNeedsUpdate(_ menu: NSMenu) {
         applyShortcut(forKey: AppPreferences.ShortcutKeys.capture, to: captureMenuItem)
-    }
-
-    /// Shows OCR recognition progress next to the status item icon; TrOCR's
-    /// decode loop can take a few seconds, so this gives the user a sign
-    /// that Netra is still working rather than looking stuck.
-    private func updateStatusItemProgress(_ progress: Double?) {
-        guard let progress else {
-            statusItem.button?.title = ""
-            return
-        }
-        statusItem.button?.title = " \(Int(progress * 100))%"
     }
 
     private func applyShortcut(forKey key: String, to item: NSMenuItem) {
