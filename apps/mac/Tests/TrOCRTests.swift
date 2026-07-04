@@ -20,6 +20,20 @@ final class TrOCRTokenizerTests: XCTestCase {
         XCTAssertEqual(tokenizer.decode(ids: [0, 5, 7, 2]), " the to")
     }
 
+    /// The khmer fine-tune's vocab mixes byte-BPE pieces with literal added
+    /// tokens (raw Khmer UTF-8). literal_ids marks the latter; decode must
+    /// byte-map the former but pass the latter through verbatim. Here ids 4,5
+    /// are byte-BPE 'a'/'b' and id 6 is a literal 'ក' (Khmer). Expect "abក".
+    func testBPEDecodePassesLiteralAddedTokensThroughVerbatim() throws {
+        let json = """
+        {"kind":"bpe","bos_id":0,"eos_id":2,"pad_id":1,"unk_id":3,"decoder_start_id":2,
+         "literal_ids":[6],
+         "id_to_token":["<s>","<pad>","</s>","<unk>","a","b","ក"]}
+        """
+        let tokenizer = try TrOCRTokenizer(data: Data(json.utf8))
+        XCTAssertEqual(tokenizer.decode(ids: [0, 4, 5, 6, 2]), "abក")
+    }
+
     func testSentencePieceDecodeReplacesMarkerAndTrimsLeadingSpace() throws {
         let json = """
         {"kind":"sentencepiece","bos_id":0,"eos_id":2,"pad_id":1,"unk_id":3,"decoder_start_id":2,

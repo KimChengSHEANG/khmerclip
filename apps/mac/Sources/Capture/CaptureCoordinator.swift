@@ -14,6 +14,10 @@ final class CaptureCoordinator {
     private let historyStore: ScanHistoryStore
     private var hudWindowController: HUDWindowController?
 
+    /// Reports OCR progress (0...1) for display in the menubar; nil means idle.
+    /// Only TrOCR reports meaningful progress -- Tesseract runs fast enough not to need it.
+    var onOCRProgress: (@MainActor (Double?) -> Void)?
+
     init(preferences: AppPreferences, historyStore: ScanHistoryStore) {
         self.preferences = preferences
         self.historyStore = historyStore
@@ -69,7 +73,13 @@ final class CaptureCoordinator {
     func recognize(image: CGImage, mode: CaptureMode) async throws {
         switch mode {
         case .text:
-            let text = try await OCRDispatcher.recognizeText(in: image, engine: preferences.ocrEngine, trocrModel: preferences.trocrModel)
+            defer { onOCRProgress?(nil) }
+            let text = try await OCRDispatcher.recognizeText(
+                in: image,
+                engine: preferences.ocrEngine,
+                trocrModel: preferences.trocrModel,
+                progress: { [onOCRProgress] value in onOCRProgress?(value) }
+            )
             await handleResult(text: text, kind: .text)
         case .barcode:
             let payloads = try await BarcodeEngine.detectPayloads(in: image)

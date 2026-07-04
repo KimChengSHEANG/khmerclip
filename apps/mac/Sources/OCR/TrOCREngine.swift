@@ -17,10 +17,10 @@ enum TrOCRError: Error {
 /// support.
 ///
 /// small/base/large are English-only (official microsoft/trocr-*-printed).
-/// khmer is a Khmer fine-tune (KiteAether/khmer-trcor-06-10) with a reported
-/// CER of 1.13 on its model card as of this writing -- an early/WIP result,
-/// not a reliable OCR model yet. Tesseract remains available in Preferences
-/// as the dependable Khmer option.
+/// khmer is a byte-BPE Khmer printed-text fine-tune (lkhapple/Khmer-TrOCR-OCR)
+/// that reads printed Khmer when the text fills the frame -- preprocess()
+/// content-crops to make that so. Tesseract remains available in Preferences
+/// as an alternate Khmer option.
 enum TrOCREngine {
     /// Points at the folder containing `<size>/{encoder,decoder}.mlpackage,tokenizer.json`.
     /// Normally the app's bundled `trocr` resource; tests set this to the
@@ -34,7 +34,11 @@ enum TrOCREngine {
 
     private static let maxLength = 64
 
-    static func recognizeText(in image: CGImage, model size: TrOCRModelSize) async throws -> String {
+    static func recognizeText(
+        in image: CGImage,
+        model size: TrOCRModelSize,
+        progress: (@MainActor (Double) -> Void)? = nil
+    ) async throws -> String {
         guard let root = resourceRoot else { throw TrOCRError.resourceMissing(size) }
         let (encoder, decoder, tokenizer) = try await ModelCache.shared.models(for: size, resourceRoot: root)
 
@@ -61,6 +65,7 @@ enum TrOCREngine {
             }
             let nextId = argmaxLastStep(logits)
             ids.append(nextId)
+            await progress?(Double(ids.count) / Double(maxLength))
             if nextId == tokenizer.eosId { break }
         }
 
@@ -87,10 +92,74 @@ enum TrOCREngine {
         return bestIndex
     }
 
+    /// Trims uniform background margin around the content. Background colour is
+    /// taken from the image corners (works for both dark- and light-mode clips),
+    /// and any pixel differing from it beyond a threshold counts as content. The
+    /// content bounding box, padded slightly, is cropped out; if nothing stands
+    /// out from the background the original image is returned unchanged. Scans a
+    /// downscaled copy (long edge <= scanMax) so cost stays bounded on big clips.
+    private static func contentCrop(_ image: CGImage, scanMax: Int = 512) -> CGImage {
+        let w = image.width, h = image.height
+        guard w > 1, h > 1 else { return image }
+        let scale = max(1, (max(w, h) + scanMax - 1) / scanMax)
+        let sw = w / scale, sh = h / scale
+        guard sw > 1, sh > 1, let colorSpace = CGColorSpace(name: CGColorSpace.sRGB) else { return image }
+
+        var px = [UInt8](repeating: 0, count: sw * sh * 4)
+        guard let ctx = CGContext(data: &px, width: sw, height: sh, bitsPerComponent: 8,
+                                  bytesPerRow: sw * 4, space: colorSpace,
+                                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return image }
+        ctx.draw(image, in: CGRect(x: 0, y: 0, width: sw, height: sh))
+
+        // Background = average of the four corners. Content = differs by > 40/255
+        // on any RGB channel.
+        func rgb(_ x: Int, _ y: Int) -> (Int, Int, Int) {
+            let p = (y * sw + x) * 4
+            return (Int(px[p]), Int(px[p + 1]), Int(px[p + 2]))
+        }
+        let corners = [rgb(0, 0), rgb(sw - 1, 0), rgb(0, sh - 1), rgb(sw - 1, sh - 1)]
+        let bg = (corners.map(\.0).reduce(0, +) / 4,
+                  corners.map(\.1).reduce(0, +) / 4,
+                  corners.map(\.2).reduce(0, +) / 4)
+        let threshold = 40
+
+        var minX = sw, minY = sh, maxX = -1, maxY = -1
+        for y in 0..<sh {
+            for x in 0..<sw {
+                let (r, g, b) = rgb(x, y)
+                if abs(r - bg.0) > threshold || abs(g - bg.1) > threshold || abs(b - bg.2) > threshold {
+                    if x < minX { minX = x }
+                    if x > maxX { maxX = x }
+                    if y < minY { minY = y }
+                    if y > maxY { maxY = y }
+                }
+            }
+        }
+        guard maxX >= minX, maxY >= minY else { return image }
+        // Guard against a mis-detected background (e.g. a corner sitting on ink)
+        // collapsing the box to a sliver: if content spans < 5% of either axis,
+        // don't trust the crop -- fall back to the full image.
+        if (maxX - minX + 1) * 20 < sw || (maxY - minY + 1) * 20 < sh { return image }
+
+        // Map the scan-space bbox back to full-res, pad by 4% of the box size.
+        let padX = max(1, (maxX - minX + 1) * 4 / 100)
+        let padY = max(1, (maxY - minY + 1) * 4 / 100)
+        let x0 = max(0, (minX - padX) * scale)
+        let y0 = max(0, (minY - padY) * scale)
+        let x1 = min(w, (maxX + 1 + padX) * scale)
+        let y1 = min(h, (maxY + 1 + padY) * scale)
+        let rect = CGRect(x: x0, y: y0, width: x1 - x0, height: y1 - y0)
+        return image.cropping(to: rect) ?? image
+    }
+
     /// Mirrors the HF `ViTImageProcessor`/`DeiTImageProcessor` preprocessing
     /// used by all three `-printed` checkpoints: resize to 384x384 (no aspect
-    /// crop), normalize with mean=std=0.5 per channel.
-    private static func preprocess(image: CGImage, size: Int = 384) throws -> MLMultiArray {
+    /// crop), normalize with mean=std=0.5 per channel. First trims uniform
+    /// background margin (see contentCrop) so the text fills the frame -- TrOCR
+    /// is trained on tightly-cropped text lines and, given a loose crop with
+    /// lots of background, keeps decoding past the real text into garbage.
+    private static func preprocess(image rawImage: CGImage, size: Int = 384) throws -> MLMultiArray {
+        let image = contentCrop(rawImage)
         guard let colorSpace = CGColorSpace(name: CGColorSpace.sRGB) else { throw TrOCRError.preprocessingFailed }
         var pixels = [UInt8](repeating: 0, count: size * size * 4)
         guard let context = CGContext(
@@ -154,14 +223,29 @@ enum TrOCREngine {
             try FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
 
             let compiledURL = cacheDir.appendingPathComponent("\(name).mlmodelc")
-            if !FileManager.default.fileExists(atPath: compiledURL.path) {
+            // Recompile when the cache is missing OR older than the source
+            // package: an app update (or a re-run of convert.py) that swaps in a
+            // new .mlpackage for the same size must not keep serving the stale
+            // compiled model -- that silently produced wrong output when the
+            // khmer checkpoint changed.
+            let fm = FileManager.default
+            if !fm.fileExists(atPath: compiledURL.path) || Self.isOlder(compiledURL, than: packageURL) {
                 let freshlyCompiled = try MLModel.compileModel(at: packageURL)
-                if FileManager.default.fileExists(atPath: compiledURL.path) {
-                    try FileManager.default.removeItem(at: compiledURL)
+                if fm.fileExists(atPath: compiledURL.path) {
+                    try fm.removeItem(at: compiledURL)
                 }
-                try FileManager.default.moveItem(at: freshlyCompiled, to: compiledURL)
+                try fm.moveItem(at: freshlyCompiled, to: compiledURL)
             }
             return try MLModel(contentsOf: compiledURL)
+        }
+
+        private static func isOlder(_ url: URL, than other: URL) -> Bool {
+            let fm = FileManager.default
+            guard let a = try? fm.attributesOfItem(atPath: url.path)[.modificationDate] as? Date,
+                  let b = try? fm.attributesOfItem(atPath: other.path)[.modificationDate] as? Date else {
+                return true   // can't tell -> recompile, the safe choice
+            }
+            return a < b
         }
     }
 }

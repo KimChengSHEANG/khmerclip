@@ -3,8 +3,8 @@ import AppKit
 /// Which text-recognition backend CaptureCoordinator dispatches to. Tesseract
 /// handles Khmer+English reliably via the vendored binary; TrOCR runs a
 /// CoreML model (see TrOCRModelSize) -- small/base/large are English-only,
-/// and the khmer model is an early, unreliable Khmer fine-tune (see
-/// TrOCREngine's doc comment).
+/// and the khmer model is a Khmer printed-text fine-tune (see TrOCREngine's
+/// doc comment).
 enum OCREngineKind: String, CaseIterable, Identifiable {
     case tesseract
     case trocr
@@ -21,9 +21,9 @@ enum OCREngineKind: String, CaseIterable, Identifiable {
 /// Which TrOCR model to run. small/base/large are the official
 /// microsoft/trocr-*-printed checkpoints (larger = more accurate, slower,
 /// bigger on disk); khmer is a separate Khmer-capable fine-tune
-/// (KiteAether/khmer-trcor-06-10) -- not a size tier, but a distinct model
-/// kept alongside them since Khmer support doesn't fit the small/base/large
-/// scale.
+/// (lkhapple/Khmer-TrOCR-OCR) -- not a size tier, but a
+/// distinct model kept alongside them since Khmer support doesn't fit the
+/// small/base/large scale.
 enum TrOCRModelSize: String, CaseIterable, Identifiable {
     case small
     case base
@@ -48,12 +48,17 @@ protocol OCREngine {
 extension TesseractEngine: OCREngine {}
 
 enum OCRDispatcher {
-    static func recognizeText(in image: CGImage, engine: OCREngineKind, trocrModel: TrOCRModelSize) async throws -> String {
+    static func recognizeText(
+        in image: CGImage,
+        engine: OCREngineKind,
+        trocrModel: TrOCRModelSize,
+        progress: (@MainActor (Double) -> Void)? = nil
+    ) async throws -> String {
         switch engine {
         case .tesseract:
             return try await TesseractEngine.recognizeText(in: image)
         case .trocr:
-            return try await TrOCREngine.recognizeText(in: image, model: trocrModel)
+            return try await TrOCREngine.recognizeText(in: image, model: trocrModel, progress: progress)
         }
     }
 }

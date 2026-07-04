@@ -18,10 +18,14 @@ DEFAULT_CHECKPOINTS = {
     "small": "microsoft/trocr-small-printed",
     "base": "microsoft/trocr-base-printed",
     "large": "microsoft/trocr-large-printed",
-    # CER 1.13 on the model card as of this writing -- an early/WIP fine-tune,
-    # not a polished model. Wired in anyway per explicit instruction; swap via
-    # the checkpoint override arg once a better checkpoint is available.
-    "khmer": "KiteAether/khmer-trcor-06-10",
+    # Khmer printed-text fine-tune that actually reads the image (byte-BPE).
+    # Two earlier candidates were rejected after measuring them: the byte-BPE
+    # KiteAether/khmer-trcor-06-10 emitted broken 2-byte UTF-8 (U+FFFD), and a
+    # SentencePiece one hallucinated fluent-but-unrelated Khmer. This one reads
+    # printed Khmer correctly when the text fills the frame -- TrOCREngine
+    # auto-crops background before the 384 resize so it does. Swap via the
+    # checkpoint override arg if a better one lands.
+    "khmer": "lkhapple/Khmer-TrOCR-OCR",
 }
 
 size = sys.argv[1]  # small|base|large|khmer
