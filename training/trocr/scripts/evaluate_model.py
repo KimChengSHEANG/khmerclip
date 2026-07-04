@@ -1,0 +1,68 @@
+import argparse
+
+import evaluate
+import torch
+from datasets import load_dataset
+from transformers import Seq2SeqTrainer, Seq2SeqTrainingArguments, TrOCRProcessor, VisionEncoderDecoderModel
+
+from trocr_khmer import MAX_LABEL_LEN, OCRDataset, build_compute_metrics
+
+MODEL_NAME = "microsoft/trocr-base-printed"
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Evaluate a TrOCR checkpoint or fine-tuned model on the Khmer OCR validation split")
+    parser.add_argument("model_dir", help="Directory containing the model and processor")
+    parser.add_argument("--dataset_name", default="SoyVitou/62k-images-khmer-printed-dataset")
+    parser.add_argument("--eval_batch_size", type=int, default=8)
+    parser.add_argument("--num_workers", type=int, default=6)
+    parser.add_argument("--max_eval_samples", type=int, default=None, help="Optional limit for a quick evaluation run")
+    args = parser.parse_args()
+
+    assert torch.cuda.is_available(), "CUDA GPU not found — evaluation expects a GPU-enabled environment"
+
+    dataset = load_dataset(args.dataset_name, split="train")
+    split = dataset.train_test_split(test_size=0.03, seed=42)
+
+    if args.max_eval_samples is not None:
+        split["test"] = split["test"].select(range(min(args.max_eval_samples, len(split["test"]))))
+
+    processor = TrOCRProcessor.from_pretrained(args.model_dir)
+    model = VisionEncoderDecoderModel.from_pretrained(args.model_dir)
+
+    model.config.decoder_start_token_id = processor.tokenizer.cls_token_id
+    model.config.pad_token_id = processor.tokenizer.pad_token_id
+    model.config.vocab_size = model.config.decoder.vocab_size
+    model.config.eos_token_id = processor.tokenizer.sep_token_id
+    model.config.max_length = MAX_LABEL_LEN
+    model.config.early_stopping = True
+    model.config.no_repeat_ngram_size = 3
+    model.config.length_penalty = 2.0
+    model.config.num_beams = 4
+
+    eval_dataset = OCRDataset(split["test"], processor)
+    cer_metric = evaluate.load("cer")
+
+    training_args = Seq2SeqTrainingArguments(
+        output_dir="./eval_out",
+        per_device_eval_batch_size=args.eval_batch_size,
+        predict_with_generate=True,
+        generation_max_length=MAX_LABEL_LEN,
+        generation_num_beams=1,
+        dataloader_num_workers=args.num_workers,
+        report_to=[]
+    )
+
+    trainer = Seq2SeqTrainer(
+        model=model,
+        args=training_args,
+        eval_dataset=eval_dataset,
+        compute_metrics=build_compute_metrics(processor, cer_metric),
+    )
+
+    metrics = trainer.evaluate()
+    print(metrics)
+
+
+if __name__ == "__main__":
+    main()
