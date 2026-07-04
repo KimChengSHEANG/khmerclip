@@ -7,17 +7,20 @@ enum TrOCRError: Error {
     case predictionFailed
 }
 
-/// Runs a `microsoft/trocr-<size>-printed` checkpoint converted to CoreML
-/// (see Vendor/trocr/<size>/{encoder,decoder}.mlpackage, produced offline by
-/// Vendor/trocr/convert.py + export_tokenizer.py -- a one-time step per
-/// model, re-run whenever a checkpoint changes, e.g. a future Khmer
-/// fine-tune). Greedy, no-KV-cache decode
-/// loop: OCR text regions are short enough that re-running the full decoder
-/// each step is simple and fast enough, without CoreML's more complex
-/// stateful-model support.
+/// Runs a TrOCR checkpoint (see Vendor/trocr/convert.py's DEFAULT_CHECKPOINTS
+/// for which one per TrOCRModelSize) converted to CoreML
+/// (Vendor/trocr/<size>/{encoder,decoder}.mlpackage, produced offline by
+/// convert.py + export_tokenizer.py -- a one-time step per model, re-run
+/// whenever a checkpoint changes). Greedy, no-KV-cache decode loop: OCR text
+/// regions are short enough that re-running the full decoder each step is
+/// simple and fast enough, without CoreML's more complex stateful-model
+/// support.
 ///
-/// English-only until the model is fine-tuned for Khmer -- Tesseract remains
-/// available in Preferences for that.
+/// small/base/large are English-only (official microsoft/trocr-*-printed).
+/// khmer is a Khmer fine-tune (KiteAether/khmer-trcor-06-10) with a reported
+/// CER of 1.13 on its model card as of this writing -- an early/WIP result,
+/// not a reliable OCR model yet. Tesseract remains available in Preferences
+/// as the dependable Khmer option.
 enum TrOCREngine {
     /// Points at the folder containing `<size>/{encoder,decoder}.mlpackage,tokenizer.json`.
     /// Normally the app's bundled `trocr` resource; tests set this to the

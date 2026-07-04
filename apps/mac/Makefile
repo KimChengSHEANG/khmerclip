@@ -7,13 +7,14 @@ APP      = build/Build/Products/Debug/Netra.app
 gen:
 	xcodegen generate
 
-# Converts the microsoft/trocr-{small,base,large}-printed checkpoints to the
-# CoreML models + tokenizer TrOCREngine.swift loads (~3.7GB, not committed --
-# see .gitignore). Needs: pip install torch transformers coremltools.
-# Re-run after pointing convert.py/export_tokenizer.py at a different
-# checkpoint (e.g. a Khmer fine-tune) by passing it as a 3rd argument.
+# Converts the microsoft/trocr-{small,base,large}-printed checkpoints plus
+# the khmer fine-tune to the CoreML models + tokenizer TrOCREngine.swift
+# loads (~3.7GB+, not committed -- see .gitignore). Needs:
+# pip install torch transformers coremltools. Re-run after pointing
+# convert.py/export_tokenizer.py at a different checkpoint (e.g. a newer
+# Khmer fine-tune) by passing it as a 3rd argument to those scripts directly.
 trocr-models:
-	@for size in small base large; do \
+	@for size in small base large khmer; do \
 		mkdir -p Vendor/trocr/$$size; \
 		python3 Vendor/trocr/convert.py $$size Vendor/trocr/$$size; \
 		python3 Vendor/trocr/export_tokenizer.py $$size Vendor/trocr/$$size/tokenizer.json; \

@@ -22,15 +22,22 @@ struct TrOCRTokenizer {
         let eosId: Int
         let padId: Int
         let unkId: Int
+        let decoderStartId: Int
         let idToToken: [String]
 
         enum CodingKeys: String, CodingKey {
-            case kind, bosId = "bos_id", eosId = "eos_id", padId = "pad_id", unkId = "unk_id", idToToken = "id_to_token"
+            case kind, bosId = "bos_id", eosId = "eos_id", padId = "pad_id", unkId = "unk_id"
+            case decoderStartId = "decoder_start_id", idToToken = "id_to_token"
         }
     }
 
     let kind: Kind
     let eosId: Int
+    /// Where greedy decode starts from. NOT always eos_token_id: true for the
+    /// official microsoft/trocr-*-printed checkpoints (a documented quirk),
+    /// but fine-tunes can set it independently -- e.g. a Khmer fine-tune
+    /// starting from bos instead. Exported per-model rather than assumed.
+    let decoderStartId: Int
     private let idToToken: [String]
     private let specialIds: Set<Int>
 
@@ -38,13 +45,10 @@ struct TrOCRTokenizer {
         let payload = try JSONDecoder().decode(Payload.self, from: data)
         kind = payload.kind
         eosId = payload.eosId
+        decoderStartId = payload.decoderStartId
         idToToken = payload.idToToken
         specialIds = [payload.bosId, payload.eosId, payload.padId, payload.unkId]
     }
-
-    /// decoder_start_token_id for these checkpoints always equals eos_token_id
-    /// (a well-known TrOCR/BART quirk: generation starts from `</s>`).
-    var decoderStartId: Int { eosId }
 
     func decode(ids: [Int]) -> String {
         let tokens = ids

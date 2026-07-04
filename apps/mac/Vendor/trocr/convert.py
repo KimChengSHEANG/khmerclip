@@ -2,10 +2,10 @@
 # encoder.mlpackage + decoder.mlpackage pair for TrOCREngine.swift.
 #
 # Usage: python3 convert.py <size> <out_dir> [checkpoint]
-#   size        small|base|large -- only used to pick the default checkpoint
+#   size        small|base|large|khmer -- picks the default checkpoint below
 #   out_dir     e.g. Vendor/trocr/base
-#   checkpoint  optional override, e.g. a local path or HF repo id for a
-#               fine-tuned model (defaults to microsoft/trocr-<size>-printed)
+#   checkpoint  optional override, e.g. a local path or HF repo id (use this
+#               to point at a newer Khmer fine-tune once one lands)
 #
 # After converting, regenerate the matching tokenizer.json with:
 #   python3 export_tokenizer.py <size> <out_dir>/tokenizer.json [checkpoint]
@@ -14,9 +14,19 @@
 import sys, torch, coremltools as ct
 from transformers import VisionEncoderDecoderModel, TrOCRProcessor
 
-size = sys.argv[1]  # small|base|large
+DEFAULT_CHECKPOINTS = {
+    "small": "microsoft/trocr-small-printed",
+    "base": "microsoft/trocr-base-printed",
+    "large": "microsoft/trocr-large-printed",
+    # CER 1.13 on the model card as of this writing -- an early/WIP fine-tune,
+    # not a polished model. Wired in anyway per explicit instruction; swap via
+    # the checkpoint override arg once a better checkpoint is available.
+    "khmer": "KiteAether/khmer-trcor-06-10",
+}
+
+size = sys.argv[1]  # small|base|large|khmer
 out_dir = sys.argv[2]
-ckpt = sys.argv[3] if len(sys.argv) > 3 else f"microsoft/trocr-{size}-printed"
+ckpt = sys.argv[3] if len(sys.argv) > 3 else DEFAULT_CHECKPOINTS[size]
 
 model = VisionEncoderDecoderModel.from_pretrained(ckpt, low_cpu_mem_usage=False)
 

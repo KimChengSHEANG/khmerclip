@@ -13,7 +13,7 @@ final class TrOCRTokenizerTests: XCTestCase {
     /// substitution (leading space trimmed).
     func testBPEDecodeReconstructsBytesAndKeepsLeadingSpace() throws {
         let json = """
-        {"kind":"bpe","bos_id":0,"eos_id":2,"pad_id":1,"unk_id":3,
+        {"kind":"bpe","bos_id":0,"eos_id":2,"pad_id":1,"unk_id":3,"decoder_start_id":2,
          "id_to_token":["<s>","<pad>","</s>","<unk>",".","Ġthe",",","Ġto"]}
         """
         let tokenizer = try TrOCRTokenizer(data: Data(json.utf8))
@@ -22,19 +22,28 @@ final class TrOCRTokenizerTests: XCTestCase {
 
     func testSentencePieceDecodeReplacesMarkerAndTrimsLeadingSpace() throws {
         let json = """
-        {"kind":"sentencepiece","bos_id":0,"eos_id":2,"pad_id":1,"unk_id":3,
+        {"kind":"sentencepiece","bos_id":0,"eos_id":2,"pad_id":1,"unk_id":3,"decoder_start_id":2,
          "id_to_token":["<s>","<pad>","</s>","<unk>","▁the",".",",","▁to"]}
         """
         let tokenizer = try TrOCRTokenizer(data: Data(json.utf8))
         XCTAssertEqual(tokenizer.decode(ids: [0, 4, 7, 2]), "the to")
     }
 
-    func testDecoderStartIdEqualsEosId() throws {
-        let json = """
-        {"kind":"bpe","bos_id":0,"eos_id":2,"pad_id":1,"unk_id":3,"id_to_token":["<s>","<pad>","</s>","<unk>"]}
-        """
-        let tokenizer = try TrOCRTokenizer(data: Data(json.utf8))
-        XCTAssertEqual(tokenizer.decoderStartId, tokenizer.eosId)
+    /// The official microsoft/trocr-*-printed checkpoints happen to start
+    /// generation from eos_token_id (a documented quirk) -- but that's a
+    /// per-checkpoint fact, not a universal rule: a fine-tune can (and one
+    /// does) start from bos instead. decoderStartId must reflect whatever
+    /// tokenizer.json actually says, not assume it equals eosId.
+    func testDecoderStartIdReflectsExportedValueNotAssumedEqualToEos() throws {
+        let quirky = try TrOCRTokenizer(data: Data("""
+        {"kind":"bpe","bos_id":0,"eos_id":2,"pad_id":1,"unk_id":3,"decoder_start_id":2,"id_to_token":["<s>","<pad>","</s>","<unk>"]}
+        """.utf8))
+        XCTAssertEqual(quirky.decoderStartId, 2)
+
+        let overridden = try TrOCRTokenizer(data: Data("""
+        {"kind":"bpe","bos_id":0,"eos_id":2,"pad_id":1,"unk_id":3,"decoder_start_id":0,"id_to_token":["<s>","<pad>","</s>","<unk>"]}
+        """.utf8))
+        XCTAssertEqual(overridden.decoderStartId, 0)
     }
 }
 

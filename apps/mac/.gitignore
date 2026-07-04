@@ -5,8 +5,7 @@ DerivedData/
 *.xcuserstate
 build
 
-# Converted TrOCR CoreML models (~3.7GB) -- regenerate with `make trocr-models`
-# (see Vendor/trocr/convert.py). Not committed; scripts are.
-Vendor/trocr/small/
-Vendor/trocr/base/
-Vendor/trocr/large/
+# Converted TrOCR CoreML models (~5.8GB) -- regenerate with `make trocr-models`
+# (see Vendor/trocr/convert.py). Not committed; the *.py scripts are (the
+# glob below only matches subdirectories, not convert.py/export_tokenizer.py).
+Vendor/trocr/*/

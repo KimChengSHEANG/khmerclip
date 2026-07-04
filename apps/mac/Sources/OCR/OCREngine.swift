@@ -1,9 +1,10 @@
 import AppKit
 
 /// Which text-recognition backend CaptureCoordinator dispatches to. Tesseract
-/// handles Khmer+English via the vendored binary; TrOCR runs a CoreML model
-/// converted from a `microsoft/trocr-*-printed` checkpoint (English only until
-/// the model is fine-tuned for Khmer).
+/// handles Khmer+English reliably via the vendored binary; TrOCR runs a
+/// CoreML model (see TrOCRModelSize) -- small/base/large are English-only,
+/// and the khmer model is an early, unreliable Khmer fine-tune (see
+/// TrOCREngine's doc comment).
 enum OCREngineKind: String, CaseIterable, Identifiable {
     case tesseract
     case trocr
@@ -17,12 +18,17 @@ enum OCREngineKind: String, CaseIterable, Identifiable {
     }
 }
 
-/// Which size of the TrOCR model to run. Larger models are more accurate but
-/// slower and bigger on disk.
+/// Which TrOCR model to run. small/base/large are the official
+/// microsoft/trocr-*-printed checkpoints (larger = more accurate, slower,
+/// bigger on disk); khmer is a separate Khmer-capable fine-tune
+/// (KiteAether/khmer-trcor-06-10) -- not a size tier, but a distinct model
+/// kept alongside them since Khmer support doesn't fit the small/base/large
+/// scale.
 enum TrOCRModelSize: String, CaseIterable, Identifiable {
     case small
     case base
     case large
+    case khmer
 
     var id: String { rawValue }
     var displayName: String {
@@ -30,6 +36,7 @@ enum TrOCRModelSize: String, CaseIterable, Identifiable {
         case .small: return "Small"
         case .base: return "Base"
         case .large: return "Large"
+        case .khmer: return "Khmer"
         }
     }
 }
