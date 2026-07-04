@@ -68,7 +68,7 @@ enum TrOCREngine {
             }
             let nextId = argmaxLastStep(logits)
             ids.append(nextId)
-            await progress?(.reading(Double(ids.count) / Double(maxLength)))
+            await progress?(.reading(tokens: ids.count))
             if nextId == tokenizer.eosId { break }
         }
 

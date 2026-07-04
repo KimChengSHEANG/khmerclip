@@ -74,7 +74,10 @@ extension OCRProgress {
     static let preparing = OCRProgress(label: "Preparing…", fraction: nil)
     static let loadingModel = OCRProgress(label: "Loading model…", fraction: nil)
     static let encoding = OCRProgress(label: "Encoding image…", fraction: nil)
-    static func reading(_ fraction: Double) -> OCRProgress {
-        OCRProgress(label: "Reading text…", fraction: fraction)
+    // Decode length is unknown until EOS, so a completion fraction would be a lie
+    // (it caps at maxLength and jumps to done). Show token count as live evidence
+    // of work instead, with an indeterminate bar.
+    static func reading(tokens: Int) -> OCRProgress {
+        OCRProgress(label: "Reading text… (\(tokens))", fraction: nil)
     }
 }
