@@ -23,7 +23,10 @@ final class OCRProgressController: NSWindowController {
             let controller = OCRProgressController(onCancel: onCancel)
             current = controller
             controller.model.info = info
+            controller.window?.center()   // re-centered after content sizing settles below
             controller.window?.orderFrontRegardless()
+            // preferredContentSize resizes on the next runloop tick; re-center once it has.
+            DispatchQueue.main.async { controller.window?.center() }
         }
     }
 
@@ -37,12 +40,8 @@ final class OCRProgressController: NSWindowController {
         window.backgroundColor = .clear
         window.isOpaque = false
         window.hasShadow = true
-        window.isMovableByWindowBackground = false
+        window.isMovableByWindowBackground = true
         window.contentViewController = hosting
-        if let screen = NSScreen.main {
-            let frame = window.frame
-            window.setFrameOrigin(NSPoint(x: screen.frame.midX - frame.width / 2, y: screen.frame.minY + 80))
-        }
         super.init(window: window)
     }
 
