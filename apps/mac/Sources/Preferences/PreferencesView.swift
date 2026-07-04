@@ -12,6 +12,21 @@ struct PreferencesView: View {
                 }
             }
 
+            Section("OCR Engine") {
+                Picker("Engine", selection: $preferences.ocrEngine) {
+                    ForEach(OCREngineKind.allCases) { engine in
+                        Text(engine.displayName).tag(engine)
+                    }
+                }
+                if preferences.ocrEngine == .trocr {
+                    Picker("TrOCR Model", selection: $preferences.trocrModel) {
+                        ForEach(TrOCRModelSize.allCases) { size in
+                            Text(size.displayName).tag(size)
+                        }
+                    }
+                }
+            }
+
             Section("Behavior") {
                 Toggle("Auto-copy result to clipboard", isOn: $preferences.autoCopyToClipboard)
                 Toggle("Show result popup", isOn: $preferences.showResultHUD)

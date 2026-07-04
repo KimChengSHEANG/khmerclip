@@ -69,7 +69,7 @@ final class CaptureCoordinator {
     func recognize(image: CGImage, mode: CaptureMode) async throws {
         switch mode {
         case .text:
-            let text = try await TesseractEngine.recognizeText(in: image)
+            let text = try await OCRDispatcher.recognizeText(in: image, engine: preferences.ocrEngine, trocrModel: preferences.trocrModel)
             await handleResult(text: text, kind: .text)
         case .barcode:
             let payloads = try await BarcodeEngine.detectPayloads(in: image)

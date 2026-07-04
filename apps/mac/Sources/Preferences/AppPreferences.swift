@@ -14,6 +14,12 @@ final class AppPreferences: ObservableObject {
     @Published var launchAtLogin: Bool {
         didSet { UserDefaults.standard.set(launchAtLogin, forKey: Keys.launchAtLogin) }
     }
+    @Published var ocrEngine: OCREngineKind {
+        didSet { UserDefaults.standard.set(ocrEngine.rawValue, forKey: Keys.ocrEngine) }
+    }
+    @Published var trocrModel: TrOCRModelSize {
+        didSet { UserDefaults.standard.set(trocrModel.rawValue, forKey: Keys.trocrModel) }
+    }
 
     /// Defaults keys MASShortcutView/MASShortcutBinder read and write shortcuts under.
     enum ShortcutKeys {
@@ -27,6 +33,8 @@ final class AppPreferences: ObservableObject {
         static let showHUD = "showResultHUD"
         static let playSound = "playCaptureSound"
         static let launchAtLogin = "launchAtLogin"
+        static let ocrEngine = "ocrEngine"
+        static let trocrModel = "trocrModel"
     }
 
     init() {
@@ -35,5 +43,7 @@ final class AppPreferences: ObservableObject {
         self.showResultHUD = defaults.object(forKey: Keys.showHUD) as? Bool ?? true
         self.playCaptureSound = defaults.object(forKey: Keys.playSound) as? Bool ?? true
         self.launchAtLogin = defaults.object(forKey: Keys.launchAtLogin) as? Bool ?? false
+        self.ocrEngine = (defaults.string(forKey: Keys.ocrEngine)).flatMap(OCREngineKind.init) ?? .trocr
+        self.trocrModel = (defaults.string(forKey: Keys.trocrModel)).flatMap(TrOCRModelSize.init) ?? .base
     }
 }

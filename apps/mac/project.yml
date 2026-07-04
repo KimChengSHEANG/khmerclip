@@ -23,6 +23,9 @@ targets:
       - path: Vendor/tesseract
         type: folder
         buildPhase: resources
+      - path: Vendor/trocr
+        type: folder
+        buildPhase: resources
     info:
       path: Resources/Info.plist
       properties:
@@ -59,9 +62,13 @@ targets:
       - path: Sources/Capture/WindowPicker.swift
       - path: Sources/History/ScanRecord.swift
       - path: Sources/OCR/TesseractEngine.swift
-      # The vendored tesseract binary + tessdata the OCR test spawns. The test
-      # points TesseractEngine at Vendor/tesseract directly, so this need not be
-      # bundled — kept out of sources on purpose.
+      - path: Sources/OCR/TrOCREngine.swift
+      - path: Sources/OCR/TrOCRTokenizer.swift
+      - path: Sources/OCR/OCREngine.swift
+      # The vendored tesseract binary + tessdata, and the converted TrOCR
+      # CoreML models, are what these OCR tests spawn/load. Tests point the
+      # engines at Vendor/tesseract and Vendor/trocr directly, so those need
+      # not be bundled here — kept out of sources on purpose.
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.netra.tests

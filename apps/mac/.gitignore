@@ -4,3 +4,9 @@ Netra/build/
 DerivedData/
 *.xcuserstate
 build
+
+# Converted TrOCR CoreML models (~3.7GB) -- regenerate with `make trocr-models`
+# (see Vendor/trocr/convert.py). Not committed; scripts are.
+Vendor/trocr/small/
+Vendor/trocr/base/
+Vendor/trocr/large/

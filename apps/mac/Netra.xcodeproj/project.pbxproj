@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		01B45B44B75447DAA9DB1059 /* NetraApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = E318246702684E7C473C851F /* NetraApp.swift */; };
+		06870E23F7F80EEA33D8E6C9 /* TrOCREngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79F4F80F06D25999C3D3EE1A /* TrOCREngine.swift */; };
 		06DC4E2CF01B2AFD241D9DA0 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = B24F19B32DB2190019D650BA /* AppDelegate.swift */; };
 		0B6660B0196176E5ECAC269B /* GeometryAndRecordTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A69FC4F2C9E5A305ADA03727 /* GeometryAndRecordTests.swift */; };
 		103BE4398951FD4A3CB9C6FA /* 5.txt in Resources */ = {isa = PBXBuildFile; fileRef = 96CE127DB20F3BE0828735AE /* 5.txt */; };
@@ -15,17 +16,23 @@
 		12083B8F071A1F89B68490A3 /* TranslateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47E36CDB1F326EC32C8B7572 /* TranslateView.swift */; };
 		1442F7CC973A884ED81BE4A5 /* 4.txt in Resources */ = {isa = PBXBuildFile; fileRef = 5DDAC11BCF07DA7703CDBD40 /* 4.txt */; };
 		22BF6762FA1A28930F727B44 /* 1.txt in Resources */ = {isa = PBXBuildFile; fileRef = 5FBC70ACE291463E59B303D4 /* 1.txt */; };
+		2D9E27F26257479DB13F048E /* TrOCRTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D102D9EE2ACE75DFD4E97E8B /* TrOCRTests.swift */; };
+		2FD81E166C2D9AB3F8D3456E /* trocr in Resources */ = {isa = PBXBuildFile; fileRef = F63A13DFDAFA61B828CEB582 /* trocr */; };
 		31B3AF742DCB441FA4B832BA /* PreferencesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FD7348892426E9088F11C07 /* PreferencesView.swift */; };
 		35D1966AD815EDED69139CC8 /* TesseractEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 837848A981D0E03F56C52F75 /* TesseractEngine.swift */; };
 		3BE07988DB5B5C5EC36D90AA /* 1.png in Resources */ = {isa = PBXBuildFile; fileRef = E2A7C9AB5FC2CC46036C8982 /* 1.png */; };
 		3C23AAC57068AD4AE4A06AA1 /* ImageOCRWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9B6C5374AADE21ACFD15ADF /* ImageOCRWindowController.swift */; };
 		434CA04E6740FF29E1D41EB2 /* LaunchAtLoginManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A72B1C0356671FBE2C5747 /* LaunchAtLoginManager.swift */; };
 		492E36BE5DA761A61AE1BC85 /* 4.png in Resources */ = {isa = PBXBuildFile; fileRef = 0348B7CE680ADAB92F8C3DD3 /* 4.png */; };
+		5043FC8DA248C307D32BF6F2 /* TrOCREngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79F4F80F06D25999C3D3EE1A /* TrOCREngine.swift */; };
+		56A3AA0B8C148A20B1CCC7F0 /* OCREngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF81AC61EAAA5650D9B904B0 /* OCREngine.swift */; };
 		592C11F605027761299BEB39 /* 5.png in Resources */ = {isa = PBXBuildFile; fileRef = 1F9A8716DB1A7895D61FADC4 /* 5.png */; };
 		5AB9775D966FAE0D1687B2B0 /* CaptureCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2B3439D9E37DDAF6B30596A /* CaptureCoordinator.swift */; };
 		5D144F4590D8E3063AD1ABA6 /* ScanRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6E0FAE4282B7CB8CD4331AF /* ScanRecord.swift */; };
 		66B5812E684DFDEC33BFF826 /* ScanHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F88AB38935130B38B2580AAC /* ScanHistoryStore.swift */; };
+		695EC0B2DECF65A567E7FA6D /* TrOCRTokenizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80FE1BF77F091946BEEB159D /* TrOCRTokenizer.swift */; };
 		6D60752A970B0CFC8AB91DF2 /* 2.txt in Resources */ = {isa = PBXBuildFile; fileRef = 7C0EBBCD39AF0F229189BB55 /* 2.txt */; };
+		73E24515C8D6D7015F5C8097 /* TrOCRTokenizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80FE1BF77F091946BEEB159D /* TrOCRTokenizer.swift */; };
 		80F95C5E61F3793035AA70CA /* AppPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B3BF3CB6EED8CA2C72DFD74 /* AppPreferences.swift */; };
 		8519A02C6447DD4FB5582DAE /* ScanRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6E0FAE4282B7CB8CD4331AF /* ScanRecord.swift */; };
 		8A03802237D6F3C22BF6C9FE /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CECE5005AEBA53A7CE686E7 /* HistoryView.swift */; };
@@ -40,6 +47,7 @@
 		AFDF1315EED08C1C9B9F04E0 /* 3.txt in Resources */ = {isa = PBXBuildFile; fileRef = CD047F2D762555A2A2CCFCF6 /* 3.txt */; };
 		B61A344DB4DB1C11DE664ADD /* ClipboardManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E1648ABF5DBC83A3DAC194B /* ClipboardManager.swift */; };
 		B8E6F922BA40BBDF148CB850 /* SelectionOverlayWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = D34C0EFAD6107D55B0205A71 /* SelectionOverlayWindow.swift */; };
+		BC0FE7C9A545C067BC3496FB /* OCREngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF81AC61EAAA5650D9B904B0 /* OCREngine.swift */; };
 		BCE30AB2B80631891D84500B /* MASShortcut in Frameworks */ = {isa = PBXBuildFile; productRef = 395397FE0D27358A466D5104 /* MASShortcut */; };
 		C3F27ABEE6364DE936553948 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 38C235DD61BA1E8CEDB69904 /* Sparkle */; };
 		CDBF18EC9785589E257A06B4 /* OnboardingWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 022D0C312D3E5E5E1DFAB0BD /* OnboardingWindowController.swift */; };
@@ -69,7 +77,9 @@
 		5DDAC11BCF07DA7703CDBD40 /* 4.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = 4.txt; sourceTree = "<group>"; };
 		5FBC70ACE291463E59B303D4 /* 1.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = 1.txt; sourceTree = "<group>"; };
 		669B58EA0BF8362E8BD414AA /* NetraTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NetraTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		79F4F80F06D25999C3D3EE1A /* TrOCREngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrOCREngine.swift; sourceTree = "<group>"; };
 		7C0EBBCD39AF0F229189BB55 /* 2.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = 2.txt; sourceTree = "<group>"; };
+		80FE1BF77F091946BEEB159D /* TrOCRTokenizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrOCRTokenizer.swift; sourceTree = "<group>"; };
 		837848A981D0E03F56C52F75 /* TesseractEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TesseractEngine.swift; sourceTree = "<group>"; };
 		93F2AC4E68C32A14E160C83A /* HotKeyRecorderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotKeyRecorderView.swift; sourceTree = "<group>"; };
 		96CE127DB20F3BE0828735AE /* 5.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = 5.txt; sourceTree = "<group>"; };
@@ -80,9 +90,11 @@
 		AE13C3A4B2A8BCB04C8224FE /* Netra.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Netra.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B24F19B32DB2190019D650BA /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		B6986559A32872CAF5B7D9A0 /* 6.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = 6.txt; sourceTree = "<group>"; };
+		BF81AC61EAAA5650D9B904B0 /* OCREngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCREngine.swift; sourceTree = "<group>"; };
 		C2A72B1C0356671FBE2C5747 /* LaunchAtLoginManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginManager.swift; sourceTree = "<group>"; };
 		CD047F2D762555A2A2CCFCF6 /* 3.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = 3.txt; sourceTree = "<group>"; };
 		CD837C4E8A5F5A0F243102C3 /* OCRTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCRTests.swift; sourceTree = "<group>"; };
+		D102D9EE2ACE75DFD4E97E8B /* TrOCRTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrOCRTests.swift; sourceTree = "<group>"; };
 		D34C0EFAD6107D55B0205A71 /* SelectionOverlayWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectionOverlayWindow.swift; sourceTree = "<group>"; };
 		DA9A61D7F9815167F181D3ED /* tesseract */ = {isa = PBXFileReference; lastKnownFileType = folder; name = tesseract; path = Vendor/tesseract; sourceTree = SOURCE_ROOT; };
 		E0B7659CE9629C4236D88C49 /* 3.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = 3.png; sourceTree = "<group>"; };
@@ -90,6 +102,7 @@
 		E318246702684E7C473C851F /* NetraApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetraApp.swift; sourceTree = "<group>"; };
 		E6E0FAE4282B7CB8CD4331AF /* ScanRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanRecord.swift; sourceTree = "<group>"; };
 		F2B3439D9E37DDAF6B30596A /* CaptureCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureCoordinator.swift; sourceTree = "<group>"; };
+		F63A13DFDAFA61B828CEB582 /* trocr */ = {isa = PBXFileReference; lastKnownFileType = folder; name = trocr; path = Vendor/trocr; sourceTree = SOURCE_ROOT; };
 		F828F587D7C194B80DA51096 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		F88AB38935130B38B2580AAC /* ScanHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanHistoryStore.swift; sourceTree = "<group>"; };
 		FFB5143B80D5230F6FB06442 /* Netra.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Netra.entitlements; sourceTree = "<group>"; };
@@ -146,6 +159,7 @@
 			children = (
 				A69FC4F2C9E5A305ADA03727 /* GeometryAndRecordTests.swift */,
 				CD837C4E8A5F5A0F243102C3 /* OCRTests.swift */,
+				D102D9EE2ACE75DFD4E97E8B /* TrOCRTests.swift */,
 				8064F3823E61D788C71EB1C4 /* Fixtures */,
 			);
 			path = Tests;
@@ -162,7 +176,10 @@
 		5FEC1B12BAB67428A243E023 /* OCR */ = {
 			isa = PBXGroup;
 			children = (
+				BF81AC61EAAA5650D9B904B0 /* OCREngine.swift */,
 				837848A981D0E03F56C52F75 /* TesseractEngine.swift */,
+				79F4F80F06D25999C3D3EE1A /* TrOCREngine.swift */,
+				80FE1BF77F091946BEEB159D /* TrOCRTokenizer.swift */,
 			);
 			path = OCR;
 			sourceTree = "<group>";
@@ -195,6 +212,7 @@
 			isa = PBXGroup;
 			children = (
 				DA9A61D7F9815167F181D3ED /* tesseract */,
+				F63A13DFDAFA61B828CEB582 /* trocr */,
 				A721FC19E1044B0AD7538A16 /* Resources */,
 				A6649EE317E4EF431C436F93 /* Sources */,
 				2BC48FC5B0D6F6D714922FA4 /* Tests */,
@@ -370,6 +388,7 @@
 			files = (
 				E61F8BEB4288E60F6737827F /* Assets.xcassets in Resources */,
 				A2BEC1057F2444968969255A /* tesseract in Resources */,
+				2FD81E166C2D9AB3F8D3456E /* trocr in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -410,6 +429,7 @@
 				3C23AAC57068AD4AE4A06AA1 /* ImageOCRWindowController.swift in Sources */,
 				434CA04E6740FF29E1D41EB2 /* LaunchAtLoginManager.swift in Sources */,
 				01B45B44B75447DAA9DB1059 /* NetraApp.swift in Sources */,
+				56A3AA0B8C148A20B1CCC7F0 /* OCREngine.swift in Sources */,
 				CDBF18EC9785589E257A06B4 /* OnboardingWindowController.swift in Sources */,
 				31B3AF742DCB441FA4B832BA /* PreferencesView.swift in Sources */,
 				66B5812E684DFDEC33BFF826 /* ScanHistoryStore.swift in Sources */,
@@ -418,6 +438,8 @@
 				B8E6F922BA40BBDF148CB850 /* SelectionOverlayWindow.swift in Sources */,
 				A00D5ED8759C56DA74C07F07 /* TesseractEngine.swift in Sources */,
 				A2A088FE6652C78B4A2A22C9 /* TextToSpeechManager.swift in Sources */,
+				5043FC8DA248C307D32BF6F2 /* TrOCREngine.swift in Sources */,
+				73E24515C8D6D7015F5C8097 /* TrOCRTokenizer.swift in Sources */,
 				12083B8F071A1F89B68490A3 /* TranslateView.swift in Sources */,
 				ACDFF3A75386B102B3C8F4A9 /* WindowPicker.swift in Sources */,
 			);
@@ -428,9 +450,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				0B6660B0196176E5ECAC269B /* GeometryAndRecordTests.swift in Sources */,
+				BC0FE7C9A545C067BC3496FB /* OCREngine.swift in Sources */,
 				AF877CE63C59D6DDC8E231C4 /* OCRTests.swift in Sources */,
 				8519A02C6447DD4FB5582DAE /* ScanRecord.swift in Sources */,
 				35D1966AD815EDED69139CC8 /* TesseractEngine.swift in Sources */,
+				06870E23F7F80EEA33D8E6C9 /* TrOCREngine.swift in Sources */,
+				2D9E27F26257479DB13F048E /* TrOCRTests.swift in Sources */,
+				695EC0B2DECF65A567E7FA6D /* TrOCRTokenizer.swift in Sources */,
 				A93A33E626C0E791559B703E /* WindowPicker.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
