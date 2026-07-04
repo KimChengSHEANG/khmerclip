@@ -1,11 +1,17 @@
 """Fine-tune TrOCR-base on the SoyVitou/62k-images-khmer-printed-dataset.
 
+Each run gets its own auto-incrementing folder under experiments/:
+    experiments/checkpoint-1/          <- first run (HF checkpoints + final/ model)
+    experiments/checkpoint-2/          <- next run, and so on
+
 Run on Ubuntu + CUDA GPU (tested target: RTX 3090, 24GB VRAM):
     python scripts/train.py
     python scripts/train.py --smoke_test          # 200-sample sanity run before the real thing
-    python scripts/train.py --resume_from_checkpoint trocr-khmer-checkpoints/checkpoint-1000
+    python scripts/train.py --resume_from_checkpoint experiments/checkpoint-1/checkpoint-1000
 """
 import argparse
+import re
+from pathlib import Path
 
 import evaluate
 import torch
@@ -21,10 +27,22 @@ from trocr_khmer import MAX_LABEL_LEN, OCRDataCollator, OCRDataset, build_comput
 MODEL_NAME = "microsoft/trocr-base-printed"
 
 
+def next_experiment_dir(experiments_dir: str) -> Path:
+    """Return experiments/checkpoint-N for the next unused, auto-incrementing N."""
+    base = Path(experiments_dir)
+    base.mkdir(parents=True, exist_ok=True)
+    existing = [
+        int(m.group(1))
+        for p in base.iterdir()
+        if p.is_dir() and (m := re.fullmatch(r"checkpoint-(\d+)", p.name))
+    ]
+    return base / f"checkpoint-{max(existing, default=0) + 1}"
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--output_dir", default="trocr-khmer-checkpoints")
-    parser.add_argument("--final_dir", default="trocr-khmer-final")
+    parser.add_argument("--experiments_dir", default="experiments")
+    parser.add_argument("--output_dir", default=None, help="Run folder; defaults to the next experiments/checkpoint-N")
     parser.add_argument("--epochs", type=int, default=8)
     parser.add_argument("--train_batch_size", type=int, default=32)
     parser.add_argument("--eval_batch_size", type=int, default=16)
@@ -35,6 +53,10 @@ def main():
     parser.add_argument("--resume_from_checkpoint", default=None)
     parser.add_argument("--smoke_test", action="store_true", help="200 samples, 1 epoch, verifies the pipeline runs end to end")
     args = parser.parse_args()
+
+    output_dir = Path(args.output_dir) if args.output_dir else next_experiment_dir(args.experiments_dir)
+    final_dir = output_dir / "final"
+    print(f"Writing this run to {output_dir}")
 
     assert torch.cuda.is_available(), "CUDA GPU not found — this script expects the RTX 3090 box, not CPU/Mac"
     torch.backends.cudnn.benchmark = True
@@ -69,7 +91,7 @@ def main():
     cer_metric = evaluate.load("cer")
 
     training_args = Seq2SeqTrainingArguments(
-        output_dir=args.output_dir,
+        output_dir=str(output_dir),
         per_device_train_batch_size=args.train_batch_size,
         per_device_eval_batch_size=args.eval_batch_size,
         gradient_accumulation_steps=args.grad_accum,
@@ -106,9 +128,9 @@ def main():
 
     trainer.train(resume_from_checkpoint=args.resume_from_checkpoint)
 
-    trainer.save_model(args.final_dir)
-    processor.save_pretrained(args.final_dir)
-    print(f"Saved fine-tuned model to {args.final_dir}")
+    trainer.save_model(str(final_dir))
+    processor.save_pretrained(str(final_dir))
+    print(f"Saved fine-tuned model to {final_dir}")
 
 
 if __name__ == "__main__":

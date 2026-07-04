@@ -57,6 +57,7 @@ Thumbs.db
 wandb/
 
 # Model artifacts
+experiments/
 trocr-khmer-checkpoints/
 trocr-khmer-final/
 eval_out/

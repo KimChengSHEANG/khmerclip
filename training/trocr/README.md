@@ -51,18 +51,18 @@ python scripts/train.py --smoke_test
 python scripts/train.py
 ```
 
-Checkpoints land in `trocr-khmer-checkpoints/` (best-CER checkpoint kept, plus last 2). Final model + processor saved to `trocr-khmer-final/`.
+Each run gets its own auto-incrementing folder under `experiments/` (`experiments/checkpoint-1/`, `experiments/checkpoint-2/`, …). Inside it, HF keeps the best-CER checkpoint plus the last 2, and the final model + processor are saved to `experiments/checkpoint-N/final/`.
 
 Resume an interrupted run:
 
 ```bash
-python scripts/train.py --resume_from_checkpoint trocr-khmer-checkpoints/checkpoint-1000
+python scripts/train.py --resume_from_checkpoint experiments/checkpoint-1/checkpoint-1000
 ```
 
 Watch progress:
 
 ```bash
-tensorboard --logdir trocr-khmer-checkpoints
+tensorboard --logdir experiments/checkpoint-1
 ```
 
 Defaults target full RTX 3090 utilization (~18–20GB VRAM at batch 16). If GPU util stays low, try `--train_batch_size 20`. If you hit OOM, drop `--train_batch_size` or raise `--grad_accum` to keep the same effective batch.
@@ -72,13 +72,13 @@ Defaults target full RTX 3090 utilization (~18–20GB VRAM at batch 16). If GPU 
 Run evaluation independently against any saved checkpoint or fine-tuned model:
 
 ```bash
-python scripts/evaluate_model.py trocr-khmer-final
+python scripts/evaluate_model.py experiments/checkpoint-1/final
 ```
 
 Optional quick evaluation with a smaller sample set:
 
 ```bash
-python scripts/evaluate_model.py trocr-khmer-final --max_eval_samples 200
+python scripts/evaluate_model.py experiments/checkpoint-1/final --max_eval_samples 200
 ```
 
 
@@ -86,6 +86,6 @@ python scripts/evaluate_model.py trocr-khmer-final --max_eval_samples 200
 ## Inference
 
 ```bash
-python scripts/infer.py trocr-khmer-final some_image.jpg
+python scripts/infer.py experiments/checkpoint-1/final some_image.jpg
 ```
 

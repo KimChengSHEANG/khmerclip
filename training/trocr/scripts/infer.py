@@ -1,6 +1,6 @@
 """Run the fine-tuned model on one or more images.
 
-    python scripts/infer.py trocr-khmer-final path/to/image.jpg [more images...]
+    python scripts/infer.py experiments/checkpoint-1/final path/to/image.jpg [more images...]
 """
 import sys
 
