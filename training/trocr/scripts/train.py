@@ -26,11 +26,11 @@ def main():
     parser.add_argument("--output_dir", default="trocr-khmer-checkpoints")
     parser.add_argument("--final_dir", default="trocr-khmer-final")
     parser.add_argument("--epochs", type=int, default=8)
-    parser.add_argument("--train_batch_size", type=int, default=16)
+    parser.add_argument("--train_batch_size", type=int, default=32)
     parser.add_argument("--eval_batch_size", type=int, default=16)
     parser.add_argument("--grad_accum", type=int, default=1)
     parser.add_argument("--lr", type=float, default=5e-5)
-    parser.add_argument("--num_workers", type=int, default=8)
+    parser.add_argument("--num_workers", type=int, default=10)
     parser.add_argument("--prefetch_factor", type=int, default=4)
     parser.add_argument("--resume_from_checkpoint", default=None)
     parser.add_argument("--smoke_test", action="store_true", help="200 samples, 1 epoch, verifies the pipeline runs end to end")
@@ -38,6 +38,8 @@ def main():
 
     assert torch.cuda.is_available(), "CUDA GPU not found — this script expects the RTX 3090 box, not CPU/Mac"
     torch.backends.cudnn.benchmark = True
+    torch.backends.cuda.matmul.allow_tf32 = True
+    torch.backends.cudnn.allow_tf32 = True
 
     if args.smoke_test:
         stream = load_dataset("SoyVitou/62k-images-khmer-printed-dataset", split="train", streaming=True)

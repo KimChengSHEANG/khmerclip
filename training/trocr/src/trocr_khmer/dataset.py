@@ -14,6 +14,10 @@ def _load_rgb_image(image) -> Image.Image:
 class OCRDataset(torch.utils.data.Dataset):
     """Does all per-sample preprocessing (ViT resize/normalize + tokenization) inside the
     DataLoader worker, so it runs in parallel across workers and is prefetched ahead of the GPU.
+
+    The ViT preprocessing replicates ``ViTImageProcessor`` (resize -> rescale -> normalize) with a
+    PIL resize + torch path, which is far faster than HF's slow numpy image processor and keeps the
+    CPU workers from starving the GPU. Params are read off the processor so they stay in sync.
     """
 
     def __init__(self, hf_dataset, processor, max_label_len=MAX_LABEL_LEN):
@@ -21,13 +25,28 @@ class OCRDataset(torch.utils.data.Dataset):
         self.processor = processor
         self.max_label_len = max_label_len
 
+        ip = processor.image_processor
+        self.size = (ip.size["width"], ip.size["height"])  # PIL wants (w, h)
+        self.resample = ip.resample  # 2 == PIL bilinear
+        self.rescale_factor = ip.rescale_factor
+        # shape (3, 1, 1) so it broadcasts over CHW pixel tensors
+        self.mean = torch.tensor(ip.image_mean, dtype=torch.float32).view(-1, 1, 1)
+        self.std = torch.tensor(ip.image_std, dtype=torch.float32).view(-1, 1, 1)
+
     def __len__(self):
         return len(self.dataset)
+
+    def _preprocess_image(self, image: Image.Image) -> torch.Tensor:
+        image = image.resize(self.size, self.resample)
+        arr = torch.from_numpy(np.asarray(image, dtype=np.float32))  # HWC
+        pixel_values = arr.permute(2, 0, 1).mul_(self.rescale_factor)  # CHW, rescaled
+        pixel_values.sub_(self.mean).div_(self.std)
+        return pixel_values
 
     def __getitem__(self, idx):
         row = self.dataset[idx]
         image = _load_rgb_image(row["image"])
-        pixel_values = self.processor(images=image, return_tensors="pt").pixel_values[0]
+        pixel_values = self._preprocess_image(image)
         input_ids = self.processor.tokenizer(
             row["text"],
             max_length=self.max_label_len,
