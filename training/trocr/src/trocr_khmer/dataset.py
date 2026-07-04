@@ -5,7 +5,17 @@ from PIL import Image
 MAX_LABEL_LEN = 128
 
 
+def _load_rgb_image(image) -> Image.Image:
+    if not isinstance(image, Image.Image):
+        image = Image.open(image)
+    return image.convert("RGB")
+
+
 class OCRDataset(torch.utils.data.Dataset):
+    """Does all per-sample preprocessing (ViT resize/normalize + tokenization) inside the
+    DataLoader worker, so it runs in parallel across workers and is prefetched ahead of the GPU.
+    """
+
     def __init__(self, hf_dataset, processor, max_label_len=MAX_LABEL_LEN):
         self.dataset = hf_dataset
         self.processor = processor
@@ -16,24 +26,34 @@ class OCRDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         row = self.dataset[idx]
-        image = row["image"]
-        if not isinstance(image, Image.Image):
-            image = Image.open(image)
-        image = image.convert("RGB")
-
-        pixel_values = self.processor(image, return_tensors="pt").pixel_values.squeeze(0)
-
-        labels = self.processor.tokenizer(
+        image = _load_rgb_image(row["image"])
+        pixel_values = self.processor(images=image, return_tensors="pt").pixel_values[0]
+        input_ids = self.processor.tokenizer(
             row["text"],
-            padding="max_length",
             max_length=self.max_label_len,
             truncation=True,
         ).input_ids
-        labels = [
-            label if label != self.processor.tokenizer.pad_token_id else -100
-            for label in labels
-        ]
-        return {"pixel_values": pixel_values, "labels": torch.tensor(labels)}
+        return {"pixel_values": pixel_values, "labels": input_ids}
+
+
+class OCRDataCollator:
+    """Stacks worker-preprocessed pixel values and dynamically pads labels to the batch max."""
+
+    def __init__(self, processor, max_label_len=MAX_LABEL_LEN):
+        self.processor = processor
+        self.max_label_len = max_label_len
+        self.pad_token_id = processor.tokenizer.pad_token_id
+
+    def __call__(self, features):
+        pixel_values = torch.stack([f["pixel_values"] for f in features])
+
+        max_len = max(len(f["labels"]) for f in features)
+        labels = torch.full((len(features), max_len), -100, dtype=torch.long)
+        for i, f in enumerate(features):
+            ids = f["labels"]
+            labels[i, : len(ids)] = torch.tensor(ids, dtype=torch.long)
+
+        return {"pixel_values": pixel_values, "labels": labels}
 
 
 def build_compute_metrics(processor, cer_metric):

@@ -5,7 +5,7 @@ import torch
 from datasets import load_dataset
 from transformers import Seq2SeqTrainer, Seq2SeqTrainingArguments, VisionEncoderDecoderModel
 
-from trocr_khmer import MAX_LABEL_LEN, OCRDataset, build_compute_metrics, load_trocr_processor
+from trocr_khmer import MAX_LABEL_LEN, OCRDataCollator, OCRDataset, build_compute_metrics, load_trocr_processor
 
 MODEL_NAME = "microsoft/trocr-base-printed"
 
@@ -14,8 +14,9 @@ def main():
     parser = argparse.ArgumentParser(description="Evaluate a TrOCR checkpoint or fine-tuned model on the Khmer OCR validation split")
     parser.add_argument("model_dir", help="Directory containing the model and processor")
     parser.add_argument("--dataset_name", default="SoyVitou/62k-images-khmer-printed-dataset")
-    parser.add_argument("--eval_batch_size", type=int, default=8)
-    parser.add_argument("--num_workers", type=int, default=6)
+    parser.add_argument("--eval_batch_size", type=int, default=16)
+    parser.add_argument("--num_workers", type=int, default=8)
+    parser.add_argument("--prefetch_factor", type=int, default=4)
     parser.add_argument("--max_eval_samples", type=int, default=None, help="Optional limit for a quick evaluation run")
     args = parser.parse_args()
 
@@ -40,6 +41,7 @@ def main():
     model.config.length_penalty = 2.0
     model.config.num_beams = 4
 
+    data_collator = OCRDataCollator(processor)
     eval_dataset = OCRDataset(split["test"], processor)
     cer_metric = evaluate.load("cer")
 
@@ -50,6 +52,9 @@ def main():
         generation_max_length=MAX_LABEL_LEN,
         generation_num_beams=1,
         dataloader_num_workers=args.num_workers,
+        dataloader_pin_memory=True,
+        dataloader_persistent_workers=args.num_workers > 0,
+        dataloader_prefetch_factor=args.prefetch_factor if args.num_workers > 0 else None,
         report_to=[]
     )
 
@@ -57,6 +62,7 @@ def main():
         model=model,
         args=training_args,
         eval_dataset=eval_dataset,
+        data_collator=data_collator,
         compute_metrics=build_compute_metrics(processor, cer_metric),
     )
 
