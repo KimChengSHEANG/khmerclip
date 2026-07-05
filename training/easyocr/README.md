@@ -18,11 +18,16 @@ EasyOCR-KhmerClip/
 ├── README.md
 ├── configs/
 │   └── khmer.yaml            training / model configuration
+├── pretrained/               optional EasyOCR backbone weights (see §3)
+├── experiments/              training outputs (auto-created; gitignored)
+│   ├── model-1/              checkpoints + logs for run 1
+│   └── model-2/              checkpoints + logs for run 2
 └── src/
     └── khmer_ocr/            main package
         ├── config.py         config + charset (de)serialisation
         ├── data.py           Hugging Face dataset -> LMDB + charset
         ├── evaluate.py       CER / WER / accuracy / normalized edit distance
+        ├── experiments.py    auto-incrementing experiment directories
         ├── packaging.py      export a checkpoint for the easyocr package
         ├── cli/              command-line entry points
         │   ├── prepare_data.py
@@ -90,16 +95,31 @@ Khmer CTC head):
 khmer-ocr-train --config configs/khmer.yaml
 ```
 
+Each new training run writes checkpoints and logs to an auto-incremented
+directory under `experiments/`:
+
+```
+experiments/model-1/
+├── best_accuracy.pth
+├── best_norm_ED.pth
+├── iter_30000.pth
+├── log_train.txt
+├── log_dataset.txt
+└── opt.txt
+```
+
+The next run lands in `experiments/model-2`, then `model-3`, and so on.
+`experiment_name` in the config (default `khmer_g2`) is a logical label used in
+logs and when packaging for EasyOCR; it does **not** choose the output folder.
+
 Handy overrides (no need to edit the YAML):
 
 ```bash
 khmer-ocr-train --num_iter 300 --batch_size 32 --valInterval 100
 khmer-ocr-train --amp                                              # mixed precision
-khmer-ocr-train --saved_model saved_models/khmer_g2/best_norm_ED.pth  # resume
+khmer-ocr-train --saved_model experiments/model-1/best_norm_ED.pth  # resume run 1
 ```
 
-Checkpoints and logs land in `saved_models/<experiment_name>/`
-(`best_accuracy.pth`, `best_norm_ED.pth`, `iter_*.pth`, `log_train.txt`).
 Default architecture: `None-VGG-BiLSTM-CTC` (EasyOCR "generation 2"), `imgH=64`,
 `imgW=600`, `batch_max_length=120`.
 
@@ -107,7 +127,7 @@ Default architecture: `None-VGG-BiLSTM-CTC` (EasyOCR "generation 2"), `imgH=64`,
 
 ```bash
 khmer-ocr-eval --config configs/khmer.yaml \
-    --saved_model saved_models/khmer_g2/best_norm_ED.pth \
+    --saved_model experiments/model-1/best_norm_ED.pth \
     --eval_data data/lmdb/test --save_preds preds_test.csv
 ```
 
@@ -120,7 +140,7 @@ per-line `ground_truth, prediction, confidence, correct`.
 ```bash
 pip install easyocr        # optional; may change your torch version
 khmer-ocr-package --config configs/khmer.yaml \
-    --saved_model saved_models/khmer_g2/best_norm_ED.pth --name khmer_g2
+    --saved_model experiments/model-1/best_norm_ED.pth --name khmer_g2
 ```
 
 ```python
@@ -144,6 +164,6 @@ print(reader.readtext('line.jpg', detail=0))
 pip install -e .
 khmer-ocr-prepare
 khmer-ocr-train --config configs/khmer.yaml
-khmer-ocr-eval --saved_model saved_models/khmer_g2/best_norm_ED.pth --eval_data data/lmdb/test
+khmer-ocr-eval --saved_model experiments/model-1/best_norm_ED.pth --eval_data data/lmdb/test
 
 ```

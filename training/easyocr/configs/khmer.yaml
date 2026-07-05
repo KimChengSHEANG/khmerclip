@@ -3,7 +3,7 @@
 # (deep-text-recognition-benchmark), so the resulting model can be plugged
 # straight into the `easyocr` package as a custom recognition network.
 
-experiment_name: khmer_g2
+experiment_name: khmer_g2   # logical name for logs / easyocr packaging (not the output path)
 # Directories produced by prepare_data.py
 train_data: data/lmdb/train
 valid_data: data/lmdb/val
@@ -17,7 +17,7 @@ batch_size: 128
 # ~30k iters is roughly 60 epochs; lower it for a quick run.
 num_iter: 30000
 valInterval: 1000
-saved_model: pretrained/english_g2.pth   # EasyOCR english_g2 backbone (see README)
+saved_model: pretrained/english_g2.pth   # initial weights; training outputs go to experiments/model-{N}/
 FT: true                                 # required when expanding the charset
 
 # Optimizer

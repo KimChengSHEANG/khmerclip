@@ -1,7 +1,7 @@
 """CLI: export a checkpoint for use with the official `easyocr` package.
 
     python -m khmer_ocr.cli.package_model --config configs/khmer.yaml \\
-        --saved_model saved_models/khmer_g2/best_norm_ED.pth --name khmer_g2
+        --saved_model experiments/model-1/best_norm_ED.pth --name khmer_g2
     khmer-ocr-package --saved_model ...   # console script
 
 Then:
@@ -20,7 +20,8 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--config", default="configs/khmer.yaml")
-    ap.add_argument("--saved_model", required=True)
+    ap.add_argument("--saved_model", required=True,
+                    help="path to a trained checkpoint, e.g. experiments/model-1/best_norm_ED.pth")
     ap.add_argument("--name", default=None, help="custom recog_network name")
     ap.add_argument("--easyocr-dir", default=os.path.expanduser("~/.EasyOCR"))
     args = ap.parse_args()

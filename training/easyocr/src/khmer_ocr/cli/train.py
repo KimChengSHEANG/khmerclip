@@ -3,6 +3,10 @@
     python -m khmer_ocr.cli.train --config configs/khmer.yaml
     python -m khmer_ocr.cli.train --config configs/khmer.yaml --num_iter 300 --batch_size 32
     khmer-ocr-train --config configs/khmer.yaml       # console script
+
+Checkpoints and logs are written to experiments/model-{N}/ (N auto-increments
+per new run). Pass --saved_model experiments/model-1/best_norm_ED.pth to resume
+that run in the same directory.
 """
 import argparse
 import os
@@ -24,7 +28,8 @@ def parse_args():
     ap.add_argument("--num_iter", type=int, default=None)
     ap.add_argument("--batch_size", type=int, default=None)
     ap.add_argument("--valInterval", type=int, default=None)
-    ap.add_argument("--saved_model", type=str, default=None)
+    ap.add_argument("--saved_model", type=str, default=None,
+                    help="initial or resume checkpoint (.pth); resume keeps the same experiments/model-N/ dir")
     ap.add_argument("--experiment_name", type=str, default=None)
     ap.add_argument("--workers", type=int, default=None)
     ap.add_argument("--amp", action="store_true", help="mixed-precision training")

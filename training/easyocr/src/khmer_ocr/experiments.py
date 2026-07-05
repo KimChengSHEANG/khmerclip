@@ -1,4 +1,10 @@
-"""Experiment directory allocation for training runs."""
+"""Experiment directory allocation for training runs.
+
+Each new training session writes checkpoints and logs under
+``experiments/model-{N}/`` where *N* increments automatically. Resuming with
+``--saved_model experiments/model-2/best_norm_ED.pth`` continues in that same
+directory instead of creating a new one.
+"""
 import os
 import re
 

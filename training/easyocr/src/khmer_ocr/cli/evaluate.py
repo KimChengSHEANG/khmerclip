@@ -1,7 +1,7 @@
 """CLI: evaluate a trained model on an LMDB test set (CER / WER / accuracy).
 
     python -m khmer_ocr.cli.evaluate --config configs/khmer.yaml \\
-        --saved_model saved_models/khmer_g2/best_norm_ED.pth \\
+        --saved_model experiments/model-1/best_norm_ED.pth \\
         --eval_data data/lmdb/test --save_preds preds_test.csv
     khmer-ocr-eval --saved_model ...    # console script
 """
@@ -15,7 +15,8 @@ def parse_args():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--config", default="configs/khmer.yaml")
-    ap.add_argument("--saved_model", required=True, help="path to trained .pth")
+    ap.add_argument("--saved_model", required=True,
+                    help="path to a trained checkpoint, e.g. experiments/model-1/best_norm_ED.pth")
     ap.add_argument("--eval_data", default=None,
                     help="LMDB dir (default: sibling 'test' of valid_data)")
     ap.add_argument("--batch_size", type=int, default=128)

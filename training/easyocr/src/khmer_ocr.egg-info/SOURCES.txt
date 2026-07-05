@@ -4,6 +4,7 @@ src/khmer_ocr/__init__.py
 src/khmer_ocr/config.py
 src/khmer_ocr/data.py
 src/khmer_ocr/evaluate.py
+src/khmer_ocr/experiments.py
 src/khmer_ocr/packaging.py
 src/khmer_ocr.egg-info/PKG-INFO
 src/khmer_ocr.egg-info/SOURCES.txt

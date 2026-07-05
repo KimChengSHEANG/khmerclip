@@ -56,8 +56,10 @@ Thumbs.db
 # Experiment tracking
 wandb/
 
-# Model artifacts
+# Model artifacts (training outputs + pretrained backbones)
 experiments/
+pretrained/
+saved_models/
 trocr-khmer-checkpoints/
 trocr-khmer-final/
 eval_out/
@@ -71,7 +73,4 @@ runs/
 .python-version
 bk
 data/
-saved_models/
-experiments/
-pretrained/ 
 
