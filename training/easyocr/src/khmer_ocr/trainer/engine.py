@@ -147,7 +147,7 @@ def validation(model, criterion, evaluation_loader, converter, opt):
 
 
 def train(opt, show_number=2, amp=False):
-    os.makedirs(f"./saved_models/{opt.experiment_name}", exist_ok=True)
+    os.makedirs(opt.experiment_dir, exist_ok=True)
 
     if not opt.data_filtering_off:
         print("Filtering the images containing characters not in `opt.character`")
@@ -158,7 +158,7 @@ def train(opt, show_number=2, amp=False):
 
     train_dataset = Batch_Balanced_Dataset(opt)
 
-    log = open(f"./saved_models/{opt.experiment_name}/log_dataset.txt", "a")
+    log = open(os.path.join(opt.experiment_dir, "log_dataset.txt"), "a")
     AlignCollate_valid = AlignCollate(imgH=opt.imgH, imgW=opt.imgW, keep_ratio_with_pad=opt.PAD, contrast_adjust=opt.contrast_adjust)
     valid_dataset, valid_dataset_log = hierarchical_dataset(root=opt.valid_data, opt=opt)
     valid_loader = torch.utils.data.DataLoader(
@@ -229,7 +229,7 @@ def train(opt, show_number=2, amp=False):
     print("Optimizer:")
     print(optimizer)
 
-    with open(f"./saved_models/{opt.experiment_name}/opt.txt", "a") as opt_file:
+    with open(os.path.join(opt.experiment_dir, "opt.txt"), "a") as opt_file:
         opt_log = "------------ Options -------------\n"
         args = vars(opt)
         for k, v in args.items():
@@ -293,7 +293,7 @@ def train(opt, show_number=2, amp=False):
 
         if (iteration + 1) % opt.valInterval == 0 or iteration == 0:
             elapsed_time = time.time() - start_time
-            with open(f"./saved_models/{opt.experiment_name}/log_train.txt", "a") as log:
+            with open(os.path.join(opt.experiment_dir, "log_train.txt"), "a") as log:
                 model.eval()
                 with torch.no_grad():
                     (valid_loss, current_accuracy, current_norm_ED, preds, confidence_score,
@@ -316,10 +316,10 @@ def train(opt, show_number=2, amp=False):
 
                 if current_accuracy > best_accuracy:
                     best_accuracy = current_accuracy
-                    torch.save(model.state_dict(), f"./saved_models/{opt.experiment_name}/best_accuracy.pth")
+                    torch.save(model.state_dict(), os.path.join(opt.experiment_dir, "best_accuracy.pth"))
                 if current_norm_ED > best_norm_ED:
                     best_norm_ED = current_norm_ED
-                    torch.save(model.state_dict(), f"./saved_models/{opt.experiment_name}/best_norm_ED.pth")
+                    torch.save(model.state_dict(), os.path.join(opt.experiment_dir, "best_norm_ED.pth"))
                 best_model_log = (
                     f'{"Best_accuracy":17s}: {best_accuracy:0.3f}, '
                     f'{"Best_norm_ED":17s}: {best_norm_ED:0.4f}'
@@ -347,10 +347,10 @@ def train(opt, show_number=2, amp=False):
                 log.write(predicted_result_log + "\n")
 
         if (iteration + 1) % 1e5 == 0:
-            torch.save(model.state_dict(), f"./saved_models/{opt.experiment_name}/iter_{iteration + 1}.pth")
+            torch.save(model.state_dict(), os.path.join(opt.experiment_dir, f"iter_{iteration + 1}.pth"))
 
         if (iteration + 1) == opt.num_iter:
             print("end the training")
-            torch.save(model.state_dict(), f"./saved_models/{opt.experiment_name}/iter_{iteration + 1}.pth")
+            torch.save(model.state_dict(), os.path.join(opt.experiment_dir, f"iter_{iteration + 1}.pth"))
             break
         iteration += 1

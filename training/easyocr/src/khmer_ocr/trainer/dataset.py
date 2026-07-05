@@ -22,7 +22,7 @@ class Batch_Balanced_Dataset(object):
     """Sample data from several datasets according to `batch_ratio`."""
 
     def __init__(self, opt):
-        log = open(f"./saved_models/{opt.experiment_name}/log_dataset.txt", "a")
+        log = open(os.path.join(opt.experiment_dir, "log_dataset.txt"), "a")
         dashed = "-" * 80
         print(dashed)
         log.write(dashed + "\n")

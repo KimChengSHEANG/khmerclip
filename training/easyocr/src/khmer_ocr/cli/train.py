@@ -13,6 +13,7 @@ import torch
 import torch.backends.cudnn as cudnn
 
 from khmer_ocr.config import load_config, load_charset
+from khmer_ocr.experiments import resolve_experiment_dir
 from khmer_ocr.trainer.engine import train
 
 
@@ -48,7 +49,8 @@ def main():
     if not hasattr(opt, "batch_ratio"):
         opt.batch_ratio = "1"
 
-    os.makedirs(f"./saved_models/{opt.experiment_name}", exist_ok=True)
+    opt.experiment_dir = resolve_experiment_dir(opt.saved_model or "")
+    os.makedirs(opt.experiment_dir, exist_ok=True)
 
     random.seed(opt.manualSeed)
     np.random.seed(opt.manualSeed)
@@ -58,7 +60,8 @@ def main():
     cudnn.deterministic = False
 
     opt.num_gpu = torch.cuda.device_count()
-    print(f"Training '{opt.experiment_name}' | {len(opt.character)} characters | "
+    print(f"Training '{opt.experiment_name}' -> {opt.experiment_dir} | "
+          f"{len(opt.character)} characters | "
           f"{'GPU x' + str(opt.num_gpu) if opt.num_gpu else 'CPU'}")
     train(opt, amp=args.amp)
 
