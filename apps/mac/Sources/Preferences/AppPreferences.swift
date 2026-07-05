@@ -44,6 +44,6 @@ final class AppPreferences: ObservableObject {
         self.playCaptureSound = defaults.object(forKey: Keys.playSound) as? Bool ?? true
         self.launchAtLogin = defaults.object(forKey: Keys.launchAtLogin) as? Bool ?? false
         self.ocrEngine = (defaults.string(forKey: Keys.ocrEngine)).flatMap(OCREngineKind.init) ?? .trocr
-        self.trocrModel = (defaults.string(forKey: Keys.trocrModel)).flatMap(TrOCRModelSize.init) ?? .base
+        self.trocrModel = (defaults.string(forKey: Keys.trocrModel)).flatMap(TrOCRModelSize.init) ?? .khmer
     }
 }

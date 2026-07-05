@@ -18,29 +18,16 @@ enum OCREngineKind: String, CaseIterable, Identifiable {
     }
 }
 
-/// Which TrOCR model to run. small/base/large are the official
-/// microsoft/trocr-*-printed checkpoints (larger = more accurate, slower,
-/// bigger on disk); khmer is a separate Khmer-capable fine-tune
-/// (lkhapple/Khmer-TrOCR-OCR) -- not a size tier, but a
-/// distinct model kept alongside them since Khmer support doesn't fit the
-/// small/base/large scale.
+/// Which TrOCR model to run. khmer is a Khmer printed-text fine-tune
+/// (lkhapple/Khmer-TrOCR-OCR); the English small/base/large size tiers were
+/// dropped since this app targets Khmer OCR.
 enum TrOCRModelSize: String, CaseIterable, Identifiable {
-    case small
-    case base
-    case large
     case khmer
-    // Local small-arch Khmer byte-BPE fine-tune with added literal tokens
-    // (raw_models/trocr-small-62k) -> Vendor/trocr/trocr-small-62k.
-    case trocrSmall62k = "trocr-small-62k"
 
     var id: String { rawValue }
     var displayName: String {
         switch self {
-        case .small: return "Small"
-        case .base: return "Base"
-        case .large: return "Large"
         case .khmer: return "Khmer"
-        case .trocrSmall62k: return "TrOCR Small 62k"
         }
     }
 }
