@@ -52,6 +52,7 @@ run: build
 	@pkill -x Netra 2>/dev/null || true
 	@while pgrep -x Netra >/dev/null; do sleep 0.1; done
 	@/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$(APP)"
+	@sleep 0.5   # let lsregister commit before `open`, else LaunchServices returns -600
 	@for i in 1 2 3 4 5; do \
 		open "$(APP)" && break || { echo "open failed (LaunchServices not ready), retrying..."; sleep 0.5; }; \
 	done
