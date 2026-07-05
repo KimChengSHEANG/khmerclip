@@ -4,7 +4,9 @@ Fine-tunes `microsoft/trocr-base-printed` on [SoyVitou/62k-images-khmer-printed-
 
 Target machine: Ubuntu, i9-8950HK, 32GB RAM, RTX 3090 (24GB VRAM). **Requires CUDA** — the script asserts `torch.cuda.is_available()` and will refuse to run on CPU-only/Mac.
 
-TrOCR's decoder tokenizer is a byte-level BPE (RoBERTa), which encodes any UTF-8 text — including Khmer — as byte tokens. Fine-tuning the whole model (not just a head) teaches it to produce fluent Khmer byte sequences; this is the standard approach used for adapting TrOCR to non-Latin scripts.
+TrOCR's decoder tokenizer is a byte-level BPE (RoBERTa) trained on English. It *can* encode Khmer, but only through its UTF-8 byte fallback — it has no merges for the script, so every Khmer character becomes 3 raw byte tokens. Before training we therefore **extend the tokenizer with a dedicated token per Khmer character** (the Khmer block `U+1780–U+17FF`, the Khmer Symbols block `U+19E0–U+19FF`, and the zero-width word-separator characters) and resize the decoder's embeddings + tied LM head to match. This collapses one line of Khmer from ~3× its length in byte tokens down to one token per character — shorter sequences (less truncation under `MAX_LABEL_LEN`), and a decoder that learns whole characters instead of shared UTF-8 lead bytes. Fine-tuning the whole model then teaches it to read Khmer; this is the standard approach for adapting TrOCR to a non-Latin script.
+
+The character set and the resize live in [`src/trocr_khmer/khmer.py`](src/trocr_khmer/khmer.py) (`add_khmer_tokens`), invoked automatically by `scripts/train.py`. The added characters are regular (not special) tokens, so they round-trip through `decode(..., skip_special_tokens=True)` as normal text, and the extended tokenizer is saved into each run's `final/` folder for inference/eval. We fine-tune `microsoft/trocr-base-printed`, whose byte-level tokenizer round-trips Khmer cleanly (`microsoft/trocr-small-printed` ships a SentencePiece tokenizer that fails to load on current `transformers`).
 
 ## Project layout
 
@@ -47,7 +49,8 @@ python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_
 # 1. Smoke test first — 200 samples (streamed, no full download), 1 epoch. Confirms the pipeline runs before committing hours to the full run.
 python scripts/train.py --smoke_test
 
-# 2. Full fine-tune. Default: 8 epochs, batch size 16, bf16.
+# 2. Full fine-tune. Default: 8 epochs, batch size 32, bf16, microsoft/trocr-base-printed.
+#    Override the base model with --model_name if needed.
 python scripts/train.py
 ```
 

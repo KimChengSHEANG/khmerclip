@@ -26,11 +26,14 @@ from trocr_khmer import (
     MAX_LABEL_LEN,
     OCRDataCollator,
     OCRDataset,
+    add_khmer_tokens,
     build_compute_metrics,
     configure_generation,
     load_trocr_processor,
 )
 
+# trocr-base-printed ships the byte-level BPE (RoBERTa) tokenizer that round-trips Khmer.
+# (trocr-small-printed's SentencePiece tokenizer fails to load on recent transformers.)
 MODEL_NAME = "microsoft/trocr-base-printed"
 
 
@@ -48,6 +51,7 @@ def next_experiment_dir(experiments_dir: str) -> Path:
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument("--model_name", default=MODEL_NAME, help="Base TrOCR checkpoint to fine-tune")
     parser.add_argument("--experiments_dir", default="experiments")
     parser.add_argument("--output_dir", default=None, help="Run folder; defaults to the next experiments/checkpoint-N")
     parser.add_argument("--epochs", type=int, default=8)
@@ -78,8 +82,14 @@ def main():
         dataset = load_dataset("SoyVitou/62k-images-khmer-printed-dataset", split="train")
     split = dataset.train_test_split(test_size=0.03, seed=42)
 
-    processor = load_trocr_processor(MODEL_NAME)
-    model = VisionEncoderDecoderModel.from_pretrained(MODEL_NAME)
+    processor = load_trocr_processor(args.model_name)
+    model = VisionEncoderDecoderModel.from_pretrained(args.model_name)
+
+    # Give the decoder dedicated tokens for the Khmer script (one token per character instead
+    # of 3 UTF-8 byte tokens) and grow the embeddings + LM head to match. Must run before
+    # configure_generation, which reads the (now-enlarged) decoder vocab size into the config.
+    num_added = add_khmer_tokens(processor, model)
+    print(f"Added {num_added} Khmer tokens; decoder vocab is now {model.config.decoder.vocab_size}")
 
     configure_generation(model, processor, MAX_LABEL_LEN)
 
