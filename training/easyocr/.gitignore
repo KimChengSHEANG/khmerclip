@@ -70,3 +70,5 @@ runs/
 *.log
 .python-version
 bk
+data/
+saved_models/

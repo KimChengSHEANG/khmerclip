@@ -123,3 +123,14 @@ print(reader.readtext('line.jpg', detail=0))
 - CTC decoding is greedy by default (`decode: greedy` in the config).
 - For a stronger model try `FeatureExtraction: ResNet` and/or
   `Transformation: TPS` in the config (slower, more accurate).
+
+
+## Test
+
+```
+pip install -e .
+khmer-ocr-prepare
+khmer-ocr-train --config configs/khmer.yaml
+khmer-ocr-eval --saved_model saved_models/khmer_g2/best_norm_ED.pth --eval_data data/lmdb/test
+
+```

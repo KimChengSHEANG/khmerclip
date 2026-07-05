@@ -23,6 +23,30 @@ from .model import Model
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
+def format_elapsed(seconds):
+    """Format a duration in seconds as 'Xh Ym Zs' (omit zero leading parts)."""
+    total = int(seconds)
+    hours, rem = divmod(total, 3600)
+    minutes, secs = divmod(rem, 60)
+    if hours:
+        return f"{hours}h {minutes}m {secs}s"
+    if minutes:
+        return f"{minutes}m {secs}s"
+    return f"{secs}s"
+
+
+def estimate_remaining(elapsed_seconds, iteration, start_iter, num_iter):
+    """Estimate time left from average seconds per iteration this session."""
+    iterations_done = (iteration + 1) - start_iter
+    remaining_iters = num_iter - (iteration + 1)
+    if remaining_iters <= 0:
+        return "0s"
+    if iterations_done <= 0:
+        return "?"
+    sec_per_iter = elapsed_seconds / iterations_done
+    return format_elapsed(sec_per_iter * remaining_iters)
+
+
 def validation(model, criterion, evaluation_loader, converter, opt):
     """Validation or evaluation."""
     n_correct = 0
@@ -279,7 +303,9 @@ def train(opt, show_number=2, amp=False):
 
                 loss_log = (
                     f"[{iteration + 1}/{opt.num_iter}] Train loss: {loss_avg.val():0.5f}, "
-                    f"Valid loss: {valid_loss:0.5f}, Elapsed_time: {elapsed_time:0.5f}"
+                    f"Valid loss: {valid_loss:0.5f}, "
+                    f"Elapsed_time: {format_elapsed(elapsed_time)}, "
+                    f"Remaining_time: {estimate_remaining(elapsed_time, iteration, start_iter, opt.num_iter)}"
                 )
                 loss_avg.reset()
 
