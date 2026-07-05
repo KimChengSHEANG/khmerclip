@@ -31,6 +31,12 @@ final class CaptureCoordinator {
 
     func beginCapture(mode: CaptureMode, saveFixture: Bool = false) {
         guard overlayWindows.isEmpty else { return }
+        // Warm the TrOCR model while the user drags out their selection, so the
+        // first-time compile/load doesn't stall after they release the mouse.
+        if mode == .text, preferences.ocrEngine == .trocr {
+            let model = preferences.trocrModel
+            Task.detached { await TrOCREngine.preload(model: model) }
+        }
         for screen in NSScreen.screens {
             let window = SelectionOverlayWindow(screen: screen)
             let view = SelectionOverlayView(frame: screen.frame)

@@ -34,6 +34,15 @@ enum TrOCREngine {
 
     private static let maxLength = 64
 
+    /// Warms the model cache ahead of an actual recognize call. Called when a
+    /// capture starts so the slow first-time compile/load overlaps the user's
+    /// selection drag instead of blocking after it. Best-effort: any error is
+    /// swallowed and surfaced properly on the real recognizeText call.
+    static func preload(model size: TrOCRModelSize) async {
+        guard let root = resourceRoot else { return }
+        _ = try? await ModelCache.shared.models(for: size, resourceRoot: root)
+    }
+
     static func recognizeText(
         in image: CGImage,
         model size: TrOCRModelSize,
