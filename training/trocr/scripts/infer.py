@@ -25,7 +25,15 @@ def main():
     pixel_values = processor(images, return_tensors="pt").pixel_values.to(device)
 
     with torch.no_grad():
-        generated_ids = model.generate(pixel_values, max_length=128, num_beams=4)
+        # no_repeat_ngram_size must stay 0: Khmer byte-level tokens legitimately repeat
+        # trigrams (shared UTF-8 lead bytes), and blocking them wrecks transcription.
+        generated_ids = model.generate(
+            pixel_values,
+            max_length=128,
+            num_beams=4,
+            length_penalty=1.0,
+            no_repeat_ngram_size=0,
+        )
     texts = processor.batch_decode(generated_ids, skip_special_tokens=True)
 
     for path, text in zip(image_paths, texts):

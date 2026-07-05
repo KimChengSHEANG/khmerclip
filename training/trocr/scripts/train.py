@@ -22,7 +22,14 @@ from transformers import (
     VisionEncoderDecoderModel,
 )
 
-from trocr_khmer import MAX_LABEL_LEN, OCRDataCollator, OCRDataset, build_compute_metrics, load_trocr_processor
+from trocr_khmer import (
+    MAX_LABEL_LEN,
+    OCRDataCollator,
+    OCRDataset,
+    build_compute_metrics,
+    configure_generation,
+    load_trocr_processor,
+)
 
 MODEL_NAME = "microsoft/trocr-base-printed"
 
@@ -74,15 +81,7 @@ def main():
     processor = load_trocr_processor(MODEL_NAME)
     model = VisionEncoderDecoderModel.from_pretrained(MODEL_NAME)
 
-    model.config.decoder_start_token_id = processor.tokenizer.cls_token_id
-    model.config.pad_token_id = processor.tokenizer.pad_token_id
-    model.config.vocab_size = model.config.decoder.vocab_size
-    model.config.eos_token_id = processor.tokenizer.sep_token_id
-    model.config.max_length = MAX_LABEL_LEN
-    model.config.early_stopping = True
-    model.config.no_repeat_ngram_size = 3
-    model.config.length_penalty = 2.0
-    model.config.num_beams = 4
+    configure_generation(model, processor, MAX_LABEL_LEN)
 
     data_collator = OCRDataCollator(processor)
     train_dataset = OCRDataset(split["train"], processor)
