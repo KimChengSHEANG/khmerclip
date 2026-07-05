@@ -1,0 +1,28 @@
+# Core deep-learning stack (already present in the `khmerclip` pyenv env).
+# Versions are left unpinned so the script also works in a fresh environment;
+# pin them if you need full reproducibility.
+torch>=2.0
+torchvision>=0.15
+
+# Data handling / dataset download
+datasets>=2.14
+huggingface_hub>=0.20
+pandas>=2.0
+pillow>=9.5
+numpy>=1.24
+
+# EasyOCR-style trainer dependencies
+lmdb>=1.4
+opencv-python-headless>=4.7
+natsort>=8.3
+nltk>=3.8
+scipy>=1.10
+PyYAML>=6.0
+six>=1.16
+
+# Evaluation metrics (CER / WER)
+jiwer>=3.0
+
+# Optional: run inference through the official easyocr package after training.
+# Installing this may change your torch version, so it is kept optional.
+# easyocr>=1.7

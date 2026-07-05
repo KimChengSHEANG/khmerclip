@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+data/
+saved_models/
+*.pth
+preds*.csv
+.venv/
+
+# packaging / build artifacts
+build/
+dist/
+*.egg-info/
+src/*.egg-info/

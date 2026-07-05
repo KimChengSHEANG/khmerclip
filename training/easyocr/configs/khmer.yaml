@@ -1,0 +1,56 @@
+# Training configuration for a Khmer EasyOCR recognition model.
+# This mirrors the structure used by the official EasyOCR trainer
+# (deep-text-recognition-benchmark), so the resulting model can be plugged
+# straight into the `easyocr` package as a custom recognition network.
+
+experiment_name: khmer_g2
+# Directories produced by prepare_data.py
+train_data: data/lmdb/train
+valid_data: data/lmdb/val
+# File listing every character the model can output (produced by prepare_data.py).
+character_file: data/charset.txt
+
+manualSeed: 1111
+workers: 6
+batch_size: 128
+# Number of training iterations. 62k images @ bs=128 -> ~490 iters/epoch.
+# ~30k iters is roughly 60 epochs; lower it for a quick run.
+num_iter: 30000
+valInterval: 1000
+saved_model: ''          # path to a .pth to resume / fine-tune from
+FT: false                # fine-tuning mode (looser weight loading)
+
+# Optimizer
+adam: false
+lr: 1.0
+beta1: 0.9
+rho: 0.95
+eps: 0.00000001
+grad_clip: 5.0
+
+# Data processing
+batch_ratio: '1'         # sampling ratio when using multiple datasets
+total_data_usage_ratio: '1.0'
+batch_max_length: 120    # dataset text max length is 120 chars
+imgH: 64
+imgW: 600
+rgb: false
+sensitive: true          # Khmer is case-insensitive but keep raw text
+PAD: true                # pad instead of stretch when resizing
+contrast_adjust: 0.0
+data_filtering_off: false
+
+# Model architecture (None-VGG-BiLSTM-CTC == EasyOCR "generation 2" recognizer)
+Transformation: 'None'          # None | TPS
+FeatureExtraction: 'VGG'        # VGG | RCNN | ResNet
+SequenceModeling: 'BiLSTM'      # None | BiLSTM
+Prediction: 'CTC'               # CTC | Attn
+num_fiducial: 20
+input_channel: 1
+output_channel: 256
+hidden_size: 256
+
+decode: 'greedy'         # CTC decode: greedy | beamsearch
+new_prediction: false
+freeze_FeatureFxtraction: false
+freeze_SequenceModeling: false
