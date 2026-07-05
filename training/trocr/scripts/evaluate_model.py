@@ -14,7 +14,7 @@ from trocr_khmer import (
     load_trocr_processor,
 )
 
-MODEL_NAME = "microsoft/trocr-base-printed"
+MODEL_NAME = "microsoft/trocr-small-printed"
 
 
 def main():

@@ -1,4 +1,4 @@
-"""Fine-tune TrOCR-base on the SoyVitou/62k-images-khmer-printed-dataset.
+"""Fine-tune TrOCR on the SoyVitou/62k-images-khmer-printed-dataset.
 
 Each run gets its own auto-incrementing folder under experiments/:
     experiments/checkpoint-1/          <- first run (HF checkpoints + final/ model)
@@ -23,6 +23,7 @@ from transformers import (
 )
 
 from trocr_khmer import (
+    BYTE_LEVEL_TOKENIZER,
     MAX_LABEL_LEN,
     OCRDataCollator,
     OCRDataset,
@@ -32,9 +33,11 @@ from trocr_khmer import (
     load_trocr_processor,
 )
 
-# trocr-base-printed ships the byte-level BPE (RoBERTa) tokenizer that round-trips Khmer.
-# (trocr-small-printed's SentencePiece tokenizer fails to load on recent transformers.)
-MODEL_NAME = "microsoft/trocr-base-printed"
+# trocr-small-printed: smaller/faster vision-encoder-decoder. Its own XLM-RoBERTa
+# SentencePiece tokenizer can't round-trip per-character Khmer, so we graft the byte-level
+# BPE tokenizer (BYTE_LEVEL_TOKENIZER) onto it and resize the decoder to match — see
+# load_trocr_processor / add_khmer_tokens. Override with --model_name if needed.
+MODEL_NAME = "microsoft/trocr-small-printed"
 
 
 def next_experiment_dir(experiments_dir: str) -> Path:
@@ -82,12 +85,16 @@ def main():
         dataset = load_dataset("SoyVitou/62k-images-khmer-printed-dataset", split="train")
     split = dataset.train_test_split(test_size=0.03, seed=42)
 
-    processor = load_trocr_processor(args.model_name)
+    # Graft the byte-level BPE tokenizer onto the checkpoint's image processor (the small
+    # model's own SentencePiece tokenizer can't round-trip Khmer); the decoder is resized to
+    # this tokenizer's vocab below.
+    processor = load_trocr_processor(args.model_name, tokenizer_name=BYTE_LEVEL_TOKENIZER)
     model = VisionEncoderDecoderModel.from_pretrained(args.model_name)
 
-    # Give the decoder dedicated tokens for the Khmer script (one token per character instead
-    # of 3 UTF-8 byte tokens) and grow the embeddings + LM head to match. Must run before
-    # configure_generation, which reads the (now-enlarged) decoder vocab size into the config.
+    # Add a dedicated token per Khmer character (one token per character instead of 3 UTF-8
+    # byte tokens) and resize the decoder's embeddings + tied LM head to the grafted
+    # tokenizer's vocab. Must run before configure_generation, which reads the resized decoder
+    # vocab size into the config.
     num_added = add_khmer_tokens(processor, model)
     print(f"Added {num_added} Khmer tokens; decoder vocab is now {model.config.decoder.vocab_size}")
 

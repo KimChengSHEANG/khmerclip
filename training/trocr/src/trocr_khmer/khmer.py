@@ -1,9 +1,10 @@
 """Extend a TrOCR tokenizer with dedicated Khmer-script tokens.
 
-TrOCR's decoder tokenizer (``microsoft/trocr-base-printed``) is an English byte-level
-BPE (RoBERTa). It *can* encode Khmer, but only through the UTF-8 byte fallback: it has no
-merges for the script, so every Khmer character is spelled out as its 3 raw byte tokens.
-That has two costs for fine-tuning:
+The decoder uses a byte-level BPE (RoBERTa) tokenizer — natively for ``trocr-base-printed``,
+and grafted on for ``trocr-small-printed`` (whose own SentencePiece tokenizer can't round-trip
+Khmer; see ``processor.BYTE_LEVEL_TOKENIZER``). A byte-level BPE *can* encode Khmer, but only
+through the UTF-8 byte fallback: it has no merges for the script, so every Khmer character is
+spelled out as its 3 raw byte tokens. That has two costs for fine-tuning:
 
 * **Length.** A line of Khmer becomes ~3x more tokens than characters, so ``MAX_LABEL_LEN``
   fills up ~3x faster and long lines get silently truncated during training.
@@ -12,9 +13,9 @@ That has two costs for fine-tuning:
 
 Adding each Khmer character as its own token fixes both: one character -> one token, exact
 round-trip preserved, and the decoder gets a dedicated embedding per character. The model's
-decoder embedding matrix (and its tied LM head) must be resized to match the grown vocab;
-the new rows are initialised from the existing embeddings' mean/covariance by HF, which is a
-far better starting point than random vectors.
+decoder embedding matrix (and its tied LM head) must be resized to match the tokenizer's vocab
+(``resize_token_embeddings`` grows or, when grafting a smaller byte-level vocab onto the small
+model, shrinks it); HF seeds any added rows from the existing embeddings' mean/covariance.
 
 Because the added Khmer entries are *regular* tokens (not special tokens), they survive
 ``batch_decode(..., skip_special_tokens=True)`` and appear in the output as normal text.
