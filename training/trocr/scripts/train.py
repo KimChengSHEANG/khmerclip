@@ -1,4 +1,9 @@
-"""Fine-tune TrOCR on the SoyVitou/62k-images-khmer-printed-dataset.
+"""Fine-tune TrOCR on one or more Khmer OCR datasets.
+
+Train on a single dataset or combine several (see trocr_khmer.data_sources for the registry):
+    python scripts/train.py --datasets soyvitou
+    python scripts/train.py --datasets sokheng hanuman
+    python scripts/train.py --datasets soyvitou sokheng hanuman
 
 Each run gets its own auto-incrementing folder under experiments/:
     experiments/checkpoint-1/          <- first run (HF checkpoints + final/ model)
@@ -15,7 +20,6 @@ from pathlib import Path
 
 import evaluate
 import torch
-from datasets import load_dataset
 from transformers import (
     Seq2SeqTrainer,
     Seq2SeqTrainingArguments,
@@ -24,12 +28,15 @@ from transformers import (
 
 from trocr_khmer import (
     BYTE_LEVEL_TOKENIZER,
+    DATASET_REGISTRY,
+    DEFAULT_DATASETS,
     MAX_LABEL_LEN,
     OCRDataCollator,
     OCRDataset,
     add_khmer_tokens,
     build_compute_metrics,
     configure_generation,
+    load_ocr_split,
     load_trocr_processor,
 )
 
@@ -57,6 +64,16 @@ def next_experiment_dir(experiments_dir: str) -> Path:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--model_name", default=MODEL_NAME, help="Base TrOCR checkpoint to fine-tune")
+    parser.add_argument(
+        "--datasets",
+        nargs="+",
+        default=DEFAULT_DATASETS,
+        metavar="NAME",
+        help=(
+            "One or more datasets to train on (concatenated if several). Known aliases: "
+            + ", ".join(DATASET_REGISTRY) + ". Any other value is treated as a raw hub id."
+        ),
+    )
     parser.add_argument("--experiments_dir", default="experiments")
     parser.add_argument("--output_dir", default=None, help="Run folder; defaults to the next experiments/checkpoint-N")
     parser.add_argument("--epochs", type=int, default=8)
@@ -79,13 +96,7 @@ def main():
     torch.backends.cuda.matmul.allow_tf32 = True
     torch.backends.cudnn.allow_tf32 = True
 
-    if args.smoke_test:
-        stream = load_dataset("SoyVitou/62k-images-khmer-printed-dataset", split="train", streaming=True)
-        from datasets import Dataset
-        dataset = Dataset.from_list(list(stream.take(200)))
-    else:
-        dataset = load_dataset("SoyVitou/62k-images-khmer-printed-dataset", split="train")
-    split = dataset.train_test_split(test_size=0.03, seed=42)
+    split = load_ocr_split(args.datasets, test_size=0.03, seed=42, smoke_test=args.smoke_test)
 
     # Graft the byte-level BPE tokenizer onto the checkpoint's image processor (the small
     # model's own SentencePiece tokenizer can't round-trip Khmer); the decoder is resized to

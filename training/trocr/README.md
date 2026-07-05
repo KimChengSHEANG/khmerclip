@@ -1,6 +1,25 @@
 # TrOCR fine-tune — Khmer printed text
 
-Fine-tunes `microsoft/trocr-base-printed` on [SoyVitou/62k-images-khmer-printed-dataset](https://huggingface.co/datasets/SoyVitou/62k-images-khmer-printed-dataset) (62.7k image/text pairs, mixed Khmer + English printed text). Pass `--model_name microsoft/trocr-small-printed` to fine-tune the smaller/faster checkpoint instead.
+Fine-tunes `microsoft/trocr-base-printed` on Khmer image/text datasets. Pass `--model_name microsoft/trocr-small-printed` to fine-tune the smaller/faster checkpoint instead.
+
+### Datasets
+
+Train (and evaluate) on one dataset or a combination via `--datasets`. Three are pre-registered by short alias; any other value is treated as a raw Hugging Face hub id (assumed to expose `image`/`text` columns). All are concatenated when several are given, and a reproducible 3% validation split is carved with `seed=42`.
+
+| alias | dataset | size |
+| --- | --- | --- |
+| `soyvitou` (default) | [SoyVitou/62k-images-khmer-printed-dataset](https://huggingface.co/datasets/SoyVitou/62k-images-khmer-printed-dataset) | 62.7k printed, mixed Khmer + English |
+| `sokheng` | [Sokheng/khmer-synthetic-ocr-v1-100k](https://huggingface.co/datasets/Sokheng/khmer-synthetic-ocr-v1-100k) | 100k synthetic |
+| `hanuman` | [seanghay/khmer-hanuman-100k](https://huggingface.co/datasets/seanghay/khmer-hanuman-100k) | 100k |
+
+```bash
+python scripts/train.py --datasets soyvitou                    # one (the default)
+python scripts/train.py --datasets sokheng hanuman             # combined
+python scripts/train.py --datasets soyvitou sokheng hanuman    # all three
+python scripts/train.py --datasets seanghay/khmer-hanuman-100k # raw hub id
+```
+
+The registry and loader live in [`src/trocr_khmer/data_sources.py`](src/trocr_khmer/data_sources.py).
 
 Target machine: Ubuntu, i9-8950HK, 32GB RAM, RTX 3090 (24GB VRAM). **Requires CUDA** — the script asserts `torch.cuda.is_available()` and will refuse to run on CPU-only/Mac.
 
@@ -54,9 +73,11 @@ python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_
 python scripts/train.py --smoke_test
 
 # 2. Full fine-tune. Default: 8 epochs, batch size 8 x grad_accum 4 (effective 32), bf16,
-#    microsoft/trocr-base-printed. Override the base model with --model_name if needed;
-#    with trocr-small-printed you can raise --train_batch_size (e.g. 32 --grad_accum 1).
+#    microsoft/trocr-base-printed, on the soyvitou dataset. Override the base model with
+#    --model_name and the training data with --datasets (see Datasets above); with
+#    trocr-small-printed you can raise --train_batch_size (e.g. 32 --grad_accum 1).
 python scripts/train.py
+python scripts/train.py --datasets soyvitou sokheng hanuman   # train on all three combined
 ```
 
 Each run gets its own auto-incrementing folder under `experiments/` (`experiments/checkpoint-1/`, `experiments/checkpoint-2/`, …). Inside it, HF keeps the best-CER checkpoint plus the last 2, and the final model + processor are saved to `experiments/checkpoint-N/final/`.
@@ -81,6 +102,12 @@ Run evaluation independently against any saved checkpoint or fine-tuned model:
 
 ```bash
 python scripts/evaluate_model.py experiments/checkpoint-1/final
+```
+
+By default it evaluates on the `soyvitou` validation split. Pass the same `--datasets` you trained with to reproduce training's held-out eval set (same seed / split), or point it at any dataset to test cross-dataset generalization:
+
+```bash
+python scripts/evaluate_model.py experiments/checkpoint-1/final --datasets sokheng hanuman
 ```
 
 Optional quick evaluation with a smaller sample set:

@@ -15,7 +15,3 @@ https://huggingface.co/datasets/lkhapple/KhmerOCR-Dataset
 
 https://huggingface.co/datasets/sopheakvoatei/khmer-post-surya-ocr
 https://huggingface.co/datasets/sopheakvoatei/khmer-post-surya-skipped-blocks-ocr
-
-
-
-https://huggingface.co/datasets/Chanrith123333/khmer_english_ocr_image_line
