@@ -73,6 +73,19 @@ line; includes the meaningful space character).
 
 ## 3. Train
 
+Download the EasyOCR **english_g2** recognition backbone (required for stable
+CTC training; training from scratch collapses to blank outputs on this charset):
+
+```bash
+mkdir -p pretrained
+wget -O pretrained/english_g2.zip \
+  https://github.com/JaidedAI/EasyOCR/releases/download/v1.3/english_g2.zip
+unzip -o pretrained/english_g2.zip -d pretrained
+```
+
+Then start training (the default config fine-tunes that checkpoint with a new
+Khmer CTC head):
+
 ```bash
 khmer-ocr-train --config configs/khmer.yaml
 ```

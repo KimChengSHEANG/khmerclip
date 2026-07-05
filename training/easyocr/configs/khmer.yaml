@@ -17,8 +17,8 @@ batch_size: 128
 # ~30k iters is roughly 60 epochs; lower it for a quick run.
 num_iter: 30000
 valInterval: 1000
-saved_model: ''          # path to a .pth to resume / fine-tune from
-FT: false                # fine-tuning mode (looser weight loading)
+saved_model: pretrained/english_g2.pth   # EasyOCR english_g2 backbone (see README)
+FT: true                                 # required when expanding the charset
 
 # Optimizer
 adam: false
@@ -51,6 +51,6 @@ output_channel: 256
 hidden_size: 256
 
 decode: 'greedy'         # CTC decode: greedy | beamsearch
-new_prediction: false
+new_prediction: true     # re-init the CTC head for the Khmer charset (201 chars)
 freeze_FeatureFxtraction: false
 freeze_SequenceModeling: false

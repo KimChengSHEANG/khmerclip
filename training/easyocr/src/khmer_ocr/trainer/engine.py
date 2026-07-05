@@ -11,6 +11,7 @@ import random
 
 import numpy as np
 import torch
+import torch.backends.cudnn as cudnn
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.data
@@ -33,6 +34,15 @@ def format_elapsed(seconds):
     if minutes:
         return f"{minutes}m {secs}s"
     return f"{secs}s"
+
+
+def ctc_loss(criterion, log_probs, targets, input_lengths, target_lengths):
+    """CTC loss with cuDNN disabled (matches upstream EasyOCR trainer)."""
+    cudnn.enabled = False
+    try:
+        return criterion(log_probs, targets, input_lengths, target_lengths)
+    finally:
+        cudnn.enabled = True
 
 
 def estimate_remaining(elapsed_seconds, iteration, start_iter, num_iter):
@@ -69,9 +79,13 @@ def validation(model, criterion, evaluation_loader, converter, opt):
             preds = model(image, text_for_pred)
             forward_time = time.time() - start_time
 
-            preds_size = torch.IntTensor([preds.size(1)] * batch_size)
-            cost = criterion(
-                preds.log_softmax(2).permute(1, 0, 2), text_for_loss, preds_size, length_for_loss
+            preds_size = torch.IntTensor([preds.size(1)] * batch_size).to(device)
+            cost = ctc_loss(
+                criterion,
+                preds.log_softmax(2).permute(1, 0, 2),
+                text_for_loss,
+                preds_size,
+                length_for_loss,
             )
 
             if opt.decode == "greedy":
@@ -186,28 +200,53 @@ def train(opt, show_number=2, amp=False):
         opt.FeatureExtraction, opt.SequenceModeling, opt.Prediction,
     )
 
-    for name, param in model.named_parameters():
-        if "localization_fc2" in name:
-            print(f"Skip {name} as it is already initialized")
-            continue
-        try:
-            if "bias" in name:
-                nn.init.constant_(param, 0.0)
-            elif "weight" in name:
-                nn.init.kaiming_normal_(param)
-        except Exception:
-            if "weight" in name:
-                param.data.fill_(1)
-            continue
+    pretrained_dict = None
+    if opt.saved_model != "":
+        pretrained_dict = torch.load(opt.saved_model, map_location=device, weights_only=True)
+        if opt.new_prediction:
+            model.Prediction = nn.Linear(
+                model.SequenceModeling_output,
+                len(pretrained_dict["module.Prediction.weight"]),
+            )
+    elif not opt.new_prediction:
+        print(
+            "WARNING: training from scratch without a pretrained recognizer. "
+            "CTC often collapses to blank outputs; fine-tune from english_g2.pth "
+            "(set saved_model + new_prediction: true + FT: true in the config)."
+        )
+
+    if opt.saved_model == "":
+        for name, param in model.named_parameters():
+            if "localization_fc2" in name:
+                print(f"Skip {name} as it is already initialized")
+                continue
+            try:
+                if "bias" in name:
+                    nn.init.constant_(param, 0.0)
+                elif "weight" in name:
+                    nn.init.kaiming_normal_(param)
+            except Exception:
+                if "weight" in name:
+                    param.data.fill_(1)
+                continue
 
     model = torch.nn.DataParallel(model).to(device)
     model.train()
     if opt.saved_model != "":
         print(f"loading pretrained model from {opt.saved_model}")
         if opt.FT:
-            model.load_state_dict(torch.load(opt.saved_model), strict=False)
+            model.load_state_dict(pretrained_dict, strict=False)
         else:
-            model.load_state_dict(torch.load(opt.saved_model))
+            model.load_state_dict(pretrained_dict)
+        if opt.new_prediction:
+            model.module.Prediction = nn.Linear(
+                model.module.SequenceModeling_output, opt.num_class
+            ).to(device)
+            for name, param in model.module.Prediction.named_parameters():
+                if "bias" in name:
+                    nn.init.constant_(param, 0.0)
+                elif "weight" in name:
+                    nn.init.kaiming_normal_(param)
     print("Model:")
     print(model)
 
@@ -262,10 +301,10 @@ def train(opt, show_number=2, amp=False):
         if amp:
             with torch.cuda.amp.autocast():
                 if "CTC" in opt.Prediction:
-                    preds = model(image, text)
-                    preds_size = torch.IntTensor([preds.size(1)] * batch_size)
-                    preds = preds.log_softmax(2).permute(1, 0, 2)
-                    cost = criterion(preds, text, preds_size, length)
+                    preds = model(image, text).log_softmax(2)
+                    preds_size = torch.IntTensor([preds.size(1)] * batch_size).to(device)
+                    preds = preds.permute(1, 0, 2)
+                    cost = ctc_loss(criterion, preds, text, preds_size, length)
                 else:
                     preds = model(image, text[:, :-1])
                     target = text[:, 1:]
@@ -277,10 +316,10 @@ def train(opt, show_number=2, amp=False):
             scaler.update()
         else:
             if "CTC" in opt.Prediction:
-                preds = model(image, text)
-                preds_size = torch.IntTensor([preds.size(1)] * batch_size)
-                preds = preds.log_softmax(2).permute(1, 0, 2)
-                cost = criterion(preds, text, preds_size, length)
+                preds = model(image, text).log_softmax(2)
+                preds_size = torch.IntTensor([preds.size(1)] * batch_size).to(device)
+                preds = preds.permute(1, 0, 2)
+                cost = ctc_loss(criterion, preds, text, preds_size, length)
             else:
                 preds = model(image, text[:, :-1])
                 target = text[:, 1:]
