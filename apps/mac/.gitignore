@@ -9,3 +9,4 @@ build
 # (see Vendor/trocr/convert.py). Not committed; the *.py scripts are (the
 # glob below only matches subdirectories, not convert.py/export_tokenizer.py).
 Vendor/trocr/*/
+raw_models/
