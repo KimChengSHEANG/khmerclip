@@ -29,9 +29,6 @@ enum TrOCRModelSize: String, CaseIterable, Identifiable {
     case base
     case large
     case khmer
-    // Local large-arch byte-BPE fine-tune (raw_models/trocr-62k), converted to
-    // Vendor/trocr/trocr-62k. rawValue is the resource folder name.
-    case trocr62k = "trocr-62k"
     // Local small-arch Khmer byte-BPE fine-tune with added literal tokens
     // (raw_models/trocr-small-62k) -> Vendor/trocr/trocr-small-62k.
     case trocrSmall62k = "trocr-small-62k"
@@ -43,7 +40,6 @@ enum TrOCRModelSize: String, CaseIterable, Identifiable {
         case .base: return "Base"
         case .large: return "Large"
         case .khmer: return "Khmer"
-        case .trocr62k: return "TrOCR 62k"
         case .trocrSmall62k: return "TrOCR Small 62k"
         }
     }
