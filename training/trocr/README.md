@@ -4,19 +4,21 @@ Fine-tunes `microsoft/trocr-base-printed` on Khmer image/text datasets. Pass `--
 
 ### Datasets
 
-Train (and evaluate) on one dataset or a combination via `--datasets`. Three are pre-registered by short alias; any other value is treated as a raw Hugging Face hub id (assumed to expose `image`/`text` columns). All are concatenated when several are given, and a reproducible 3% validation split is carved with `seed=42`.
+Train (and evaluate) on one dataset or a combination via `--datasets`. Five are pre-registered by short alias; any other value is treated as a raw Hugging Face hub id (assumed to expose `image`/`text` columns). All are concatenated when several are given, and a reproducible 3% validation split is carved with `seed=42`.
 
 | alias | dataset | size |
 | --- | --- | --- |
 | `soyvitou` (default) | [SoyVitou/62k-images-khmer-printed-dataset](https://huggingface.co/datasets/SoyVitou/62k-images-khmer-printed-dataset) | 62.7k printed, mixed Khmer + English |
 | `sokheng` | [Sokheng/khmer-synthetic-ocr-v1-100k](https://huggingface.co/datasets/Sokheng/khmer-synthetic-ocr-v1-100k) | 100k synthetic |
 | `hanuman` | [seanghay/khmer-hanuman-100k](https://huggingface.co/datasets/seanghay/khmer-hanuman-100k) | 100k |
+| `mrrtmob` | [mrrtmob/khmer_english_ocr_image_line](https://huggingface.co/datasets/mrrtmob/khmer_english_ocr_image_line) | 12M lines, ~40.2GB, Khmer + English (gated — accept its terms on the hub first) |
+| `kiteaether` | [KiteAether/c_khmer_gemma_ocr_train](https://huggingface.co/datasets/KiteAether/c_khmer_gemma_ocr_train) | Khmer OCR |
 
 ```bash
-python scripts/train.py --datasets soyvitou                    # one (the default)
-python scripts/train.py --datasets sokheng hanuman             # combined
-python scripts/train.py --datasets soyvitou sokheng hanuman    # all three
-python scripts/train.py --datasets seanghay/khmer-hanuman-100k # raw hub id
+python scripts/train.py --datasets soyvitou                              # one (the default)
+python scripts/train.py --datasets sokheng hanuman                       # combined
+python scripts/train.py --datasets soyvitou sokheng hanuman mrrtmob kiteaether  # all five
+python scripts/train.py --datasets seanghay/khmer-hanuman-100k           # raw hub id
 ```
 
 The registry and loader live in [`src/trocr_khmer/data_sources.py`](src/trocr_khmer/data_sources.py).
@@ -77,7 +79,7 @@ python scripts/train.py --smoke_test
 #    --model_name and the training data with --datasets (see Datasets above); with
 #    trocr-small-printed you can raise --train_batch_size (e.g. 32 --grad_accum 1).
 python scripts/train.py
-python scripts/train.py --datasets soyvitou sokheng hanuman   # train on all three combined
+python scripts/train.py --datasets soyvitou sokheng hanuman mrrtmob kiteaether   # train on all five combined
 ```
 
 Each run gets its own auto-incrementing folder under `experiments/` (`experiments/checkpoint-1/`, `experiments/checkpoint-2/`, …). Inside it, HF keeps the best-CER checkpoint plus the last 2, and the final model + processor are saved to `experiments/checkpoint-N/final/`.
