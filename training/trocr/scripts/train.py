@@ -77,9 +77,9 @@ def main():
     parser.add_argument("--experiments_dir", default="experiments")
     parser.add_argument("--output_dir", default=None, help="Run folder; defaults to the next experiments/checkpoint-N")
     parser.add_argument("--epochs", type=int, default=8)
-    parser.add_argument("--train_batch_size", type=int, default=8)
-    parser.add_argument("--eval_batch_size", type=int, default=8)
-    parser.add_argument("--grad_accum", type=int, default=4)  # effective batch = 8 * 4 = 32, fits base model in 24GB
+    parser.add_argument("--train_batch_size", type=int, default=16)
+    parser.add_argument("--eval_batch_size", type=int, default=16)
+    parser.add_argument("--grad_accum", type=int, default=2)  # effective batch = 16 * 2 = 32, ~fills base model in 24GB
     parser.add_argument("--lr", type=float, default=5e-5)
     parser.add_argument("--num_workers", type=int, default=10)
     parser.add_argument("--prefetch_factor", type=int, default=4)
@@ -111,6 +111,8 @@ def main():
     num_added = add_khmer_tokens(processor, model)
     print(f"Added {num_added} Khmer tokens; decoder vocab is now {model.config.decoder.vocab_size}")
 
+    model.config.decoder.loss_type = "ForCausalLMLoss"  
+    
     configure_generation(model, processor, MAX_LABEL_LEN)
 
     data_collator = OCRDataCollator(processor)
