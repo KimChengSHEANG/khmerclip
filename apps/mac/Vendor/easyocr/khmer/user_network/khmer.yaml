@@ -1,0 +1,11 @@
+# Placeholder config for a custom Khmer recognition model. When you provide a
+# trained model, replace khmer.yaml, khmer.py, and khmer.pth together (they
+# must match). Run: python3 install_khmer_model.py /path/to/your/model/files
+network_params:
+  input_channel: 1
+  output_channel: 256
+  hidden_size: 256
+imgH: 64
+lang_list:
+  - 'km'
+character_list: "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz !\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~កខគឃងចឆជឈញដឋឌឍណតថទធនបផពភមយរលវឝឞសហឡអឣឤឥឦឧឨឩឪឫឬឭឮឯឰឱឲឳ឴឵ាិីឹឺុូួើឿៀេែៃោៅំះៈ៉៊់៌៍៎៏័៑្៓។៕៖ៗ៘៙៚៛"

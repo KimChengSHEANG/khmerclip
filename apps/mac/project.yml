@@ -26,6 +26,9 @@ targets:
       - path: Vendor/trocr
         type: folder
         buildPhase: resources
+      - path: Vendor/easyocr
+        type: folder
+        buildPhase: resources
     info:
       path: Resources/Info.plist
       properties:
@@ -64,6 +67,7 @@ targets:
       - path: Sources/OCR/TesseractEngine.swift
       - path: Sources/OCR/TrOCREngine.swift
       - path: Sources/OCR/TrOCRTokenizer.swift
+      - path: Sources/OCR/EasyOCREngine.swift
       - path: Sources/OCR/OCREngine.swift
       # The vendored tesseract binary + tessdata, and the converted TrOCR
       # CoreML models, are what these OCR tests spawn/load. Tests point the

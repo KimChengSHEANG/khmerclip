@@ -25,6 +25,13 @@ struct PreferencesView: View {
                         }
                     }
                 }
+                if preferences.ocrEngine == .easyocr {
+                    Picker("EasyOCR Model", selection: $preferences.easyocrModel) {
+                        ForEach(EasyOCRModelSize.allCases) { size in
+                            Text(size.displayName).tag(size)
+                        }
+                    }
+                }
             }
 
             Section("Behavior") {

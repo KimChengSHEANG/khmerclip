@@ -15,6 +15,7 @@
 		10A727083F0ED21E72B16B9F /* 2.png in Resources */ = {isa = PBXBuildFile; fileRef = 5491230E6F04822AD44B79A8 /* 2.png */; };
 		12083B8F071A1F89B68490A3 /* TranslateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47E36CDB1F326EC32C8B7572 /* TranslateView.swift */; };
 		1442F7CC973A884ED81BE4A5 /* 4.txt in Resources */ = {isa = PBXBuildFile; fileRef = 5DDAC11BCF07DA7703CDBD40 /* 4.txt */; };
+		1B9531BA3E260304ED99243B /* EasyOCREngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C501A905EEABA005BC47AED /* EasyOCREngine.swift */; };
 		22BF6762FA1A28930F727B44 /* 1.txt in Resources */ = {isa = PBXBuildFile; fileRef = 5FBC70ACE291463E59B303D4 /* 1.txt */; };
 		2D9E27F26257479DB13F048E /* TrOCRTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D102D9EE2ACE75DFD4E97E8B /* TrOCRTests.swift */; };
 		2FD81E166C2D9AB3F8D3456E /* trocr in Resources */ = {isa = PBXBuildFile; fileRef = F63A13DFDAFA61B828CEB582 /* trocr */; };
@@ -24,6 +25,7 @@
 		3C23AAC57068AD4AE4A06AA1 /* ImageOCRWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A9B6C5374AADE21ACFD15ADF /* ImageOCRWindowController.swift */; };
 		434CA04E6740FF29E1D41EB2 /* LaunchAtLoginManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2A72B1C0356671FBE2C5747 /* LaunchAtLoginManager.swift */; };
 		492E36BE5DA761A61AE1BC85 /* 4.png in Resources */ = {isa = PBXBuildFile; fileRef = 0348B7CE680ADAB92F8C3DD3 /* 4.png */; };
+		4A9BB13918677E8C258DCE24 /* EasyOCREngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C501A905EEABA005BC47AED /* EasyOCREngine.swift */; };
 		5043FC8DA248C307D32BF6F2 /* TrOCREngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79F4F80F06D25999C3D3EE1A /* TrOCREngine.swift */; };
 		56A3AA0B8C148A20B1CCC7F0 /* OCREngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF81AC61EAAA5650D9B904B0 /* OCREngine.swift */; };
 		592C11F605027761299BEB39 /* 5.png in Resources */ = {isa = PBXBuildFile; fileRef = 1F9A8716DB1A7895D61FADC4 /* 5.png */; };
@@ -33,6 +35,7 @@
 		695EC0B2DECF65A567E7FA6D /* TrOCRTokenizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80FE1BF77F091946BEEB159D /* TrOCRTokenizer.swift */; };
 		6D60752A970B0CFC8AB91DF2 /* 2.txt in Resources */ = {isa = PBXBuildFile; fileRef = 7C0EBBCD39AF0F229189BB55 /* 2.txt */; };
 		73E24515C8D6D7015F5C8097 /* TrOCRTokenizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80FE1BF77F091946BEEB159D /* TrOCRTokenizer.swift */; };
+		7DB4A785CB76D2261971BF59 /* easyocr in Resources */ = {isa = PBXBuildFile; fileRef = C7D046C710D2F1B68199D347 /* easyocr */; };
 		80F95C5E61F3793035AA70CA /* AppPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B3BF3CB6EED8CA2C72DFD74 /* AppPreferences.swift */; };
 		8519A02C6447DD4FB5582DAE /* ScanRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6E0FAE4282B7CB8CD4331AF /* ScanRecord.swift */; };
 		8A03802237D6F3C22BF6C9FE /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CECE5005AEBA53A7CE686E7 /* HistoryView.swift */; };
@@ -83,6 +86,7 @@
 		7C0EBBCD39AF0F229189BB55 /* 2.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = 2.txt; sourceTree = "<group>"; };
 		80FE1BF77F091946BEEB159D /* TrOCRTokenizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrOCRTokenizer.swift; sourceTree = "<group>"; };
 		837848A981D0E03F56C52F75 /* TesseractEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TesseractEngine.swift; sourceTree = "<group>"; };
+		8C501A905EEABA005BC47AED /* EasyOCREngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EasyOCREngine.swift; sourceTree = "<group>"; };
 		93F2AC4E68C32A14E160C83A /* HotKeyRecorderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotKeyRecorderView.swift; sourceTree = "<group>"; };
 		96CE127DB20F3BE0828735AE /* 5.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = 5.txt; sourceTree = "<group>"; };
 		9B3BF3CB6EED8CA2C72DFD74 /* AppPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPreferences.swift; sourceTree = "<group>"; };
@@ -94,6 +98,7 @@
 		B6986559A32872CAF5B7D9A0 /* 6.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = 6.txt; sourceTree = "<group>"; };
 		BF81AC61EAAA5650D9B904B0 /* OCREngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCREngine.swift; sourceTree = "<group>"; };
 		C2A72B1C0356671FBE2C5747 /* LaunchAtLoginManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginManager.swift; sourceTree = "<group>"; };
+		C7D046C710D2F1B68199D347 /* easyocr */ = {isa = PBXFileReference; lastKnownFileType = folder; name = easyocr; path = Vendor/easyocr; sourceTree = SOURCE_ROOT; };
 		CD047F2D762555A2A2CCFCF6 /* 3.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = 3.txt; sourceTree = "<group>"; };
 		CD837C4E8A5F5A0F243102C3 /* OCRTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCRTests.swift; sourceTree = "<group>"; };
 		D102D9EE2ACE75DFD4E97E8B /* TrOCRTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrOCRTests.swift; sourceTree = "<group>"; };
@@ -179,6 +184,7 @@
 		5FEC1B12BAB67428A243E023 /* OCR */ = {
 			isa = PBXGroup;
 			children = (
+				8C501A905EEABA005BC47AED /* EasyOCREngine.swift */,
 				BF81AC61EAAA5650D9B904B0 /* OCREngine.swift */,
 				837848A981D0E03F56C52F75 /* TesseractEngine.swift */,
 				79F4F80F06D25999C3D3EE1A /* TrOCREngine.swift */,
@@ -214,6 +220,7 @@
 		9676B5B4C96367CB82238F90 = {
 			isa = PBXGroup;
 			children = (
+				C7D046C710D2F1B68199D347 /* easyocr */,
 				DA9A61D7F9815167F181D3ED /* tesseract */,
 				F63A13DFDAFA61B828CEB582 /* trocr */,
 				A721FC19E1044B0AD7538A16 /* Resources */,
@@ -390,6 +397,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E61F8BEB4288E60F6737827F /* Assets.xcassets in Resources */,
+				7DB4A785CB76D2261971BF59 /* easyocr in Resources */,
 				A2BEC1057F2444968969255A /* tesseract in Resources */,
 				2FD81E166C2D9AB3F8D3456E /* trocr in Resources */,
 			);
@@ -426,6 +434,7 @@
 				D1890533A7AD30C2A875678D /* BarcodeEngine.swift in Sources */,
 				5AB9775D966FAE0D1687B2B0 /* CaptureCoordinator.swift in Sources */,
 				B61A344DB4DB1C11DE664ADD /* ClipboardManager.swift in Sources */,
+				4A9BB13918677E8C258DCE24 /* EasyOCREngine.swift in Sources */,
 				F9DB21D81D3A1D706CEF4C7D /* HUDWindowController.swift in Sources */,
 				8A03802237D6F3C22BF6C9FE /* HistoryView.swift in Sources */,
 				D2649926FA057FE8F763B254 /* HotKeyRecorderView.swift in Sources */,
@@ -453,6 +462,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1B9531BA3E260304ED99243B /* EasyOCREngine.swift in Sources */,
 				0B6660B0196176E5ECAC269B /* GeometryAndRecordTests.swift in Sources */,
 				BC0FE7C9A545C067BC3496FB /* OCREngine.swift in Sources */,
 				AF877CE63C59D6DDC8E231C4 /* OCRTests.swift in Sources */,

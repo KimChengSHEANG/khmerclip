@@ -2,7 +2,7 @@
 SIGN_ID = 
 APP      = build/Build/Products/Debug/Netra.app
 
-.PHONY: gen build test run clean trocr-models trocr-khmer
+.PHONY: gen build test run clean trocr-models trocr-khmer easyocr-venv easyocr-models
 
 # Local Khmer checkpoint to (re)build from. Drop a new fine-tune here and
 # `make trocr-khmer` reconverts it into Vendor/trocr/khmer. Override the dir
@@ -31,6 +31,22 @@ trocr-khmer:
 	mkdir -p Vendor/trocr/khmer
 	python3 Vendor/trocr/convert.py khmer Vendor/trocr/khmer $(KHMER_CKPT)
 	python3 Vendor/trocr/export_tokenizer.py khmer Vendor/trocr/khmer/tokenizer.json $(KHMER_CKPT)
+
+# Creates Vendor/easyocr/venv with EasyOCR + PyTorch. Re-run after upgrading
+# requirements.txt. The app prefers venv/bin/python3 when present.
+easyocr-venv:
+	python3 -m venv Vendor/easyocr/venv
+	Vendor/easyocr/venv/bin/pip install -r Vendor/easyocr/requirements.txt
+
+# Downloads CRAFT detection weights into Vendor/easyocr/models/. Khmer
+# recognition weights (khmer.pth) are installed separately via
+# Vendor/easyocr/install_khmer_model.py when you have a fine-tuned model.
+easyocr-models: easyocr-venv
+	Vendor/easyocr/venv/bin/python3 -c "\
+import easyocr; \
+easyocr.Reader(['en'], gpu=False, \
+model_storage_directory='Vendor/easyocr/models', \
+download_enabled=True, verbose=True)"
 
 test: gen
 	xcodebuild -project Netra.xcodeproj -scheme NetraTests -configuration Debug \

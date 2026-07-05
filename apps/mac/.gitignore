@@ -10,3 +10,7 @@ build
 # glob below only matches subdirectories, not convert.py/export_tokenizer.py).
 Vendor/trocr/*/
 raw_models/
+
+# EasyOCR venv + downloaded/bundled weights (regenerate with make easyocr-venv / easyocr-models)
+Vendor/easyocr/venv/
+Vendor/easyocr/models/
