@@ -33,11 +33,13 @@ from trocr_khmer import (
     load_trocr_processor,
 )
 
-# trocr-small-printed: smaller/faster vision-encoder-decoder. Its own XLM-RoBERTa
-# SentencePiece tokenizer can't round-trip per-character Khmer, so we graft the byte-level
-# BPE tokenizer (BYTE_LEVEL_TOKENIZER) onto it and resize the decoder to match — see
-# load_trocr_processor / add_khmer_tokens. Override with --model_name if needed.
-MODEL_NAME = "microsoft/trocr-small-printed"
+# trocr-base-printed: its decoder natively uses the byte-level BPE (RoBERTa) tokenizer that
+# round-trips per-character Khmer, so grafting BYTE_LEVEL_TOKENIZER (also base's) is a no-op
+# here — we only resize the decoder for the added Khmer tokens (see add_khmer_tokens).
+# Override with --model_name microsoft/trocr-small-printed to fine-tune the smaller/faster
+# checkpoint instead; its own XLM-RoBERTa SentencePiece tokenizer can't round-trip Khmer, so
+# the graft in load_trocr_processor replaces it with the byte-level BPE.
+MODEL_NAME = "microsoft/trocr-base-printed"
 
 
 def next_experiment_dir(experiments_dir: str) -> Path:
