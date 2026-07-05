@@ -53,8 +53,9 @@ python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_
 # 1. Smoke test first — 200 samples (streamed, no full download), 1 epoch. Confirms the pipeline runs before committing hours to the full run.
 python scripts/train.py --smoke_test
 
-# 2. Full fine-tune. Default: 8 epochs, batch size 32, bf16, microsoft/trocr-base-printed.
-#    Override the base model with --model_name if needed.
+# 2. Full fine-tune. Default: 8 epochs, batch size 8 x grad_accum 4 (effective 32), bf16,
+#    microsoft/trocr-base-printed. Override the base model with --model_name if needed;
+#    with trocr-small-printed you can raise --train_batch_size (e.g. 32 --grad_accum 1).
 python scripts/train.py
 ```
 
