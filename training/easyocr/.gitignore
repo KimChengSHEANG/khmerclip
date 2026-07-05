@@ -72,3 +72,6 @@ runs/
 bk
 data/
 saved_models/
+experiments/
+pretrained/ 
+
