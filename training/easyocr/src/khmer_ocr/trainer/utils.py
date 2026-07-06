@@ -19,11 +19,12 @@ class CTCLabelConverter(object):
         self.character = ["[blank]"] + dict_character  # blank at index 0
 
     def encode(self, text, batch_max_length=25):
-        length = [len(s) for s in text]
-        # Filter unknown chars (shouldn't happen if charset is complete).
+        length = []
         indexed = []
         for s in text:
-            indexed.extend([self.dict[c] for c in s if c in self.dict])
+            indices = [self.dict[c] for c in s if c in self.dict]
+            length.append(len(indices))
+            indexed.extend(indices)
         text = torch.IntTensor(indexed)
         return text.to(device), torch.IntTensor(length).to(device)
 

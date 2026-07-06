@@ -31,6 +31,23 @@ def save_charset(chars, path):
             f.write(c + "\n")
 
 
+def normalize_label(text):
+    """Collapse runs of whitespace/newlines into single spaces."""
+    return " ".join(text.split())
+
+
+def label_in_charset(text, charset):
+    """Return True when every character in ``text`` is in ``charset``."""
+    allowed = set(charset)
+    return all(c in allowed for c in text)
+
+
+def filter_label_to_charset(text, charset):
+    """Keep only characters present in ``charset``."""
+    allowed = set(charset)
+    return "".join(c for c in text if c in allowed)
+
+
 def load_config(yaml_path, overrides=None):
     """Load a YAML config into an argparse.Namespace, applying CLI overrides."""
     with open(yaml_path, "r", encoding="utf-8") as f:

@@ -3,7 +3,6 @@
 Adapted from Clova AI's deep-text-recognition-benchmark (Apache-2.0).
 """
 import os
-import re
 import sys
 import math
 import six
@@ -13,6 +12,7 @@ import lmdb
 import numpy as np
 import torch
 
+from khmer_ocr.config import filter_label_to_charset, label_in_charset, normalize_label
 from khmer_ocr.data import lmdb_sample_count
 from PIL import Image
 from natsort import natsorted
@@ -130,6 +130,7 @@ class LmdbDataset(Dataset):
     def __init__(self, root, opt):
         self.root = root
         self.opt = opt
+        self._charset = set(opt.character)
         self.env = lmdb.open(
             root, max_readers=32, readonly=True, lock=False, readahead=False, meminit=False
         )
@@ -148,12 +149,11 @@ class LmdbDataset(Dataset):
                 for index in range(self.nSamples):
                     index += 1  # lmdb keys start at 1
                     label_key = "label-%09d".encode() % index
-                    label = txn.get(label_key).decode("utf-8")
+                    label = normalize_label(txn.get(label_key).decode("utf-8"))
 
                     if len(label) > self.opt.batch_max_length:
                         continue
-                    out_of_char = f"[^{self.opt.character}]"
-                    if re.search(out_of_char, label.lower() if not self.opt.sensitive else label):
+                    if not label_in_charset(label, self._charset):
                         continue
                     self.filtered_index_list.append(index)
 
@@ -168,7 +168,7 @@ class LmdbDataset(Dataset):
 
         with self.env.begin(write=False) as txn:
             label_key = "label-%09d".encode() % index
-            label = txn.get(label_key).decode("utf-8")
+            label = normalize_label(txn.get(label_key).decode("utf-8"))
             img_key = "image-%09d".encode() % index
             imgbuf = txn.get(img_key)
 
@@ -191,8 +191,7 @@ class LmdbDataset(Dataset):
             if not self.opt.sensitive:
                 label = label.lower()
 
-            out_of_char = f"[^{self.opt.character}]"
-            label = re.sub(out_of_char, "", label)
+            label = filter_label_to_charset(label, self._charset)
 
         return (img, label)
 

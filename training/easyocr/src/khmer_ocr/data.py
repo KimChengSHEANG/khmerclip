@@ -197,6 +197,11 @@ def write_lmdb(dataset, out_dir, map_size, max_samples=None, workers=None):
             print(f"  skip sample {cnt}: cannot encode image")
             continue
 
+        label = normalize_label(label)
+        if not label:
+            print(f"  skip sample {cnt}: empty label after normalization")
+            continue
+
         cache[f"image-{cnt:09d}".encode()] = image_bin
         cache[f"label-{cnt:09d}".encode()] = label.encode("utf-8")
         charset.update(label)
@@ -270,7 +275,7 @@ def build_dataset(
 
     Returns the path to the written charset file.
     """
-    from .config import load_charset, save_charset
+    from .config import load_charset, normalize_label, save_charset
 
     if dataset_names is None:
         dataset_names = ["soyvitou"]
