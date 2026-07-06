@@ -18,20 +18,6 @@ struct PreferencesView: View {
                         Text(engine.displayName).tag(engine)
                     }
                 }
-                if preferences.ocrEngine == .trocr {
-                    Picker("TrOCR Model", selection: $preferences.trocrModel) {
-                        ForEach(TrOCRModelSize.allCases) { size in
-                            Text(size.displayName).tag(size)
-                        }
-                    }
-                }
-                if preferences.ocrEngine == .easyocr {
-                    Picker("EasyOCR Model", selection: $preferences.easyocrModel) {
-                        ForEach(EasyOCRModelSize.allCases) { size in
-                            Text(size.displayName).tag(size)
-                        }
-                    }
-                }
             }
 
             Section("Behavior") {

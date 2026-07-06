@@ -65,17 +65,15 @@ enum OCRDispatcher {
     static func recognizeText(
         in image: CGImage,
         engine: OCREngineKind,
-        trocrModel: TrOCRModelSize,
-        easyocrModel: EasyOCRModelSize,
         progress: (@MainActor (OCRProgress) -> Void)? = nil
     ) async throws -> String {
         switch engine {
         case .tesseract:
             return try await TesseractEngine.recognizeText(in: image)
         case .trocr:
-            return try await TrOCREngine.recognizeText(in: image, model: trocrModel, progress: progress)
+            return try await TrOCREngine.recognizeText(in: image, model: .khmer, progress: progress)
         case .easyocr:
-            return try await EasyOCREngine.recognizeText(in: image, model: easyocrModel, progress: progress)
+            return try await EasyOCREngine.recognizeText(in: image, model: .khmer, progress: progress)
         }
     }
 }

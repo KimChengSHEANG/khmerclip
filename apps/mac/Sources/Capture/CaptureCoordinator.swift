@@ -34,12 +34,10 @@ final class CaptureCoordinator {
         // Warm the TrOCR model while the user drags out their selection, so the
         // first-time compile/load doesn't stall after they release the mouse.
         if mode == .text, preferences.ocrEngine == .trocr {
-            let model = preferences.trocrModel
-            Task.detached { await TrOCREngine.preload(model: model) }
+            Task.detached { await TrOCREngine.preload(model: .khmer) }
         }
         if mode == .text, preferences.ocrEngine == .easyocr {
-            let model = preferences.easyocrModel
-            Task.detached { await EasyOCREngine.preload(model: model) }
+            Task.detached { await EasyOCREngine.preload(model: .khmer) }
         }
         for screen in NSScreen.screens {
             let window = SelectionOverlayWindow(screen: screen)
@@ -96,8 +94,6 @@ final class CaptureCoordinator {
             let text = try await OCRDispatcher.recognizeText(
                 in: image,
                 engine: preferences.ocrEngine,
-                trocrModel: preferences.trocrModel,
-                easyocrModel: preferences.easyocrModel,
                 progress: { [onOCRProgress] info in onOCRProgress?(info) }
             )
             await handleResult(text: text, kind: .text)
