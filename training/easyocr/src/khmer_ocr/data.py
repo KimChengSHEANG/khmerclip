@@ -119,6 +119,48 @@ def _add_jpeg_bytes_batch(examples):
     return {"jpeg": jpegs, "text": texts}
 
 
+def infer_lmdb_num_samples(txn, max_index):
+    """Return the highest ``image-*`` index present (for interrupted prepares)."""
+    lo, hi = 1, max(1, max_index)
+    while lo < hi:
+        mid = (lo + hi + 1) // 2
+        if txn.get(f"image-{mid:09d}".encode()) is not None:
+            lo = mid
+        else:
+            hi = mid - 1
+    return lo
+
+
+def lmdb_sample_count(env, txn, root):
+    """Read ``num-samples`` from an LMDB, inferring it when the prepare step was interrupted."""
+    raw = txn.get(b"num-samples")
+    if raw is not None:
+        return int(raw)
+    upper = max(1, env.stat()["entries"] // 2 + 1)
+    n = infer_lmdb_num_samples(txn, upper)
+    print(f"[warn] {root}: missing num-samples key; inferred {n} from image keys")
+    return n
+
+
+def repair_lmdb(path):
+    """Write a missing ``num-samples`` key into an existing LMDB directory."""
+    env = lmdb.open(path, readonly=False, lock=False, readahead=False, meminit=False)
+    with env.begin(write=False) as txn:
+        raw = txn.get(b"num-samples")
+        if raw is not None:
+            n = int(raw)
+            env.close()
+            print(f"  {path}: already has num-samples={n}")
+            return n
+        upper = max(1, env.stat()["entries"] // 2 + 1)
+        n = infer_lmdb_num_samples(txn, upper)
+    with env.begin(write=True) as txn:
+        txn.put(b"num-samples", str(n).encode())
+    env.close()
+    print(f"  {path}: repaired num-samples={n}")
+    return n
+
+
 def write_lmdb(dataset, out_dir, map_size, max_samples=None, workers=None):
     """Write a Hugging Face dataset split into an LMDB with EasyOCR trainer keys.
 
@@ -161,6 +203,7 @@ def write_lmdb(dataset, out_dir, map_size, max_samples=None, workers=None):
         cnt += 1
 
         if cnt % 1000 == 0:
+            cache[b"num-samples"] = str(cnt - 1).encode()
             with env.begin(write=True) as txn:
                 for k, v in cache.items():
                     txn.put(k, v)

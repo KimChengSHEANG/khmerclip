@@ -12,6 +12,8 @@ from itertools import accumulate as _accumulate
 import lmdb
 import numpy as np
 import torch
+
+from khmer_ocr.data import lmdb_sample_count
 from PIL import Image
 from natsort import natsorted
 from torch.utils.data import Dataset, ConcatDataset, Subset
@@ -136,7 +138,7 @@ class LmdbDataset(Dataset):
             sys.exit(0)
 
         with self.env.begin(write=False) as txn:
-            nSamples = int(txn.get("num-samples".encode()))
+            nSamples = lmdb_sample_count(self.env, txn, root)
             self.nSamples = nSamples
 
             if self.opt.data_filtering_off:

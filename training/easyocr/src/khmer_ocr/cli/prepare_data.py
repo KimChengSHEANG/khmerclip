@@ -12,6 +12,7 @@ from khmer_ocr.data import (
     DATASETS,
     build_dataset,
     default_workers,
+    repair_lmdb,
     resolve_dataset_names,
 )
 
@@ -50,7 +51,18 @@ def main():
         action="store_true",
         help="print registered datasets and exit",
     )
+    ap.add_argument(
+        "--repair-lmdb",
+        nargs="+",
+        metavar="PATH",
+        help="write missing num-samples keys into existing LMDB dirs and exit",
+    )
     args = ap.parse_args()
+
+    if args.repair_lmdb:
+        for path in args.repair_lmdb:
+            repair_lmdb(path)
+        return
 
     if args.list_datasets:
         for key in DATASET_ORDER:
