@@ -2,13 +2,21 @@
 
     python -m khmer_ocr.cli.evaluate --config configs/khmer.yaml \\
         --saved_model experiments/model-1/best_norm_ED.pth \\
-        --eval_data data/lmdb/test --save_preds preds_test.csv
+        --eval_data data/lmdb/test/soyvitou --save_preds preds_test.csv
     khmer-ocr-eval --saved_model ...    # console script
 """
 import argparse
+import os
 
 from khmer_ocr.config import load_config, load_charset
 from khmer_ocr.evaluate import run_evaluation
+
+
+def default_eval_data(valid_data):
+    """Map a validation LMDB path to the matching test split."""
+    if "/val/" in valid_data:
+        return valid_data.replace("/val/", "/test/", 1)
+    return os.path.join(os.path.dirname(valid_data), "test")
 
 
 def parse_args():
@@ -30,7 +38,7 @@ def main():
     args = parse_args()
     opt = load_config(args.config)
     opt.character = load_charset(opt.character_file)
-    eval_data = args.eval_data or opt.valid_data.rsplit("/", 1)[0] + "/test"
+    eval_data = args.eval_data or default_eval_data(opt.valid_data)
 
     run_evaluation(
         opt, saved_model=args.saved_model, eval_data=eval_data,

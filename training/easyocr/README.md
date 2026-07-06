@@ -1,13 +1,31 @@
 # Khmer EasyOCR — Training & Evaluation
 
 Train and evaluate an **EasyOCR-compatible** text-recognition model for **Khmer**
-using the [SoyVitou/62k-images-khmer-printed-dataset](https://huggingface.co/datasets/SoyVitou/62k-images-khmer-printed-dataset)
-(62,680 printed Khmer/English line images, columns `image` + `text`).
+using one or more Hugging Face OCR line-image datasets (columns `image` + `text`).
 
 The recognizer architecture and training loop are a self-contained port of the
 trainer that ships with [EasyOCR](https://github.com/JaidedAI/EasyOCR) (itself
 based on Clova AI's *deep-text-recognition-benchmark*). Weights produced here are
 loadable by the `easyocr` package as a **custom recognition network**.
+
+## Supported datasets
+
+| Key | Hugging Face repo | ~size |
+|-----|-------------------|-------|
+| `soyvitou` | [SoyVitou/62k-images-khmer-printed-dataset](https://huggingface.co/datasets/SoyVitou/62k-images-khmer-printed-dataset) | 62k (train/val/test) |
+| `sokheng` | [Sokheng/khmer-synthetic-ocr-v1-100k](https://huggingface.co/datasets/Sokheng/khmer-synthetic-ocr-v1-100k) | 100k synthetic |
+| `hanuman` | [seanghay/khmer-hanuman-100k](https://huggingface.co/datasets/seanghay/khmer-hanuman-100k) | 100k |
+| `gemma` | [KiteAether/c_khmer_gemma_ocr_train](https://huggingface.co/datasets/KiteAether/c_khmer_gemma_ocr_train) | 7.5k |
+| `km_en_line` | [mrrtmob/khmer_english_ocr_image_line](https://huggingface.co/datasets/mrrtmob/khmer_english_ocr_image_line) | 12M (~40 GB, gated) |
+
+Canonical order for `--dataset-count 1|2|3|4`: `soyvitou` → `sokheng` → `hanuman` →
+`km_en_line`. `--datasets all` also includes `gemma`.
+
+List registered sources:
+
+```bash
+khmer-ocr-prepare --list-datasets
+```
 
 ## Project layout
 
@@ -65,16 +83,25 @@ This exposes four console commands: `khmer-ocr-prepare`, `khmer-ocr-train`,
 
 ## 2. Prepare the data
 
-Downloads the parquet splits from the Hub, converts them to LMDB, and writes the
-character set discovered in the labels.
+Downloads parquet splits from the Hub, converts them to LMDB (one subdir per
+dataset under `data/lmdb/{train,val,test}/`), and writes the character set
+discovered in the labels.
 
 ```bash
-khmer-ocr-prepare                     # full dataset -> data/lmdb/{train,val,test}
-khmer-ocr-prepare --max-samples 2000  # quick subset for a smoke test
+khmer-ocr-prepare                              # soyvitou only (default)
+khmer-ocr-prepare --dataset-count 2            # soyvitou + sokheng
+khmer-ocr-prepare --dataset-count 4            # first four sources
+khmer-ocr-prepare --datasets all               # every source (incl. gemma)
+khmer-ocr-prepare --datasets hanuman,gemma     # pick by name
+khmer-ocr-prepare --max-samples 2000           # cap each HF split (smoke test)
 ```
 
-Outputs: `data/lmdb/{train,val,test}` and `data/charset.txt` (one character per
-line; includes the meaningful space character).
+For the gated `km_en_line` dataset, accept the Hub terms and run
+`huggingface-cli login` before preparing.
+
+Outputs: `data/lmdb/train/{soyvitou,...}`, `data/lmdb/val/soyvitou`, etc., and
+`data/charset.txt` (one character per line; includes the meaningful space
+character).
 
 ## 3. Train
 
@@ -93,6 +120,8 @@ Khmer CTC head):
 
 ```bash
 khmer-ocr-train --config configs/khmer.yaml
+khmer-ocr-train --dataset-count 3     # mix soyvitou + sokheng + hanuman
+khmer-ocr-train --datasets all        # every prepared source
 ```
 
 Each new training run writes checkpoints and logs to an auto-incremented
@@ -128,7 +157,7 @@ Default architecture: `None-VGG-BiLSTM-CTC` (EasyOCR "generation 2"), `imgH=64`,
 ```bash
 khmer-ocr-eval --config configs/khmer.yaml \
     --saved_model experiments/model-1/best_norm_ED.pth \
-    --eval_data data/lmdb/test --save_preds preds_test.csv
+    --eval_data data/lmdb/test/soyvitou --save_preds preds_test.csv
 ```
 
 Reports **exact-match accuracy**, **CER**, **WER** (via `jiwer`) and the
@@ -164,6 +193,6 @@ print(reader.readtext('line.jpg', detail=0))
 pip install -e .
 khmer-ocr-prepare
 khmer-ocr-train --config configs/khmer.yaml
-khmer-ocr-eval --saved_model experiments/model-1/best_norm_ED.pth --eval_data data/lmdb/test
+khmer-ocr-eval --saved_model experiments/model-1/best_norm_ED.pth --eval_data data/lmdb/test/soyvitou
 
 ```

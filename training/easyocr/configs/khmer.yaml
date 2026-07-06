@@ -4,9 +4,11 @@
 # straight into the `easyocr` package as a custom recognition network.
 
 experiment_name: khmer_g2   # logical name for logs / easyocr packaging (not the output path)
-# Directories produced by prepare_data.py
+# Directories produced by prepare_data.py (one LMDB subdir per dataset key)
 train_data: data/lmdb/train
-valid_data: data/lmdb/val
+valid_data: data/lmdb/val/soyvitou
+# Which train LMDB subdirs to mix (see khmer-ocr-prepare --list-datasets)
+select_data: ['soyvitou']
 # File listing every character the model can output (produced by prepare_data.py).
 character_file: data/charset.txt
 
