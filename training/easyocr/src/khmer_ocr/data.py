@@ -4,7 +4,9 @@ Each dataset is written under ``{out_dir}/lmdb/{split}/{name}/`` so the EasyOCR
 trainer can mix sources via ``select_data`` + ``batch_ratio``.
 """
 import io
+import multiprocessing as mp
 import os
+from concurrent.futures import ProcessPoolExecutor
 
 import lmdb
 
@@ -49,6 +51,10 @@ DATASETS = {
         "description": "12M lines (~40 GB); accept the Hub terms and run `huggingface-cli login`",
     },
 }
+
+def default_workers():
+    """Default process count for prepare (cap to limit memory use)."""
+    return min(os.cpu_count() or 4, 8)
 
 
 def resolve_dataset_names(datasets=None, dataset_count=None):
@@ -95,31 +101,58 @@ def encode_image_to_jpeg(pil_image):
     return buf.getvalue()
 
 
-def write_lmdb(dataset, out_dir, map_size, max_samples=None):
+def _add_jpeg_bytes_batch(examples):
+    """Batched map callback: encode PIL images to JPEG bytes in worker processes."""
+    jpegs = []
+    texts = []
+    for image, label in zip(examples["image"], examples["text"]):
+        if label is None:
+            jpegs.append(None)
+            texts.append(None)
+            continue
+        try:
+            jpegs.append(encode_image_to_jpeg(image))
+            texts.append(str(label))
+        except Exception:  # noqa: BLE001
+            jpegs.append(None)
+            texts.append(str(label))
+    return {"jpeg": jpegs, "text": texts}
+
+
+def write_lmdb(dataset, out_dir, map_size, max_samples=None, workers=None):
     """Write a Hugging Face dataset split into an LMDB with EasyOCR trainer keys.
 
     Keys: ``num-samples``, ``image-%09d`` (JPEG bytes), ``label-%09d`` (utf-8).
     Returns the set of characters seen in the labels.
     """
+    if workers is None:
+        workers = default_workers()
+
     os.makedirs(out_dir, exist_ok=True)
     env = lmdb.open(out_dir, map_size=map_size)
 
-    cache = {}
-    cnt = 1
-    charset = set()
     n = len(dataset) if max_samples is None else min(max_samples, len(dataset))
+    if n < len(dataset):
+        dataset = dataset.select(range(n))
 
-    for i in range(n):
-        sample = dataset[i]
-        label = sample["text"]
-        if label is None:
-            continue
-        label = str(label)
-        image = sample["image"]
-        try:
-            image_bin = encode_image_to_jpeg(image)
-        except Exception as e:  # noqa: BLE001
-            print(f"  skip sample {i}: cannot encode image ({e})")
+    map_kwargs = dict(
+        batched=True,
+        batch_size=256,
+        remove_columns=[c for c in dataset.column_names if c not in ("jpeg", "text")],
+        desc="encode",
+    )
+    if workers > 1:
+        print(f"  encoding {n} images with {workers} processes ...")
+        encoded = dataset.map(_add_jpeg_bytes_batch, num_proc=workers, **map_kwargs)
+    else:
+        encoded = dataset.map(_add_jpeg_bytes_batch, **map_kwargs)
+
+    charset = set()
+    cnt = 1
+    cache = {}
+    for image_bin, label in zip(encoded["jpeg"], encoded["text"]):
+        if image_bin is None or label is None:
+            print(f"  skip sample {cnt}: cannot encode image")
             continue
 
         cache[f"image-{cnt:09d}".encode()] = image_bin
@@ -150,7 +183,7 @@ def _load_hf_dataset(spec):
     return load_dataset(spec["repo_id"], **kwargs)
 
 
-def _prepare_one(name, spec, lmdb_root, max_samples, default_map_size_gb):
+def _prepare_one(name, spec, lmdb_root, max_samples, default_map_size_gb, workers=None):
     map_size_gb = spec.get("map_size_gb", default_map_size_gb)
     map_size = int(map_size_gb * (1024 ** 3))
 
@@ -169,9 +202,18 @@ def _prepare_one(name, spec, lmdb_root, max_samples, default_map_size_gb):
         out_dir = os.path.join(lmdb_root, lmdb_split, name)
         print(f"Converting {name}/{hf_split} -> {out_dir} ...")
         charset |= write_lmdb(
-            ds[hf_split], out_dir, map_size=map_size, max_samples=max_samples,
+            ds[hf_split], out_dir, map_size=map_size,
+            max_samples=max_samples, workers=workers,
         )
     return charset
+
+
+def _prepare_one_task(task):
+    """Worker entry point: prepare a single registered dataset."""
+    name, lmdb_root, max_samples, map_size_gb, workers = task
+    return _prepare_one(
+        name, DATASETS[name], lmdb_root, max_samples, map_size_gb, workers=workers,
+    )
 
 
 def build_dataset(
@@ -179,6 +221,7 @@ def build_dataset(
     dataset_names=None,
     max_samples=None,
     map_size_gb=6.0,
+    workers=None,
 ):
     """Download selected datasets and convert them to LMDB, writing the charset.
 
@@ -188,13 +231,32 @@ def build_dataset(
 
     if dataset_names is None:
         dataset_names = ["soyvitou"]
+    if workers is None:
+        workers = default_workers()
 
     lmdb_root = os.path.join(out_dir, "lmdb")
     os.makedirs(lmdb_root, exist_ok=True)
 
     all_chars = set()
-    for name in dataset_names:
-        all_chars |= _prepare_one(name, DATASETS[name], lmdb_root, max_samples, map_size_gb)
+    if len(dataset_names) == 1:
+        all_chars |= _prepare_one(
+            dataset_names[0], DATASETS[dataset_names[0]],
+            lmdb_root, max_samples, map_size_gb, workers=workers,
+        )
+    else:
+        per_ds_workers = max(1, workers // len(dataset_names))
+        tasks = [
+            (name, lmdb_root, max_samples, map_size_gb, per_ds_workers)
+            for name in dataset_names
+        ]
+        print(
+            f"Preparing {len(dataset_names)} datasets in parallel "
+            f"({per_ds_workers} encode workers each) ..."
+        )
+        ctx = mp.get_context("spawn")
+        with ProcessPoolExecutor(max_workers=len(dataset_names), mp_context=ctx) as pool:
+            for charset in pool.map(_prepare_one_task, tasks):
+                all_chars |= charset
 
     charset_path = os.path.join(out_dir, "charset.txt")
     if os.path.exists(charset_path):

@@ -30,8 +30,20 @@ def next_experiment_dir(root=EXPERIMENTS_ROOT):
     return os.path.join(root, f"model-{idx}")
 
 
-def resolve_experiment_dir(saved_model=""):
-    """Use the checkpoint's directory when resuming, else allocate a new run."""
+def _is_under_root(path, root):
+    """True if *path* is *root* or a subdirectory of *root*."""
+    path_abs = os.path.abspath(path)
+    root_abs = os.path.abspath(root)
+    try:
+        return os.path.commonpath([path_abs, root_abs]) == root_abs
+    except ValueError:
+        return False
+
+
+def resolve_experiment_dir(saved_model="", root=EXPERIMENTS_ROOT):
+    """Use the checkpoint's directory when resuming under *root*, else allocate."""
     if saved_model:
-        return os.path.dirname(os.path.abspath(saved_model))
-    return next_experiment_dir()
+        checkpoint_dir = os.path.dirname(os.path.abspath(saved_model))
+        if _is_under_root(checkpoint_dir, root):
+            return checkpoint_dir
+    return next_experiment_dir(root)

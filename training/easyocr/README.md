@@ -94,6 +94,7 @@ khmer-ocr-prepare --dataset-count 4            # first four sources
 khmer-ocr-prepare --datasets all               # every source (incl. gemma)
 khmer-ocr-prepare --datasets hanuman,gemma     # pick by name
 khmer-ocr-prepare --max-samples 2000           # cap each HF split (smoke test)
+khmer-ocr-prepare --workers 8                  # parallel JPEG encode (default: min(cpu, 8))
 ```
 
 For the gated `km_en_line` dataset, accept the Hub terms and run

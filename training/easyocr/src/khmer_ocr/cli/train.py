@@ -19,7 +19,7 @@ import torch.backends.cudnn as cudnn
 
 from khmer_ocr.config import load_config, load_charset
 from khmer_ocr.data import DATASET_ORDER, equal_batch_ratios, resolve_dataset_names
-from khmer_ocr.experiments import resolve_experiment_dir
+from khmer_ocr.experiments import EXPERIMENTS_ROOT, resolve_experiment_dir
 from khmer_ocr.trainer.engine import train
 
 
@@ -82,7 +82,8 @@ def main():
     elif not hasattr(opt, "batch_ratio"):
         opt.batch_ratio = ["1"]
 
-    opt.experiment_dir = resolve_experiment_dir(opt.saved_model or "")
+    experiments_root = getattr(opt, "experiments_root", None) or EXPERIMENTS_ROOT
+    opt.experiment_dir = resolve_experiment_dir(opt.saved_model or "", root=experiments_root)
     os.makedirs(opt.experiment_dir, exist_ok=True)
 
     random.seed(opt.manualSeed)

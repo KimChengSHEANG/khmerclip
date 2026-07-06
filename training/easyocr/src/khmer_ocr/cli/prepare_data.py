@@ -7,7 +7,13 @@
 """
 import argparse
 
-from khmer_ocr.data import DATASET_ORDER, DATASETS, build_dataset, resolve_dataset_names
+from khmer_ocr.data import (
+    DATASET_ORDER,
+    DATASETS,
+    build_dataset,
+    default_workers,
+    resolve_dataset_names,
+)
 
 
 def main():
@@ -34,6 +40,12 @@ def main():
     ap.add_argument("--map-size-gb", type=float, default=6.0,
                     help="default LMDB map size per split in GB (km_en_line uses 45)")
     ap.add_argument(
+        "--workers",
+        type=int,
+        default=None,
+        help=f"parallel encode processes (default: {default_workers()})",
+    )
+    ap.add_argument(
         "--list-datasets",
         action="store_true",
         help="print registered datasets and exit",
@@ -51,11 +63,15 @@ def main():
     names = resolve_dataset_names(datasets=args.datasets, dataset_count=args.dataset_count)
     print(f"Preparing: {', '.join(names)}")
 
+    workers = args.workers if args.workers is not None else default_workers()
+    print(f"Using {workers} worker process(es)")
+
     build_dataset(
         out_dir=args.out_dir,
         dataset_names=names,
         max_samples=args.max_samples,
         map_size_gb=args.map_size_gb,
+        workers=workers,
     )
     print("Done.")
 
