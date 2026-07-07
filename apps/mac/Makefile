@@ -7,7 +7,7 @@ APP      = build/Build/Products/Debug/Netra.app
 # Local Khmer checkpoint to (re)build from. Drop a new fine-tune here and
 # `make trocr-khmer` reconverts it into Vendor/trocr/khmer. Override the dir
 # with `make trocr-khmer KHMER_CKPT=path/to/checkpoint`.
-KHMER_CKPT = raw_models/khmer
+KHMER_CKPT = raw_models/TrOCR-khmer
 
 gen:
 	xcodegen generate
@@ -26,7 +26,7 @@ trocr-models:
 	done
 
 # Rebuild only the Khmer model from the local $(KHMER_CKPT) checkpoint into
-# Vendor/trocr/khmer. Use after swapping the fine-tune in raw_models/khmer.
+# Vendor/trocr/khmer. Use after swapping the fine-tune in raw_models/TrOCR-khmer.
 trocr-khmer:
 	mkdir -p Vendor/trocr/khmer
 	python3 Vendor/trocr/convert.py khmer Vendor/trocr/khmer $(KHMER_CKPT)
