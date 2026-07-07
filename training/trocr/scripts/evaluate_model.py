@@ -2,7 +2,7 @@ import argparse
 
 import evaluate
 import torch
-from transformers import Seq2SeqTrainer, Seq2SeqTrainingArguments, VisionEncoderDecoderModel
+from transformers import GenerationConfig, Seq2SeqTrainer, Seq2SeqTrainingArguments, VisionEncoderDecoderModel
 
 from trocr_khmer import (
     DATASET_REGISTRY,
@@ -55,12 +55,25 @@ def main():
     eval_dataset = OCRDataset(split["test"], processor)
     cer_metric = evaluate.load("cer")
 
+    configure_generation(model, processor, MAX_LABEL_LEN)
+
+    khmer_generation = GenerationConfig(
+        decoder_start_token_id=processor.tokenizer.cls_token_id,
+        pad_token_id=processor.tokenizer.pad_token_id,
+        eos_token_id=processor.tokenizer.sep_token_id,
+        num_beams=4,
+        no_repeat_ngram_size=0,
+        length_penalty=1.0,
+        early_stopping=True,
+    )
+
     training_args = Seq2SeqTrainingArguments(
         output_dir="./eval_out",
         per_device_eval_batch_size=args.eval_batch_size,
         predict_with_generate=True,
         generation_max_length=MAX_LABEL_LEN,
-        generation_num_beams=1,
+        generation_num_beams=4,
+        generation_config=khmer_generation,
         dataloader_num_workers=args.num_workers,
         dataloader_pin_memory=True,
         dataloader_persistent_workers=args.num_workers > 0,

@@ -34,15 +34,16 @@ def configure_generation(model, processor, max_length):
     model.config.early_stopping = True
     # Keep generation_config (saved to disk, read by generate()) in sync with model.config.
     if getattr(model, "generation_config", None) is not None:
-        gc = model.generation_config
-        gc.decoder_start_token_id = model.config.decoder_start_token_id
-        gc.pad_token_id = model.config.pad_token_id
-        gc.eos_token_id = model.config.eos_token_id
-        gc.max_length = max_length
-        gc.no_repeat_ngram_size = 0
-        gc.length_penalty = 1.0
-        gc.num_beams = 4
-        gc.early_stopping = True
+        model.generation_config.update(
+            decoder_start_token_id=model.config.decoder_start_token_id,
+            pad_token_id=model.config.pad_token_id,
+            eos_token_id=model.config.eos_token_id,
+            max_length=max_length,
+            no_repeat_ngram_size=0,
+            length_penalty=1.0,
+            num_beams=4,
+            early_stopping=True,
+        )
     return model
 
 

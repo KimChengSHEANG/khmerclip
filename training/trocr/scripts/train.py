@@ -21,6 +21,7 @@ from pathlib import Path
 import evaluate
 import torch
 from transformers import (
+    GenerationConfig,
     Seq2SeqTrainer,
     Seq2SeqTrainingArguments,
     VisionEncoderDecoderModel,
@@ -121,6 +122,16 @@ def main():
 
     cer_metric = evaluate.load("cer")
 
+    khmer_generation = GenerationConfig(
+        decoder_start_token_id=processor.tokenizer.cls_token_id,
+        pad_token_id=processor.tokenizer.pad_token_id,
+        eos_token_id=processor.tokenizer.sep_token_id,
+        num_beams=4,
+        no_repeat_ngram_size=0,
+        length_penalty=1.0,
+        early_stopping=True,
+    )
+
     training_args = Seq2SeqTrainingArguments(
         output_dir=str(output_dir),
         per_device_train_batch_size=args.train_batch_size,
@@ -132,7 +143,8 @@ def main():
         bf16=True,
         predict_with_generate=True,
         generation_max_length=MAX_LABEL_LEN,
-        generation_num_beams=1,
+        generation_num_beams=4,
+        generation_config=khmer_generation,
         eval_strategy="steps",
         eval_steps=50 if args.smoke_test else 1000,
         save_steps=50 if args.smoke_test else 1000,
@@ -159,6 +171,7 @@ def main():
 
     trainer.train(resume_from_checkpoint=args.resume_from_checkpoint)
 
+    configure_generation(trainer.model, processor, MAX_LABEL_LEN)
     trainer.save_model(str(final_dir))
     processor.save_pretrained(str(final_dir))
     print(f"Saved fine-tuned model to {final_dir}")

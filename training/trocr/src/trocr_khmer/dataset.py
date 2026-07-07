@@ -5,6 +5,25 @@ from PIL import Image
 MAX_LABEL_LEN = 128
 
 
+def encode_ocr_labels(tokenizer, text: str, max_label_len: int = MAX_LABEL_LEN) -> list[int]:
+    """Tokenize OCR ground truth for VisionEncoderDecoder training.
+
+    The RoBERTa decoder tokenizer adds a leading ``<s>`` (``cls_token_id``), but
+    ``VisionEncoderDecoderModel`` also prepends ``decoder_start_token_id`` via
+    ``shift_tokens_right``. Keeping both makes training see ``<s><s>text</s>`` while
+    generation starts ``<s>text`` — teacher-forced loss looks fine but autoregressive
+    generation. Drop the tokenizer's leading BOS; keep the trailing ``</s>``.
+    """
+    input_ids = tokenizer(
+        text,
+        max_length=max_label_len,
+        truncation=True,
+    ).input_ids
+    if input_ids and input_ids[0] == tokenizer.cls_token_id:
+        input_ids = input_ids[1:]
+    return input_ids
+
+
 def _load_rgb_image(image) -> Image.Image:
     if not isinstance(image, Image.Image):
         image = Image.open(image)
@@ -47,11 +66,11 @@ class OCRDataset(torch.utils.data.Dataset):
         row = self.dataset[idx]
         image = _load_rgb_image(row["image"])
         pixel_values = self._preprocess_image(image)
-        input_ids = self.processor.tokenizer(
+        input_ids = encode_ocr_labels(
+            self.processor.tokenizer,
             row["text"],
-            max_length=self.max_label_len,
-            truncation=True,
-        ).input_ids
+            max_label_len=self.max_label_len,
+        )
         return {"pixel_values": pixel_values, "labels": input_ids}
 
 

@@ -8,7 +8,8 @@ import torch
 from PIL import Image
 from transformers import VisionEncoderDecoderModel
 
-from trocr_khmer import load_trocr_processor
+from trocr_khmer import configure_generation, load_trocr_processor
+from trocr_khmer.dataset import MAX_LABEL_LEN
 
 
 def main():
@@ -20,6 +21,7 @@ def main():
 
     processor = load_trocr_processor(model_dir)
     model = VisionEncoderDecoderModel.from_pretrained(model_dir).to(device).eval()
+    configure_generation(model, processor, MAX_LABEL_LEN)
 
     images = [Image.open(p).convert("RGB") for p in image_paths]
     pixel_values = processor(images, return_tensors="pt").pixel_values.to(device)
