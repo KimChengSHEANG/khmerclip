@@ -97,8 +97,11 @@ class OCRDataCollator:
 def build_compute_metrics(processor, cer_metric):
     def compute_metrics(eval_pred):
         pred_ids, label_ids = eval_pred.predictions, eval_pred.label_ids
+        pad_token_id = processor.tokenizer.pad_token_id
+        # Trainer pads gathered eval predictions with -100; the tokenizer cannot decode negatives.
+        pred_ids = np.where(pred_ids != -100, pred_ids, pad_token_id).astype(np.int64)
+        label_ids = np.where(label_ids != -100, label_ids, pad_token_id).astype(np.int64)
         pred_str = processor.batch_decode(pred_ids, skip_special_tokens=True)
-        label_ids = np.where(label_ids != -100, label_ids, processor.tokenizer.pad_token_id)
         label_str = processor.batch_decode(label_ids, skip_special_tokens=True)
         return {"cer": cer_metric.compute(predictions=pred_str, references=label_str)}
 
