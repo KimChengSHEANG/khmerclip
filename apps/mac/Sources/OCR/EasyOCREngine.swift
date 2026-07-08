@@ -72,6 +72,17 @@ enum EasyOCREngine {
     }
 
     private static func modelFilesExist(for size: EasyOCRModelSize, root: URL) -> Bool {
+        if modelLayoutExists(for: size, root: root) { return true }
+        // Legacy drop-in: khmer/khmer.{pth,yaml} before install_khmer_model.py
+        let legacy = root.appendingPathComponent(size.rawValue, isDirectory: true)
+        let fm = FileManager.default
+        return fm.isReadableFile(atPath: legacy.appendingPathComponent("\(size.rawValue).pth").path)
+            && fm.isReadableFile(atPath: legacy.appendingPathComponent("\(size.rawValue).yaml").path)
+            && fm.isReadableFile(atPath: legacy
+                .appendingPathComponent("user_network/\(size.rawValue).py").path)
+    }
+
+    private static func modelLayoutExists(for size: EasyOCRModelSize, root: URL) -> Bool {
         let name = size.rawValue
         let weights = root
             .appendingPathComponent("models/\(name).pth")

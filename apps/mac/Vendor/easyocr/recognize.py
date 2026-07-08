@@ -8,6 +8,7 @@ Invoked by EasyOCREngine.swift. Models live under --resource-root:
 from __future__ import annotations
 
 import argparse
+import shutil
 import sys
 from pathlib import Path
 
@@ -26,7 +27,42 @@ def model_paths(resource_root: Path, model: str) -> tuple[Path, Path, Path, Path
     return storage, user_network, weights, yaml if yaml.is_file() else None
 
 
+def sync_yaml_from_charset(charset_path: Path, yaml_path: Path) -> None:
+    chars = charset_path.read_text(encoding="utf-8").splitlines()
+    char_list = "".join(chars)
+    escaped = char_list.replace("\\", "\\\\").replace('"', '\\"')
+    header = yaml_path.read_text(encoding="utf-8").split("character_list:", 1)[0]
+    yaml_path.write_text(
+        header.rstrip() + f'\ncharacter_list: "{escaped}"\n',
+        encoding="utf-8",
+    )
+
+
+def migrate_legacy_layout(resource_root: Path, model: str) -> None:
+    """Copy khmer/{pth,yaml} into models/ + user_network/ when only legacy paths exist."""
+    network_name = MODELS[model]
+    legacy_dir = resource_root / network_name
+    legacy_pth = legacy_dir / f"{network_name}.pth"
+    legacy_yaml = legacy_dir / f"{network_name}.yaml"
+    storage, user_network, weights, yaml = model_paths(resource_root, model)
+    py = user_network / f"{network_name}.py"
+    if weights.is_file() and yaml is not None and py.is_file():
+        return
+    if legacy_pth.is_file():
+        storage.mkdir(parents=True, exist_ok=True)
+        if not weights.is_file():
+            shutil.copy2(legacy_pth, weights)
+    if legacy_yaml.is_file() and yaml is None:
+        user_network.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(legacy_yaml, user_network / f"{network_name}.yaml")
+    charset = legacy_dir / "charset.txt"
+    yaml_path = user_network / f"{network_name}.yaml"
+    if charset.is_file() and yaml_path.is_file():
+        sync_yaml_from_charset(charset, yaml_path)
+
+
 def require_khmer_model(resource_root: Path, model: str) -> tuple[Path, Path]:
+    migrate_legacy_layout(resource_root, model)
     storage, user_network, weights, yaml = model_paths(resource_root, model)
     missing: list[str] = []
     if yaml is None:
@@ -54,8 +90,10 @@ def build_reader(resource_root: Path, model: str):
 
     network_name = MODELS[model]
     storage, user_network = require_khmer_model(resource_root, model)
+    # EasyOCR has no built-in km_char.txt; Khmer glyphs come from khmer.yaml
+    # character_list. Reader lang must be a supported code (e.g. en).
     return easyocr.Reader(
-        ["km"],
+        ["en"],
         gpu=False,
         recog_network=network_name,
         model_storage_directory=str(storage),
