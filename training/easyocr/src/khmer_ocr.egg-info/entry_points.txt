@@ -1,0 +1,5 @@
+[console_scripts]
+khmer-ocr-eval = khmer_ocr.cli.evaluate:main
+khmer-ocr-package = khmer_ocr.cli.package_model:main
+khmer-ocr-prepare = khmer_ocr.cli.prepare_data:main
+khmer-ocr-train = khmer_ocr.cli.train:main

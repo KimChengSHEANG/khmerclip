@@ -1,0 +1,199 @@
+# Khmer EasyOCR — Training & Evaluation
+
+Train and evaluate an **EasyOCR-compatible** text-recognition model for **Khmer**
+using one or more Hugging Face OCR line-image datasets (columns `image` + `text`).
+
+The recognizer architecture and training loop are a self-contained port of the
+trainer that ships with [EasyOCR](https://github.com/JaidedAI/EasyOCR) (itself
+based on Clova AI's *deep-text-recognition-benchmark*). Weights produced here are
+loadable by the `easyocr` package as a **custom recognition network**.
+
+## Supported datasets
+
+| Key | Hugging Face repo | ~size |
+|-----|-------------------|-------|
+| `soyvitou` | [SoyVitou/62k-images-khmer-printed-dataset](https://huggingface.co/datasets/SoyVitou/62k-images-khmer-printed-dataset) | 62k (train/val/test) |
+| `sokheng` | [Sokheng/khmer-synthetic-ocr-v1-100k](https://huggingface.co/datasets/Sokheng/khmer-synthetic-ocr-v1-100k) | 100k synthetic |
+| `hanuman` | [seanghay/khmer-hanuman-100k](https://huggingface.co/datasets/seanghay/khmer-hanuman-100k) | 100k |
+| `gemma` | [KiteAether/c_khmer_gemma_ocr_train](https://huggingface.co/datasets/KiteAether/c_khmer_gemma_ocr_train) | 7.5k |
+| `km_en_line` | [mrrtmob/khmer_english_ocr_image_line](https://huggingface.co/datasets/mrrtmob/khmer_english_ocr_image_line) | 12M (~40 GB, gated) |
+
+Canonical order for `--dataset-count 1|2|3|4`: `soyvitou` → `sokheng` → `hanuman` →
+`km_en_line`. `--datasets all` also includes `gemma`.
+
+List registered sources:
+
+```bash
+khmer-ocr-prepare --list-datasets
+```
+
+## Project layout
+
+```
+EasyOCR-KhmerClip/
+├── pyproject.toml            installable package + console scripts
+├── requirements.txt
+├── README.md
+├── configs/
+│   └── khmer.yaml            training / model configuration
+├── pretrained/               optional EasyOCR backbone weights (see §3)
+├── experiments/              training outputs (auto-created; gitignored)
+│   ├── model-1/              checkpoints + logs for run 1
+│   └── model-2/              checkpoints + logs for run 2
+└── src/
+    └── khmer_ocr/            main package
+        ├── config.py         config + charset (de)serialisation
+        ├── data.py           Hugging Face dataset -> LMDB + charset
+        ├── evaluate.py       CER / WER / accuracy / normalized edit distance
+        ├── experiments.py    auto-incrementing experiment directories
+        ├── packaging.py      export a checkpoint for the easyocr package
+        ├── cli/              command-line entry points
+        │   ├── prepare_data.py
+        │   ├── train.py
+        │   ├── evaluate.py
+        │   └── package_model.py
+        └── trainer/          vendored EasyOCR-style recognizer
+            ├── model.py      Trans -> Feat -> Seq -> Pred model
+            ├── engine.py     training + validation loop
+            ├── dataset.py    LMDB dataset, resize+pad collate, balanced sampler
+            ├── utils.py      CTC / Attn label converters
+            └── modules/      transformation / feature / sequence / prediction
+```
+
+## Pipeline
+
+```
+prepare  ->  train  ->  evaluate  ->  package (optional)
+(HF->LMDB)  (train)     (CER/WER)     (use in easyocr)
+```
+
+## 1. Setup
+
+Tuned for the local `khmerclip` pyenv environment (Python 3.12, torch + CUDA).
+Install the package (editable) so the CLIs and imports work from anywhere:
+
+```bash
+pip install -e .
+# or just the deps: pip install -r requirements.txt
+```
+
+This exposes four console commands: `khmer-ocr-prepare`, `khmer-ocr-train`,
+`khmer-ocr-eval`, `khmer-ocr-package`. Each is also runnable as
+`python -m khmer_ocr.cli.<name>`.
+
+## 2. Prepare the data
+
+Downloads parquet splits from the Hub, converts them to LMDB (one subdir per
+dataset under `data/lmdb/{train,val,test}/`), and writes the character set
+discovered in the labels.
+
+```bash
+khmer-ocr-prepare                              # soyvitou only (default)
+khmer-ocr-prepare --dataset-count 2            # soyvitou + sokheng
+khmer-ocr-prepare --dataset-count 4            # first four sources
+khmer-ocr-prepare --datasets all               # every source (incl. gemma)
+khmer-ocr-prepare --datasets hanuman,gemma     # pick by name
+khmer-ocr-prepare --max-samples 2000           # cap each HF split (smoke test)
+khmer-ocr-prepare --workers 8                  # parallel JPEG encode (default: min(cpu, 8))
+```
+
+For the gated `km_en_line` dataset, accept the Hub terms and run
+`huggingface-cli login` before preparing.
+
+Outputs: `data/lmdb/train/{soyvitou,...}`, `data/lmdb/val/soyvitou`, etc., and
+`data/charset.txt` (one character per line; includes the meaningful space
+character).
+
+## 3. Train
+
+Download the EasyOCR **english_g2** recognition backbone (required for stable
+CTC training; training from scratch collapses to blank outputs on this charset):
+
+```bash
+mkdir -p pretrained
+wget -O pretrained/english_g2.zip \
+  https://github.com/JaidedAI/EasyOCR/releases/download/v1.3/english_g2.zip
+unzip -o pretrained/english_g2.zip -d pretrained
+```
+
+Then start training (the default config fine-tunes that checkpoint with a new
+Khmer CTC head):
+
+```bash
+khmer-ocr-train --config configs/khmer.yaml
+khmer-ocr-train --dataset-count 3     # mix soyvitou + sokheng + hanuman
+khmer-ocr-train --datasets all        # every prepared source
+```
+
+Each new training run writes checkpoints and logs to an auto-incremented
+directory under `experiments/`:
+
+```
+experiments/model-1/
+├── best_accuracy.pth
+├── best_norm_ED.pth
+├── iter_30000.pth
+├── log_train.txt
+├── log_dataset.txt
+└── opt.txt
+```
+
+The next run lands in `experiments/model-2`, then `model-3`, and so on.
+`experiment_name` in the config (default `khmer_g2`) is a logical label used in
+logs and when packaging for EasyOCR; it does **not** choose the output folder.
+
+Handy overrides (no need to edit the YAML):
+
+```bash
+khmer-ocr-train --num_iter 300 --batch_size 32 --valInterval 100
+khmer-ocr-train --amp                                              # mixed precision
+khmer-ocr-train --saved_model experiments/model-1/best_norm_ED.pth  # resume run 1
+```
+
+Default architecture: `None-VGG-BiLSTM-CTC` (EasyOCR "generation 2"), `imgH=64`,
+`imgW=600`, `batch_max_length=120`.
+
+## 4. Evaluate
+
+```bash
+khmer-ocr-eval --config configs/khmer.yaml \
+    --saved_model experiments/model-1/best_norm_ED.pth \
+    --eval_data data/lmdb/test/soyvitou --save_preds preds_test.csv
+```
+
+Reports **exact-match accuracy**, **CER**, **WER** (via `jiwer`) and the
+**normalized edit distance** used by the trainer. `preds_test.csv` holds
+per-line `ground_truth, prediction, confidence, correct`.
+
+## 5. (Optional) Use inside the `easyocr` package
+
+```bash
+pip install easyocr        # optional; may change your torch version
+khmer-ocr-package --config configs/khmer.yaml \
+    --saved_model experiments/model-1/best_norm_ED.pth --name khmer_g2
+```
+
+```python
+import easyocr
+reader = easyocr.Reader(['en'], recog_network='khmer_g2')
+print(reader.readtext('line.jpg', detail=0))
+```
+
+## Notes
+
+- Khmer uses combining characters and a meaningful space character; the charset
+  is built directly from the dataset labels so all of these are covered.
+- CTC decoding is greedy by default (`decode: greedy` in the config).
+- For a stronger model try `FeatureExtraction: ResNet` and/or
+  `Transformation: TPS` in the config (slower, more accurate).
+
+
+## Test
+
+```
+pip install -e .
+khmer-ocr-prepare
+khmer-ocr-train --config configs/khmer.yaml
+khmer-ocr-eval --saved_model experiments/model-1/best_norm_ED.pth --eval_data data/lmdb/test/soyvitou
+
+```
