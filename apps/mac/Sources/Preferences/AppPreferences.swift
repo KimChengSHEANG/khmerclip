@@ -17,6 +17,9 @@ final class AppPreferences: ObservableObject {
     @Published var ocrEngine: OCREngineKind {
         didSet { UserDefaults.standard.set(ocrEngine.rawValue, forKey: Keys.ocrEngine) }
     }
+    @Published var preserveLinebreaks: Bool {
+        didSet { UserDefaults.standard.set(preserveLinebreaks, forKey: Keys.preserveLinebreaks) }
+    }
 
     /// Defaults keys MASShortcutView/MASShortcutBinder read and write shortcuts under.
     enum ShortcutKeys {
@@ -31,6 +34,7 @@ final class AppPreferences: ObservableObject {
         static let playSound = "playCaptureSound"
         static let launchAtLogin = "launchAtLogin"
         static let ocrEngine = "ocrEngine"
+        static let preserveLinebreaks = "preserveLinebreaks"
     }
 
     init() {
@@ -40,5 +44,6 @@ final class AppPreferences: ObservableObject {
         self.playCaptureSound = defaults.object(forKey: Keys.playSound) as? Bool ?? true
         self.launchAtLogin = defaults.object(forKey: Keys.launchAtLogin) as? Bool ?? false
         self.ocrEngine = (defaults.string(forKey: Keys.ocrEngine)).flatMap(OCREngineKind.init) ?? .trocr
+        self.preserveLinebreaks = defaults.object(forKey: Keys.preserveLinebreaks) as? Bool ?? true
     }
 }

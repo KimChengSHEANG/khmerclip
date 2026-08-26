@@ -13,6 +13,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var coordinator: CaptureCoordinator!
     private var historyWindowController: NSWindowController?
     private var captureMenuItem: NSMenuItem!
+    private var preserveLinebreaksMenuItem: NSMenuItem!
     /// Auto-update via Sparkle. SUFeedURL in Info.plist is a placeholder until
     /// this app has a real hosted appcast — see README "Auto-update" section.
     private let updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
@@ -37,11 +38,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func setUpStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        statusItem.button?.image = NSImage(systemSymbolName: "text.viewfinder", accessibilityDescription: "Netra")
+        statusItem.button?.image = NSImage(systemSymbolName: "text.viewfinder", accessibilityDescription: "KhmerClip")
 
         let menu = NSMenu()
         menu.delegate = self
         captureMenuItem = menu.addItem(withTitle: "Capture Text", action: #selector(captureText), keyEquivalent: "")
+        menu.addItem(.separator())
+        preserveLinebreaksMenuItem = menu.addItem(withTitle: "Preserve Linebreaks", action: #selector(togglePreserveLinebreaks), keyEquivalent: "")
         menu.addItem(.separator())
         menu.addItem(withTitle: "History…", action: #selector(showHistory), keyEquivalent: "")
         menu.addItem(withTitle: "Preferences…", action: #selector(showPreferences), keyEquivalent: ",")
@@ -50,7 +53,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let updateItem = menu.addItem(withTitle: "Check for Updates…", action: #selector(SPUStandardUpdaterController.checkForUpdates(_:)), keyEquivalent: "")
         updateItem.target = updaterController
         menu.addItem(.separator())
-        let quitItem = menu.addItem(withTitle: "Quit Netra", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        let quitItem = menu.addItem(withTitle: "Quit KhmerClip", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         quitItem.target = NSApp
 
         for item in menu.items where item.target == nil {
@@ -78,6 +81,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     /// doesn't offer a change callback we can hook here.
     func menuNeedsUpdate(_ menu: NSMenu) {
         applyShortcut(forKey: AppPreferences.ShortcutKeys.capture, to: captureMenuItem)
+        preserveLinebreaksMenuItem.state = preferences.preserveLinebreaks ? .on : .off
     }
 
     private func applyShortcut(forKey key: String, to item: NSMenuItem) {
@@ -94,6 +98,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     @objc private func captureText() {
         coordinator.beginCapture(mode: .text)
+    }
+
+    @objc private func togglePreserveLinebreaks() {
+        preferences.preserveLinebreaks.toggle()
     }
 
     @objc private func showOnboarding() {
@@ -117,7 +125,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         NotificationCenter.default.post(name: .settingsOpenerRequest, object: nil)
     }
 
-    // Netra has no Dock icon and lives entirely in the status bar; closing/hiding
+    // KhmerClip has no Dock icon and lives entirely in the status bar; closing/hiding
     // its windows (including the hidden Settings-opener window) must never quit it.
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         false

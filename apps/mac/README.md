@@ -1,4 +1,4 @@
-# Netra
+# KhmerClip
 
 Khmer OCR menu bar app for macOS — grab-select any text on screen, get instant Khmer (and mixed Khmer/English) text extraction. A TextSniper clone with Khmer support as the primary focus.
 
@@ -17,7 +17,7 @@ Khmer OCR menu bar app for macOS — grab-select any text on screen, get instant
 - **QR / barcode scanning** — `VNDetectBarcodesRequest`, separate hotkey from text capture.
 - **Auto-copy to clipboard** on every successful capture.
 - **Result HUD** — transient floating panel after capture, with Speak / Translate actions.
-- **Scan history** — persisted to `~/Library/Application Support/Netra/history.json`, with copy/speak/translate/delete per entry.
+- **Scan history** — persisted to `~/Library/Application Support/KhmerClip/history.json`, with copy/speak/translate/delete per entry.
 - **Text-to-speech** — `AVSpeechSynthesizer`, Khmer voice preferred.
 - **Translate** — Apple's on-device Translation framework, opened from the HUD or history.
 - **Global hotkeys** — customizable (Carbon `RegisterEventHotKey`), one for text capture, one for QR/barcode.
@@ -118,18 +118,18 @@ Vendor/easyocr/venv/bin/python3 Vendor/easyocr/recognize.py \
 
 ### Accuracy note (Tesseract, historical)
 
-Rendered `"សួស្តី​ពិភពលោក! Netra ២០២៦"` through CoreText (proper Khmer shaping), compiled the Tesseract OCR call chain into a standalone test binary, and got an exact match. A naive PIL-rendered image (no Khmer glyph reordering) produced garbage — not representative of real on-screen text.
+Rendered `"សួស្តី​ពិភពលោក! KhmerClip ២០២៦"` through CoreText (proper Khmer shaping), compiled the Tesseract OCR call chain into a standalone test binary, and got an exact match. A naive PIL-rendered image (no Khmer glyph reordering) produced garbage — not representative of real on-screen text.
 
 ## Runtime verification performed
 
 This environment has no window manager by default for the sandboxed shell tool, but running Bash with the sandbox disabled gave real WindowServer/Accessibility access, so the actual built `.app` was driven end-to-end rather than just compiled:
 
-- Launched the built `.app`, used Accessibility (`System Events`) to `AXPress` the real status item, and confirmed its menu contents match the code exactly (`Capture Text, Scan QR / Barcode, OCR Image File…, History…, Preferences…, Quit Netra`).
+- Launched the built `.app`, used Accessibility (`System Events`) to `AXPress` the real status item, and confirmed its menu contents match the code exactly (`Capture Text, Scan QR / Barcode, OCR Image File…, History…, Preferences…, Quit KhmerClip`).
 - Clicked "Capture Text", then posted a synthetic `CGEvent` mouse drag. Confirmed via Accessibility + `log show` that this created a full-screen overlay window at the exact correct frame, dismissed it on mouse-up, and triggered a real `SCShareableContent`/ScreenCaptureKit call (visible in the unified log, no permission errors), followed by a result window appearing.
 - Opened "OCR Image File…" and confirmed the drop-zone window renders correctly (screenshot-verified). Clicking "Choose File…" spawned the real `com.apple.appkit.xpc.openAndSavePanelService` (visible in `lsappinfo`), confirming `NSOpenPanel` wiring is live, not dead code.
 - Verified the Tesseract OCR call chain against a real CoreText-rendered Khmer+English+numeral string via a standalone compile — see "Accuracy note" above.
 - Compiled the app icon through `actool` with zero warnings and confirmed the resulting `.icns` renders correctly (rounded-square masking applied by the OS, as expected for a full-bleed source image).
-- (Historical) Verified a Vision `fr-FR` path when the app still had a non-Khmer engine option — exact match on `"Bonjour le monde! Netra 2026"`. Vision is not used for Khmer; the current app routes text capture through Tesseract / TrOCR / EasyOCR per Preferences.
+- (Historical) Verified a Vision `fr-FR` path when the app still had a non-Khmer engine option — exact match on `"Bonjour le monde! KhmerClip 2026"`. Vision is not used for Khmer; the current app routes text capture through Tesseract / TrOCR / EasyOCR per Preferences.
 - Launched the onboarding window for real and confirmed `CGPreflightScreenCaptureAccess()` reflects live state (screenshot-verified: warning icon + explanatory text render correctly).
 - Triggered "Check for Updates…" for real: confirmed in the unified log that Sparkle made an actual HTTPS request to the placeholder `SUFeedURL`, got a 404, and handled it gracefully (logged error, no crash) — the wiring is live, only the appcast hosting is a placeholder.
 
@@ -147,18 +147,18 @@ What's still unconfirmed: the *exact string* a live capture returns landing in t
 ```
 # 1. Archive with your real Developer ID team (set DEVELOPMENT_TEAM in project.yml
 #    or select your team in Xcode's Signing & Capabilities tab first).
-xcodebuild -project Netra.xcodeproj -scheme Netra -configuration Release archive \
-  -archivePath build/Netra.xcarchive
+xcodebuild -project KhmerClip.xcodeproj -scheme KhmerClip -configuration Release archive \
+  -archivePath build/KhmerClip.xcarchive
 
 # 2. Export a signed .app (needs an ExportOptions.plist with method: developer-id).
-xcodebuild -exportArchive -archivePath build/Netra.xcarchive \
+xcodebuild -exportArchive -archivePath build/KhmerClip.xcarchive \
   -exportPath build/export -exportOptionsPlist ExportOptions.plist
 
 # 3. Notarize (needs an app-specific password or API key set up via `xcrun notarytool store-credentials`).
-xcrun notarytool submit build/export/Netra.app.zip --keychain-profile "netra-notary" --wait
+xcrun notarytool submit build/export/KhmerClip.app.zip --keychain-profile "khmerclip-notary" --wait
 
 # 4. Staple the ticket so it works offline.
-xcrun stapler staple build/export/Netra.app
+xcrun stapler staple build/export/KhmerClip.app
 ```
 
 ## Auto-update
@@ -181,7 +181,7 @@ Vendor/
 Resources/
   Assets.xcassets/       # AppIcon.appiconset
 Sources/
-  App/                   # NetraApp entry point + AppDelegate (status item, wiring)
+  App/                   # KhmerClipApp entry point + AppDelegate (status item, wiring)
   Capture/               # selection overlay, window-picker, ScreenCaptureKit, clipboard, HUD
   OCR/                   # TesseractEngine, TrOCREngine, EasyOCREngine, OCRDispatcher
   Barcode/               # Vision barcode/QR detection
@@ -206,7 +206,7 @@ raw_models/              # local HF checkpoints (gitignored), e.g. TrOCR-khmer/
 
 - **macOS 15+** (deployment target)
 - **Xcode 16+** with Command Line Tools (`xcode-select --install`)
-- **[XcodeGen](https://github.com/yonaskolb/XcodeGen)** — generates `Netra.xcodeproj` from `project.yml`:
+- **[XcodeGen](https://github.com/yonaskolb/XcodeGen)** — generates `KhmerClip.xcodeproj` from `project.yml`:
   ```bash
   brew install xcodegen
   ```
@@ -216,23 +216,23 @@ No Python needed unless you set up TrOCR or EasyOCR models.
 ### Clone and build
 
 ```bash
-git clone <repo-url> netra
-cd netra
+git clone <repo-url> khmerclip
+cd khmerclip
 
 make run    # gen + build + open Debug .app
 ```
 
-`make run` outputs to `build/Build/Products/Debug/Netra.app`. Menu bar icon appears (no Dock icon — `LSUIElement`). First launch shows onboarding; grant **Screen Recording** when prompted (System Settings → Privacy & Security → Screen Recording).
+`make run` outputs to `build/Build/Products/Debug/KhmerClip.app`. Menu bar icon appears (no Dock icon — `LSUIElement`). First launch shows onboarding; grant **Screen Recording** when prompted (System Settings → Privacy & Security → Screen Recording).
 
 ### Makefile targets
 
 | Target | What it does |
 |--------|----------------|
-| `make gen` | `xcodegen generate` — regenerate `Netra.xcodeproj` after editing `project.yml` |
-| `make build` | `gen` + `xcodebuild` Debug build → `build/Build/Products/Debug/Netra.app` |
-| `make run` | `build`, kill any running Netra, register with LaunchServices, `open` the `.app` |
-| `make test` | `gen` + run `NetraTests` (Tesseract OCR fixture regression) |
-| `make clean` | Remove `build/` and `Netra.xcodeproj` |
+| `make gen` | `xcodegen generate` — regenerate `KhmerClip.xcodeproj` after editing `project.yml` |
+| `make build` | `gen` + `xcodebuild` Debug build → `build/Build/Products/Debug/KhmerClip.app` |
+| `make run` | `build`, kill any running KhmerClip, register with LaunchServices, `open` the `.app` |
+| `make test` | `gen` + run `KhmerClipTests` (Tesseract OCR fixture regression) |
+| `make clean` | Remove `build/` and `KhmerClip.xcodeproj` |
 | `make trocr-khmer` | Convert `raw_models/TrOCR-khmer` → CoreML in `Vendor/trocr/khmer/` |
 | `make trocr-models` | Convert all TrOCR size tiers (large download) |
 | `make easyocr-venv` | Create `Vendor/easyocr/venv` with PyTorch + EasyOCR |
@@ -242,10 +242,10 @@ make run    # gen + build + open Debug .app
 
 ```bash
 make gen
-open Netra.xcodeproj
+open KhmerClip.xcodeproj
 ```
 
-Select the **Netra** scheme, pick **My Mac**, press **⌘R**. Built app lands in Xcode's DerivedData (or `build/` if you set `-derivedDataPath build` like the Makefile).
+Select the **KhmerClip** scheme, pick **My Mac**, press **⌘R**. Built app lands in Xcode's DerivedData (or `build/` if you set `-derivedDataPath build` like the Makefile).
 
 ### OCR before first capture
 
@@ -266,7 +266,7 @@ After any vendor model or venv change, **rebuild** (`make build` or `make run`) 
 ### Run built app manually
 
 ```bash
-open build/Build/Products/Debug/Netra.app
+open build/Build/Products/Debug/KhmerClip.app
 ```
 
 Or double-click in Finder. `make run` is preferred — it re-registers the app with LaunchServices (avoids `open` returning -600 on fresh builds).

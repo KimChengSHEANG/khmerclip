@@ -22,6 +22,7 @@ struct PreferencesView: View {
 
             Section("Behavior") {
                 Toggle("Auto-copy result to clipboard", isOn: $preferences.autoCopyToClipboard)
+                Toggle("Preserve linebreaks", isOn: $preferences.preserveLinebreaks)
                 Toggle("Show result popup", isOn: $preferences.showResultHUD)
                 Toggle("Play sound on capture", isOn: $preferences.playCaptureSound)
                 Toggle("Launch at login", isOn: Binding(

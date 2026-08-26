@@ -9,7 +9,7 @@ final class ScanHistoryStore: ObservableObject {
 
     init() {
         let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Netra", isDirectory: true)
+            .appendingPathComponent("KhmerClip", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         fileURL = dir.appendingPathComponent("history.json")
         load()

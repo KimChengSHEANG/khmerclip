@@ -1,6 +1,6 @@
 # Stable signing identity keeps the Accessibility (TCC) grant across rebuilds.
 SIGN_ID = 
-APP      = build/Build/Products/Debug/Netra.app
+APP      = build/Build/Products/Debug/KhmerClip.app
 
 .PHONY: gen build test run clean trocr-models trocr-khmer easyocr-venv easyocr-models
 
@@ -49,7 +49,7 @@ model_storage_directory='Vendor/easyocr/models', \
 download_enabled=True, verbose=True)"
 
 test: gen
-	xcodebuild -project Netra.xcodeproj -scheme NetraTests -configuration Debug \
+	xcodebuild -project KhmerClip.xcodeproj -scheme KhmerClipTests -configuration Debug \
 		-derivedDataPath build \
 		CODE_SIGN_STYLE=Manual \
 		CODE_SIGN_IDENTITY="$(SIGN_ID)" \
@@ -57,7 +57,7 @@ test: gen
 		test
 
 build: gen
-	xcodebuild -project Netra.xcodeproj -scheme Netra -configuration Debug \
+	xcodebuild -project KhmerClip.xcodeproj -scheme KhmerClip -configuration Debug \
 		-derivedDataPath build \
 		CODE_SIGN_STYLE=Manual \
 		CODE_SIGN_IDENTITY="$(SIGN_ID)" \
@@ -65,8 +65,8 @@ build: gen
 		build
 
 run: build
-	@pkill -x Netra 2>/dev/null || true
-	@while pgrep -x Netra >/dev/null; do sleep 0.1; done
+	@pkill -x KhmerClip 2>/dev/null || true
+	@while pgrep -x KhmerClip >/dev/null; do sleep 0.1; done
 	@/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$(APP)"
 	@sleep 0.5   # let lsregister commit before `open`, else LaunchServices returns -600
 	@for i in 1 2 3 4 5; do \
@@ -74,4 +74,4 @@ run: build
 	done
 
 clean:
-	rm -rf build Netra.xcodeproj
+	rm -rf build KhmerClip.xcodeproj

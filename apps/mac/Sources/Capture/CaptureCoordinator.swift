@@ -112,12 +112,13 @@ final class CaptureCoordinator {
             hudWindowController = HUDWindowController.showMessage("No text found")
             return
         }
+        let formatted = OCRTextFormatter.apply(text, preserveLinebreaks: preferences.preserveLinebreaks)
         if preferences.autoCopyToClipboard {
-            ClipboardManager.copy(text)
+            ClipboardManager.copy(formatted)
         }
-        historyStore.add(ScanRecord(text: text, kind: kind))
+        historyStore.add(ScanRecord(text: formatted, kind: kind))
         if preferences.showResultHUD {
-            hudWindowController = HUDWindowController.showResult(text: text)
+            hudWindowController = HUDWindowController.showResult(text: formatted)
         }
     }
 

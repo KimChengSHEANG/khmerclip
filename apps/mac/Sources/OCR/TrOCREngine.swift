@@ -231,7 +231,7 @@ enum TrOCREngine {
 
         private static func loadCompiled(packageURL: URL, name: String) throws -> MLModel {
             let cacheDir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-                .appendingPathComponent("Netra/TrOCRCompiled", isDirectory: true)
+                .appendingPathComponent("KhmerClip/TrOCRCompiled", isDirectory: true)
             try FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
 
             let compiledURL = cacheDir.appendingPathComponent("\(name).mlmodelc")

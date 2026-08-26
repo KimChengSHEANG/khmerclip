@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct NetraApp: App {
+struct KhmerClipApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var body: some Scene {
@@ -40,5 +40,5 @@ private struct SettingsOpenerView: View {
 }
 
 extension Notification.Name {
-    static let settingsOpenerRequest = Notification.Name("com.netra.settingsOpenerRequest")
+    static let settingsOpenerRequest = Notification.Name("com.khmerclip.settingsOpenerRequest")
 }

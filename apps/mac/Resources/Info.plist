@@ -23,11 +23,11 @@
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Not used.</string>
 	<key>NSScreenCaptureUsageDescription</key>
-	<string>Netra needs to capture your screen to extract text from the region you select.</string>
+	<string>KhmerClip needs to capture your screen to extract text from the region you select.</string>
 	<key>SUEnableAutomaticChecks</key>
 	<true/>
 	<key>SUFeedURL</key>
-	<string>https://example.com/netra/appcast.xml</string>
+	<string>https://example.com/khmerclip/appcast.xml</string>
 	<key>SUScheduledCheckInterval</key>
 	<integer>86400</integer>
 </dict>

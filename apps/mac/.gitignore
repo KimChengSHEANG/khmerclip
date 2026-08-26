@@ -1,6 +1,4 @@
 .DS_Store
-Netra/Netra.xcodeproj/
-Netra/build/
 DerivedData/
 *.xcuserstate
 build
@@ -21,3 +19,4 @@ Vendor/
 # EasyOCR venv + downloaded/bundled weights (regenerate with make easyocr-venv / easyocr-models)
 Vendor/easyocr/venv/
 Vendor/easyocr/models/
+.devswarm-temp/
