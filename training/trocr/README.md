@@ -36,7 +36,7 @@ The tokenizer sourcing lives in [`src/trocr_khmer/processor.py`](src/trocr_khmer
 ## Project layout
 
 ```
-TrOCR-KhmerClip/
+training/trocr/
 ├── src/trocr_khmer/     # shared library (dataset, metrics)
 ├── scripts/             # CLI entry points (train, eval, infer)
 ├── docs/                # reference notes (dataset links)

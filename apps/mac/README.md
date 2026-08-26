@@ -217,7 +217,7 @@ No Python needed unless you set up TrOCR or EasyOCR models.
 
 ```bash
 git clone <repo-url> khmerclip
-cd khmerclip
+cd khmerclip/apps/mac
 
 make run    # gen + build + open Debug .app
 ```

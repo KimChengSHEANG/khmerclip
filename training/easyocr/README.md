@@ -30,7 +30,7 @@ khmer-ocr-prepare --list-datasets
 ## Project layout
 
 ```
-EasyOCR-KhmerClip/
+training/easyocr/
 ├── pyproject.toml            installable package + console scripts
 ├── requirements.txt
 ├── README.md
