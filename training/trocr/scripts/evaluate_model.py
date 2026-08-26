@@ -55,8 +55,6 @@ def main():
     eval_dataset = OCRDataset(split["test"], processor)
     cer_metric = evaluate.load("cer")
 
-    configure_generation(model, processor, MAX_LABEL_LEN)
-
     khmer_generation = GenerationConfig(
         decoder_start_token_id=processor.tokenizer.cls_token_id,
         pad_token_id=processor.tokenizer.pad_token_id,

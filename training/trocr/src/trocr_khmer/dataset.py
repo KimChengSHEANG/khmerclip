@@ -8,11 +8,10 @@ MAX_LABEL_LEN = 128
 def encode_ocr_labels(tokenizer, text: str, max_label_len: int = MAX_LABEL_LEN) -> list[int]:
     """Tokenize OCR ground truth for VisionEncoderDecoder training.
 
-    The RoBERTa decoder tokenizer adds a leading ``<s>`` (``cls_token_id``), but
-    ``VisionEncoderDecoderModel`` also prepends ``decoder_start_token_id`` via
-    ``shift_tokens_right``. Keeping both makes training see ``<s><s>text</s>`` while
-    generation starts ``<s>text`` — teacher-forced loss looks fine but autoregressive
-    generation. Drop the tokenizer's leading BOS; keep the trailing ``</s>``.
+    The RoBERTa decoder tokenizer adds a leading ``<s>``, but ``shift_tokens_right``
+    also prepends ``decoder_start_token_id`` (the same ``<s>``).  Drop the tokenizer
+    BOS so decoder input is ``[<s>, t0, t1, …, </s>]``, matching ``generate()``.
+    Training loss alignment is handled by ``patch_ocr_loss``.
     """
     input_ids = tokenizer(
         text,

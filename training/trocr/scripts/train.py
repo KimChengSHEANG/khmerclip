@@ -39,6 +39,7 @@ from trocr_khmer import (
     configure_generation,
     load_ocr_split,
     load_trocr_processor,
+    patch_ocr_loss,
 )
 
 # trocr-base-printed: its decoder natively uses the byte-level BPE (RoBERTa) tokenizer that
@@ -77,7 +78,7 @@ def main():
     )
     parser.add_argument("--experiments_dir", default="experiments")
     parser.add_argument("--output_dir", default=None, help="Run folder; defaults to the next experiments/checkpoint-N")
-    parser.add_argument("--epochs", type=int, default=8)
+    parser.add_argument("--epochs", type=int, default=10)
     parser.add_argument("--train_batch_size", type=int, default=16)
     parser.add_argument("--eval_batch_size", type=int, default=16)
     parser.add_argument("--grad_accum", type=int, default=2)  # effective batch = 16 * 2 = 32, ~fills base model in 24GB
@@ -112,8 +113,7 @@ def main():
     num_added = add_khmer_tokens(processor, model)
     print(f"Added {num_added} Khmer tokens; decoder vocab is now {model.config.decoder.vocab_size}")
 
-    model.config.decoder.loss_type = "ForCausalLMLoss"  
-    
+    patch_ocr_loss(model)
     configure_generation(model, processor, MAX_LABEL_LEN)
 
     data_collator = OCRDataCollator(processor)
@@ -145,7 +145,7 @@ def main():
         generation_max_length=MAX_LABEL_LEN,
         generation_num_beams=4,
         generation_config=khmer_generation,
-        eval_strategy="steps",
+eval_strategy="steps",
         eval_steps=50 if args.smoke_test else 1000,
         save_steps=50 if args.smoke_test else 1000,
         save_total_limit=3,
