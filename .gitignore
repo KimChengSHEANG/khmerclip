@@ -11,6 +11,7 @@ Thumbs.db
 .claude/
 .cursor/
 .devswarm-temp/
+.superpowers/
 
 # Secrets
 .env
@@ -22,12 +23,8 @@ Thumbs.db
 *.xcuserstate
 apps/mac/build/
 apps/mac/raw_models/
+# Vendor exceptions are owned by apps/mac/.gitignore.
 apps/mac/Vendor/
-!apps/mac/Vendor/easyocr/install_khmer_model.py
-!apps/mac/Vendor/easyocr/recognize.py
-!apps/mac/Vendor/easyocr/requirements.txt
-!apps/mac/Vendor/easyocr/khmer/
-!apps/mac/Vendor/easyocr/khmer/**
 
 # Python (safety net; training projects keep their own gitignores)
 __pycache__/

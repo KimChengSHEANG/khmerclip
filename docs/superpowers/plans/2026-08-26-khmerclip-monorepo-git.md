@@ -622,4 +622,3 @@ Keep `/Users/kim/Sync/workspace/khmerclip-pre-monorepo-backup/` until you are sa
 - No TBD/TODO placeholders
 - Branch name caveat documented for mac (`main` vs `KhmerClip`)
 - Prefix strings identical across tasks: `apps/mac/`, `training/easyocr/`, `training/trocr/`
-)

@@ -109,4 +109,3 @@ Minimal only: fix Makefiles / READMEs / scripts that hardcode old folder names (
 - All three histories reachable under the new prefixes
 - Working tree size dominated by source, not `build/` / `Vendor/` / `raw_models/`
 - Subprojects still build/train via their existing docs after any minimal path fixes
-)
