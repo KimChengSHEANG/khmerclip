@@ -1,0 +1,79 @@
+name: KhmerClip
+options:
+  bundleIdPrefix: com.khmerclip
+  deploymentTarget:
+    macOS: "15.0"
+settings:
+  MACOSX_DEPLOYMENT_TARGET: "15.0"
+  SWIFT_VERSION: "5.0"
+packages:
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    from: 2.6.4
+  MASShortcut:
+    url: https://github.com/cocoabits/MASShortcut
+    revision: 6f2603c6b6cc18f64a799e5d2c9d3bbc467c413a
+targets:
+  KhmerClip:
+    type: application
+    platform: macOS
+    sources:
+      - path: Sources
+      - path: Resources
+      - path: Vendor/tesseract
+        type: folder
+        buildPhase: resources
+      - path: Vendor/trocr
+        type: folder
+        buildPhase: resources
+      - path: Vendor/easyocr
+        type: folder
+        buildPhase: resources
+    info:
+      path: Resources/Info.plist
+      properties:
+        LSUIElement: true
+        NSScreenCaptureUsageDescription: "KhmerClip needs to capture your screen to extract text from the region you select."
+        NSMicrophoneUsageDescription: "Not used."
+        CFBundleShortVersionString: "0.1.0"
+        CFBundleVersion: "1"
+        SUFeedURL: "https://example.com/khmerclip/appcast.xml"
+        SUEnableAutomaticChecks: true
+        SUScheduledCheckInterval: 86400
+    entitlements:
+      path: Resources/KhmerClip.entitlements
+      properties:
+        com.apple.security.app-sandbox: false
+        com.apple.security.device.camera: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.khmerclip.app
+        PRODUCT_NAME: KhmerClip
+        CODE_SIGN_STYLE: Automatic
+        ENABLE_HARDENED_RUNTIME: true
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    dependencies:
+      - package: Sparkle
+      - package: MASShortcut
+  KhmerClipTests:
+    type: bundle.unit-test
+    platform: macOS
+    # Compiles the units under test directly (no TEST_HOST) so the suite runs as a
+    # pure logic test without launching the menu-bar app.
+    sources:
+      - path: Tests
+      - path: Sources/Capture/WindowPicker.swift
+      - path: Sources/History/ScanRecord.swift
+      - path: Sources/OCR/TesseractEngine.swift
+      - path: Sources/OCR/TrOCREngine.swift
+      - path: Sources/OCR/TrOCRTokenizer.swift
+      - path: Sources/OCR/EasyOCREngine.swift
+      - path: Sources/OCR/OCREngine.swift
+      - path: Sources/OCR/OCRTextFormatter.swift
+      # The vendored tesseract binary + tessdata, and the converted TrOCR
+      # CoreML models, are what these OCR tests spawn/load. Tests point the
+      # engines at Vendor/tesseract and Vendor/trocr directly, so those need
+      # not be bundled here — kept out of sources on purpose.
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.khmerclip.tests
