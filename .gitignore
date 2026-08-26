@@ -1,0 +1,44 @@
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Agent / local tooling
+.claude/
+.cursor/
+.devswarm-temp/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# macOS app build + heavy artifacts (also covered under apps/mac/.gitignore)
+**/DerivedData/
+*.xcuserstate
+apps/mac/build/
+apps/mac/raw_models/
+apps/mac/Vendor/
+!apps/mac/Vendor/easyocr/install_khmer_model.py
+!apps/mac/Vendor/easyocr/recognize.py
+!apps/mac/Vendor/easyocr/requirements.txt
+!apps/mac/Vendor/easyocr/khmer/
+!apps/mac/Vendor/easyocr/khmer/**
+
+# Python (safety net; training projects keep their own gitignores)
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.cache/
+.huggingface/
+wandb/
+*.egg-info/
+dist/
