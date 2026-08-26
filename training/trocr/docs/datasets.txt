@@ -1,0 +1,17 @@
+https://huggingface.co/datasets/SoyVitou/62k-images-khmer-printed-dataset
+https://huggingface.co/datasets/Sokheng/khmer-synthetic-ocr-v1-100k
+
+https://huggingface.co/datasets/seanghay/khmer-hanuman-100k
+
+
+https://huggingface.co/datasets/mrrtmob/khmer_english_ocr_image_line   12M 40.2GB
+https://huggingface.co/datasets/KiteAether/c_khmer_gemma_ocr_train
+
+https://huggingface.co/datasets/lkhapple/KhmerOCR-Dataset
+
+
+
+
+
+https://huggingface.co/datasets/sopheakvoatei/khmer-post-surya-ocr
+https://huggingface.co/datasets/sopheakvoatei/khmer-post-surya-skipped-blocks-ocr
