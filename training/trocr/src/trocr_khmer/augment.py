@@ -37,7 +37,7 @@ _AUG_OPS = (_gaussian_blur, _contrast_jitter, _jpeg_recompress, _small_rotate)
 def maybe_augment(image: Image.Image, rng: random.Random | None = None) -> Image.Image:
     """Return the image unchanged 50% of the time; otherwise apply a random subset of light augs."""
     if rng is None:
-        rng = random.Random()
+        rng = random
 
     if rng.random() < 0.5:
         return image
