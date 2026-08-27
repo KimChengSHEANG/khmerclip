@@ -20,7 +20,7 @@
 - Do not commit multi‑GB weights, venvs, or `raw_models/`
 - On Mac CoreML **PASS**: default engine stays/set `.trocr`. On **FAIL**: set new-install default to `.tesseract`; keep neural selectable in Preferences; publish gate numbers
 
-## File structure (create / modify
+## File structure (create / modify)
 
 | Path | Responsibility |
 |------|----------------|
