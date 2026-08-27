@@ -81,10 +81,11 @@ After conversion, rebuild the app (`make build`) so Xcode bundles the new `.mlpa
 
 ### Mac CoreML gate (default engine)
 
-The default OCR engine in `AppPreferences` (`.trocr` today) flips **only after**
-the Mac CoreML gate **PASS**es on a trained Khmer checkpoint. Until that gate
-runs, the code default remains `.trocr`; users without converted models should
-pick **Tesseract** in Preferences.
+The default OCR engine in `AppPreferences` remains `.trocr` while the Mac
+CoreML gate is pending and after a PASS. It changes to `.tesseract` only if the
+trained Khmer checkpoint still fails the accuracy gate after the small-model
+fallback. Users without converted models should pick **Tesseract** in
+Preferences.
 
 Operator checklist:
 [`training/eval/results/mac_gate.md`](../../training/eval/results/mac_gate.md)

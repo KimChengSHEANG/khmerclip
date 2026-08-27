@@ -56,7 +56,8 @@ Smoke-test TrOCR before the full bench:
 ```bash
 export KHMERCLIP_VENDOR="$REPO/apps/mac/Vendor"
 "$REPO/apps/mac/build/Build/Products/Debug/OCRBench" \
-  --engine trocr "$REPO/training/eval/fixtures/printed/000000.png"
+  --engine trocr --preload \
+  "$REPO/training/eval/fixtures/printed/printed-001.png"
 ```
 
 ---
@@ -78,6 +79,9 @@ python scripts/bench.py \
 ```
 
 The script prints per-engine aggregates and a final `PASS` or `FAIL` from `passes_gate()`.
+The CoreML runner sends all fixture paths to one `OCRBench` process. TrOCR is
+preloaded before the timed loop, and each CSV `ms` value comes from the
+per-image `recognizeText` timing rather than process startup or model loading.
 
 ### Gate criteria (`khmerclip_eval.summary.passes_gate`)
 

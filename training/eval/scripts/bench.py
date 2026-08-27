@@ -52,6 +52,31 @@ def main() -> None:
 
     rows: list[dict] = []
     for engine in args.engine:
+        if engine == "trocr-coreml":
+            from khmerclip_eval.runners import trocr_coreml
+
+            if not args.trocr_coreml_bin:
+                raise SystemExit("--trocr-coreml-bin required")
+            t0 = time.perf_counter()
+            predictions = trocr_coreml.recognize_many(
+                [item.image_path for item in items], args.trocr_coreml_bin
+            )
+            batch_wall_ms = (time.perf_counter() - t0) * 1000.0
+            fallback_ms = batch_wall_ms / len(items) if items else 0.0
+            for item, (pred, measured_ms) in zip(items, predictions, strict=True):
+                rows.append(
+                    {
+                        "engine": engine,
+                        "id": item.id,
+                        "subset": item.subset,
+                        "cer": character_error_rate(pred, item.text),
+                        "ms": measured_ms if measured_ms is not None else fallback_ms,
+                        "pred": pred,
+                        "ref": item.text,
+                    }
+                )
+            continue
+
         for item in items:
             t0 = time.perf_counter()
             if engine == "tesseract":
@@ -67,11 +92,7 @@ def main() -> None:
                     raise SystemExit("--trocr-model-dir required")
                 pred = trocr_hf.recognize(item.image_path, args.trocr_model_dir)
             else:
-                from khmerclip_eval.runners import trocr_coreml
-
-                if not args.trocr_coreml_bin:
-                    raise SystemExit("--trocr-coreml-bin required")
-                pred = trocr_coreml.recognize(item.image_path, args.trocr_coreml_bin)
+                raise AssertionError(f"unhandled engine: {engine}")
             ms = (time.perf_counter() - t0) * 1000.0
             rows.append(
                 {
