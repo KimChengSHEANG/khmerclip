@@ -78,3 +78,18 @@ python ../eval/scripts/bench.py \
 
 Generation settings match `training/trocr/scripts/infer.py`: beam search with
 `num_beams=4`, `no_repeat_ngram_size=0`, and `length_penalty=1.0`.
+
+## Mac CoreML gate
+
+After the 3090 training run (Task 8) produces a checkpoint, run the on-device
+CoreML gate on a Mac: copy `final/` into the app, convert with `make
+trocr-khmer`, bench `trocr-coreml` vs Tesseract on the full fixture set, and
+record PASS/FAIL.
+
+**Operator checklist:** [results/mac_gate.md](results/mac_gate.md) (currently
+**PENDING** — no trained checkpoint yet).
+
+The gate uses `OCRBench` (Task 7) and `passes_gate()` from
+`khmerclip_eval.summary`: TrOCR must beat Tesseract on mean CER, stay within
+2× median latency, and not regress on mixed-script CER. Outcome controls whether
+the macOS app keeps TrOCR as the default engine or falls back to Tesseract.
