@@ -19,6 +19,8 @@ targets:
     platform: macOS
     sources:
       - path: Sources
+        excludes:
+          - Tools
       - path: Resources
       - path: Vendor/tesseract
         type: folder
@@ -55,6 +57,19 @@ targets:
     dependencies:
       - package: Sparkle
       - package: MASShortcut
+  OCRBench:
+    type: tool
+    platform: macOS
+    sources:
+      - path: Sources/Tools/OCRBenchMain.swift
+      - path: Sources/OCR
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.khmerclip.ocrbench
+        PRODUCT_NAME: OCRBench
+        CODE_SIGN_IDENTITY: "-"
+        ENABLE_HARDENED_RUNTIME: true
+        OTHER_CODE_SIGN_FLAGS: "--options=runtime"
   KhmerClipTests:
     type: bundle.unit-test
     platform: macOS
