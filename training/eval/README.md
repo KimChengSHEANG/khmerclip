@@ -58,3 +58,23 @@ python scripts/bench.py \
 The CSV contains per-fixture predictions, references, CER, and elapsed
 milliseconds. Aggregate results and environment details are recorded in
 `results/baseline.md`.
+
+### TrOCR (Hugging Face)
+
+Run TrOCR-HF benchmarks from the CUDA training venv so `trocr_khmer` and
+PyTorch are available. Install the eval harness editable inside that venv:
+
+```bash
+cd training/trocr
+pip install -e ../eval
+python ../eval/scripts/bench.py \
+  --engine tesseract \
+  --engine trocr-hf \
+  --trocr-model-dir experiments/checkpoint-N/final \
+  --out ../eval/results/current_trocr_hf.csv \
+  --candidate trocr-hf \
+  --compare-to tesseract
+```
+
+Generation settings match `training/trocr/scripts/infer.py`: beam search with
+`num_beams=4`, `no_repeat_ngram_size=0`, and `length_penalty=1.0`.
