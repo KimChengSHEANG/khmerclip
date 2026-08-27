@@ -23,6 +23,18 @@ python scripts/train.py --datasets seanghay/khmer-hanuman-100k           # raw h
 
 The registry and loader live in [`src/trocr_khmer/data_sources.py`](src/trocr_khmer/data_sources.py).
 
+
+### Train-time augmentations
+
+Pass ``--augment`` to apply light on-the-fly image augmentations to the **training** split only (eval stays clean). Each sample has a 50% chance of staying unchanged; otherwise a random subset of Gaussian blur, contrast jitter, JPEG recompression, and small rotation (±3°) is applied. Augmentations preserve image size and RGB mode.
+
+```bash
+python scripts/train.py --smoke_test --augment
+python scripts/train.py --datasets soyvitou sokheng hanuman kiteaether --augment --epochs 10
+```
+
+Implementation: [`src/trocr_khmer/augment.py`](src/trocr_khmer/augment.py); wired via ``OCRDataset(..., augment=True)`` in ``scripts/train.py``.
+
 Target machine: Ubuntu, i9-8950HK, 32GB RAM, RTX 3090 (24GB VRAM). **Requires CUDA** — the script asserts `torch.cuda.is_available()` and will refuse to run on CPU-only/Mac.
 
 ### Tokenizer
@@ -73,6 +85,7 @@ python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_
 ```bash
 # 1. Smoke test first — 200 samples (streamed, no full download), 1 epoch. Confirms the pipeline runs before committing hours to the full run.
 python scripts/train.py --smoke_test
+python scripts/train.py --smoke_test --augment   # smoke with train-time augs
 
 # 2. Full fine-tune. Default: 10 epochs, batch 32 × grad_accum 1, bf16,
 #    microsoft/trocr-base-printed, on the soyvitou dataset. Override the base model with

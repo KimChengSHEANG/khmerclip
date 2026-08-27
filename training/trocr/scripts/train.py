@@ -107,6 +107,11 @@ def main():
     )
     parser.add_argument("--resume_from_checkpoint", default=None)
     parser.add_argument("--smoke_test", action="store_true", help="200 samples, 1 epoch, verifies the pipeline runs end to end")
+    parser.add_argument(
+        "--augment",
+        action="store_true",
+        help="Apply light train-time image augmentations (blur, contrast, JPEG, small rotate)",
+    )
     args = parser.parse_args()
 
     output_dir = Path(args.output_dir) if args.output_dir else next_experiment_dir(args.experiments_dir)
@@ -137,7 +142,7 @@ def main():
     configure_generation(model, processor, MAX_LABEL_LEN)
 
     data_collator = OCRDataCollator(processor)
-    train_dataset = OCRDataset(split["train"], processor)
+    train_dataset = OCRDataset(split["train"], processor, augment=args.augment)
     # Cap mid-train CER: beam-4 generate over a huge holdout leaves the GPU ~60% util and
     # can burn hours per eval. Greedy + capped subset keeps ranking signal and GPU busy training.
     max_eval = None if args.max_eval_samples == 0 else args.max_eval_samples

@@ -2,6 +2,8 @@ import numpy as np
 import torch
 from PIL import Image
 
+from trocr_khmer.augment import maybe_augment
+
 MAX_LABEL_LEN = 128
 
 
@@ -38,10 +40,11 @@ class OCRDataset(torch.utils.data.Dataset):
     CPU workers from starving the GPU. Params are read off the processor so they stay in sync.
     """
 
-    def __init__(self, hf_dataset, processor, max_label_len=MAX_LABEL_LEN):
+    def __init__(self, hf_dataset, processor, max_label_len=MAX_LABEL_LEN, augment: bool = False):
         self.dataset = hf_dataset
         self.processor = processor
         self.max_label_len = max_label_len
+        self.augment = augment
 
         ip = processor.image_processor
         self.size = (ip.size["width"], ip.size["height"])  # PIL wants (w, h)
@@ -64,6 +67,8 @@ class OCRDataset(torch.utils.data.Dataset):
     def __getitem__(self, idx):
         row = self.dataset[idx]
         image = _load_rgb_image(row["image"])
+        if self.augment:
+            image = maybe_augment(image)
         pixel_values = self._preprocess_image(image)
         input_ids = encode_ocr_labels(
             self.processor.tokenizer,
