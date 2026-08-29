@@ -39,3 +39,4 @@ venv/
 wandb/
 *.egg-info/
 dist/
+.worktrees/
