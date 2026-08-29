@@ -74,10 +74,9 @@ python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_
 # 1. Smoke test first — 200 samples (streamed, no full download), 1 epoch. Confirms the pipeline runs before committing hours to the full run.
 python scripts/train.py --smoke_test
 
-# 2. Full fine-tune. Default: 8 epochs, batch size 8 x grad_accum 4 (effective 32), bf16,
+# 2. Full fine-tune. Default: 10 epochs, batch 32 × grad_accum 1, bf16,
 #    microsoft/trocr-base-printed, on the soyvitou dataset. Override the base model with
-#    --model_name and the training data with --datasets (see Datasets above); with
-#    trocr-small-printed you can raise --train_batch_size (e.g. 32 --grad_accum 1).
+#    --model_name and the training data with --datasets (see Datasets above).
 python scripts/train.py
 python scripts/train.py --datasets soyvitou sokheng hanuman mrrtmob kiteaether   # train on all five combined
 ```
@@ -96,11 +95,17 @@ Watch progress:
 tensorboard --logdir experiments/checkpoint-1
 ```
 
-Defaults target full RTX 3090 utilization (~18–20GB VRAM at batch 16). If GPU util stays low, try `--train_batch_size 20`. If you hit OOM, drop `--train_batch_size` or raise `--grad_accum` to keep the same effective batch.
+Defaults keep the 3090 compute-bound during training (~18GB at batch 32) and make mid-train CER cheap:
+
+- Mid-train CER is **greedy** (`--eval_num_beams 1`), **capped** (`--max_eval_samples 4096`), and uses a larger eval batch (`--eval_batch_size 64`).
+- Eval/save every `--eval_steps` (default 2000).
+- Final beam-4 CER: `scripts/evaluate_model.py --num_beams 4`.
+
+If you OOM, drop `--train_batch_size` / `--eval_batch_size` or raise `--grad_accum`.
 
 ## Evaluation
 
-Run evaluation independently against any saved checkpoint or fine-tuned model:
+Fast path (default): bf16, greedy decode, batch 64, plain DataLoader generate loop:
 
 ```bash
 python scripts/evaluate_model.py experiments/checkpoint-1/final
@@ -112,12 +117,14 @@ By default it evaluates on the `soyvitou` validation split. Pass the same `--dat
 python scripts/evaluate_model.py experiments/checkpoint-1/final --datasets sokheng hanuman
 ```
 
-Optional quick evaluation with a smaller sample set:
+Higher-quality (slower) beam-4 CER, or a quick subsample:
 
 ```bash
+python scripts/evaluate_model.py experiments/checkpoint-1/final --num_beams 4
 python scripts/evaluate_model.py experiments/checkpoint-1/final --max_eval_samples 200
 ```
 
+If GPU util stays low during eval, raise `--eval_batch_size` (e.g. 96) until VRAM is near full; drop it on OOM.
 
 
 ## Inference

@@ -21,7 +21,6 @@ from pathlib import Path
 import evaluate
 import torch
 from transformers import (
-    GenerationConfig,
     Seq2SeqTrainer,
     Seq2SeqTrainingArguments,
     VisionEncoderDecoderModel,
@@ -36,7 +35,9 @@ from trocr_khmer import (
     OCRDataset,
     add_khmer_tokens,
     build_compute_metrics,
+    build_generation_config,
     configure_generation,
+    limit_eval_dataset,
     load_ocr_split,
     load_trocr_processor,
     patch_ocr_loss,
@@ -79,12 +80,31 @@ def main():
     parser.add_argument("--experiments_dir", default="experiments")
     parser.add_argument("--output_dir", default=None, help="Run folder; defaults to the next experiments/checkpoint-N")
     parser.add_argument("--epochs", type=int, default=10)
-    parser.add_argument("--train_batch_size", type=int, default=16)
-    parser.add_argument("--eval_batch_size", type=int, default=16)
-    parser.add_argument("--grad_accum", type=int, default=2)  # effective batch = 16 * 2 = 32, ~fills base model in 24GB
+    # Batch 32 fills ~18GB on a 3090 for training; mid-train CER uses greedy so eval can go higher.
+    parser.add_argument("--train_batch_size", type=int, default=32)
+    parser.add_argument("--eval_batch_size", type=int, default=64)
+    parser.add_argument("--grad_accum", type=int, default=1)
     parser.add_argument("--lr", type=float, default=5e-5)
-    parser.add_argument("--num_workers", type=int, default=10)
+    parser.add_argument("--num_workers", type=int, default=8)
     parser.add_argument("--prefetch_factor", type=int, default=4)
+    parser.add_argument(
+        "--eval_steps",
+        type=int,
+        default=None,
+        help="Run mid-train CER every N optimizer steps (default: 50 smoke / 2000 full)",
+    )
+    parser.add_argument(
+        "--max_eval_samples",
+        type=int,
+        default=4096,
+        help="Cap mid-train CER eval size (full 3%% splits of multi-dataset runs are huge). Pass 0 for no cap.",
+    )
+    parser.add_argument(
+        "--eval_num_beams",
+        type=int,
+        default=1,
+        help="Beams for mid-train CER only (default greedy=1). Use scripts/evaluate_model.py --num_beams 4 for final CER.",
+    )
     parser.add_argument("--resume_from_checkpoint", default=None)
     parser.add_argument("--smoke_test", action="store_true", help="200 samples, 1 epoch, verifies the pipeline runs end to end")
     args = parser.parse_args()
@@ -118,19 +138,24 @@ def main():
 
     data_collator = OCRDataCollator(processor)
     train_dataset = OCRDataset(split["train"], processor)
-    eval_dataset = OCRDataset(split["test"], processor)
+    # Cap mid-train CER: beam-4 generate over a huge holdout leaves the GPU ~60% util and
+    # can burn hours per eval. Greedy + capped subset keeps ranking signal and GPU busy training.
+    max_eval = None if args.max_eval_samples == 0 else args.max_eval_samples
+    eval_hf = limit_eval_dataset(split["test"], max_eval)
+    print(
+        f"Mid-train CER eval on {len(eval_hf)} / {len(split['test'])} held-out rows "
+        f"(beams={args.eval_num_beams}, batch={args.eval_batch_size})"
+    )
+    eval_dataset = OCRDataset(eval_hf, processor)
 
     cer_metric = evaluate.load("cer")
 
-    khmer_generation = GenerationConfig(
-        decoder_start_token_id=processor.tokenizer.cls_token_id,
-        pad_token_id=processor.tokenizer.pad_token_id,
-        eos_token_id=processor.tokenizer.sep_token_id,
-        num_beams=4,
-        no_repeat_ngram_size=0,
-        length_penalty=1.0,
-        early_stopping=True,
+    # Greedy mid-train CER; saved final/ model still gets beam-4 via configure_generation.
+    train_generation = build_generation_config(
+        processor, MAX_LABEL_LEN, num_beams=args.eval_num_beams
     )
+    eval_steps = args.eval_steps if args.eval_steps is not None else (50 if args.smoke_test else 2000)
+    save_steps = eval_steps
 
     training_args = Seq2SeqTrainingArguments(
         output_dir=str(output_dir),
@@ -143,11 +168,11 @@ def main():
         bf16=True,
         predict_with_generate=True,
         generation_max_length=MAX_LABEL_LEN,
-        generation_num_beams=4,
-        generation_config=khmer_generation,
-eval_strategy="steps",
-        eval_steps=50 if args.smoke_test else 1000,
-        save_steps=50 if args.smoke_test else 1000,
+        generation_num_beams=args.eval_num_beams,
+        generation_config=train_generation,
+        eval_strategy="steps",
+        eval_steps=eval_steps,
+        save_steps=save_steps,
         save_total_limit=3,
         logging_steps=10 if args.smoke_test else 50,
         load_best_model_at_end=True,
