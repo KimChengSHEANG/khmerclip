@@ -184,4 +184,21 @@ extension TrOCREndToEndTests {
         let text = try await TrOCREngine.recognizeText(in: image, model: .khmer)
         XCTAssertGreaterThan(text.unicodeScalars.count, 64)
     }
+
+    /// Each line gets a fresh, zeroed KV state: recognizing A, then B, then A
+    /// again must give the same A (no stale cache leaking between calls).
+    func testRepeatedRecognitionIsDeterministic() async throws {
+        let fixtures = Self.repoRoot.deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("training/eval/fixtures")
+        func load(_ name: String) throws -> CGImage {
+            try XCTUnwrap(NSImage(contentsOf: fixtures.appendingPathComponent(name))?
+                .cgImage(forProposedRect: nil, context: nil, hints: nil))
+        }
+        let a = try load("printed/printed-001.png"), b = try load("ui/ui-008.png")
+        let first = try await TrOCREngine.recognizeText(in: a, model: .khmer)
+        _ = try await TrOCREngine.recognizeText(in: b, model: .khmer)
+        let again = try await TrOCREngine.recognizeText(in: a, model: .khmer)
+        XCTAssertEqual(first, again)
+        XCTAssertFalse(first.isEmpty)
+    }
 }

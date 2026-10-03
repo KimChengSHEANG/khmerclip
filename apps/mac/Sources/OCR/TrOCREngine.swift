@@ -7,14 +7,13 @@ enum TrOCRError: Error {
     case predictionFailed
 }
 
-/// Runs a TrOCR checkpoint (see Vendor/trocr/convert.py's DEFAULT_CHECKPOINTS
+/// Runs a TrOCR checkpoint (see tools/trocr/convert.py's DEFAULT_CHECKPOINTS
 /// for which one per TrOCRModelSize) converted to CoreML
 /// (Vendor/trocr/<size>/{encoder,decoder}.mlpackage, produced offline by
 /// convert.py + export_tokenizer.py -- a one-time step per model, re-run
-/// whenever a checkpoint changes). Greedy, no-KV-cache decode loop: OCR text
-/// regions are short enough that re-running the full decoder each step is
-/// simple and fast enough, without CoreML's more complex stateful-model
-/// support.
+/// whenever a checkpoint changes). Greedy decode, one token per call, with
+/// the decoder's self-attention KV cache held in a CoreML state (macOS 15)
+/// -- see tools/trocr/kv_decoder.py for the mask contract.
 ///
 /// small/base/large are English-only (official microsoft/trocr-*-printed).
 /// khmer is a byte-BPE Khmer printed-text fine-tune (lkhapple/Khmer-TrOCR-OCR)
@@ -121,19 +120,49 @@ enum TrOCREngine {
             throw TrOCRError.predictionFailed
         }
 
+        // Fresh KV state per line. Zero it: masked-out garbage could still be
+        // NaN, and NaN * 0 survives both the mask and the one-hot blend.
+        let state = decoder.makeState()
+        for name in ["k_cache", "v_cache"] {
+            state.withMultiArray(for: name) { cache in
+                // Whole backing buffer incl. any stride padding -- one missed
+                // element brings the NaN back.
+                cache.withUnsafeMutableBytes { raw, _ in
+                    if let base = raw.baseAddress { memset(base, 0, raw.count) }
+                }
+            }
+        }
+
+        // Mask contract (tools/trocr/kv_decoder.py): at step pos, attn_mask is
+        // 0 for j <= pos and -1e4 after; write_mask is one-hot at pos.
+        let n = NSNumber(value: maxLength)
+        let inputIds = try MLMultiArray(shape: [1, 1], dataType: .int32)
+        let position = try MLMultiArray(shape: [1], dataType: .int32)
+        let attnMask = try MLMultiArray(shape: [1, 1, 1, n], dataType: .float32)
+        let writeMask = try MLMultiArray(shape: [1, 1, n, 1], dataType: .float32)
+        let attnPtr = attnMask.dataPointer.bindMemory(to: Float32.self, capacity: maxLength)
+        let writePtr = writeMask.dataPointer.bindMemory(to: Float32.self, capacity: maxLength)
+        for j in 0..<maxLength { attnPtr[j] = -1e4; writePtr[j] = 0 }
+        let inputs = try MLDictionaryFeatureProvider(dictionary: [
+            "input_ids": MLFeatureValue(multiArray: inputIds),
+            "position": MLFeatureValue(multiArray: position),
+            "attn_mask": MLFeatureValue(multiArray: attnMask),
+            "write_mask": MLFeatureValue(multiArray: writeMask),
+            "encoder_hidden_states": MLFeatureValue(multiArray: encoderHidden),
+        ])
+
         let decodeStart = ContinuousClock.now
         var ids = [tokenizer.decoderStartId]
-        while ids.count < maxLength {
+        for pos in 0..<(maxLength - 1) {
             try Task.checkCancellation()
-            let inputIds = try MLMultiArray(shape: [1, NSNumber(value: ids.count)], dataType: .int32)
-            let idsPtr = inputIds.dataPointer.bindMemory(to: Int32.self, capacity: ids.count)
-            for (i, id) in ids.enumerated() { idsPtr[i] = Int32(id) }
+            inputIds[0] = NSNumber(value: ids[pos])
+            position[0] = NSNumber(value: pos)
+            attnPtr[pos] = 0
+            if pos > 0 { writePtr[pos - 1] = 0 }
+            writePtr[pos] = 1
 
-            let decoderOutput = try await decoder.prediction(from: MLDictionaryFeatureProvider(dictionary: [
-                "input_ids": MLFeatureValue(multiArray: inputIds),
-                "encoder_hidden_states": MLFeatureValue(multiArray: encoderHidden),
-            ]))
-            guard let logits = decoderOutput.featureValue(for: "logits")?.multiArrayValue else {
+            let out = try await decoder.prediction(from: inputs, using: state)
+            guard let logits = out.featureValue(for: "logits")?.multiArrayValue else {
                 throw TrOCRError.predictionFailed
             }
             let nextId = argmaxLastStep(logits, excluding: blockedToken(ids))
@@ -343,6 +372,18 @@ enum TrOCREngine {
     private actor ModelCache {
         static let shared = ModelCache()
 
+        /// Bench knob: KHMERCLIP_TROCR_UNITS=all|gpu|ane|cpu. ponytail: env
+        /// read, not a preference -- Task 8 picks the fastest and makes it the
+        /// default here.
+        private static let computeUnits: MLComputeUnits = {
+            switch ProcessInfo.processInfo.environment["KHMERCLIP_TROCR_UNITS"] {
+            case "gpu": return .cpuAndGPU
+            case "ane": return .cpuAndNeuralEngine
+            case "cpu": return .cpuOnly
+            default: return .all
+            }
+        }()
+
         private var loaded: [TrOCRModelSize: (encoder: MLModel, decoder: MLModel, tokenizer: TrOCRTokenizer)] = [:]
 
         func models(for size: TrOCRModelSize, resourceRoot: URL) throws -> (MLModel, MLModel, TrOCRTokenizer) {
@@ -377,7 +418,9 @@ enum TrOCREngine {
                 }
                 try fm.moveItem(at: freshlyCompiled, to: compiledURL)
             }
-            return try MLModel(contentsOf: compiledURL)
+            let config = MLModelConfiguration()
+            config.computeUnits = Self.computeUnits
+            return try MLModel(contentsOf: compiledURL, configuration: config)
         }
 
         private static func isOlder(_ url: URL, than other: URL) -> Bool {
