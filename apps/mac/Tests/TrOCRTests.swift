@@ -62,15 +62,9 @@ final class TrOCRTokenizerTests: XCTestCase {
 }
 
 /// End-to-end smoke test for the CoreML pipeline (preprocessing -> encoder ->
-/// greedy decode -> tokenizer). Deliberately does NOT assert exact text:
-/// measured against the reference PyTorch/HF pipeline, on-device pixel
-/// values differ by up to ~0.5 (of a [-1,1] range) because CGContext's
-/// resampler is a different implementation than PIL's -- not a bug, but a
-/// real, unresolved precision gap between this Swift preprocessing and the
-/// Python reference used when the models were converted. That gap is enough
-/// to change greedy-decoded words on some inputs. Fixing it would mean
-/// reimplementing PIL's resampling filters in Swift, which is out of scope
-/// here. This test only proves the pipeline runs and produces text.
+/// greedy decode -> tokenizer). Does not assert exact text (that depends on
+/// the checkpoint); pixel parity with PIL is pinned by TrOCRPreprocessTests and
+/// accuracy is measured by training/eval/scripts/bench.py.
 final class TrOCREndToEndTests: XCTestCase {
     private static let repoRoot = URL(fileURLWithPath: #filePath)
         .deletingLastPathComponent()
@@ -135,5 +129,25 @@ final class TrOCRLineSplitTests: XCTestCase {
         let image = try XCTUnwrap(rep.cgImage)
 
         XCTAssertEqual(TrOCREngine.lineStrips(image).count, 3)
+    }
+}
+
+final class TrOCRPreprocessTests: XCTestCase {
+    private static let macRoot = URL(fileURLWithPath: #filePath)
+        .deletingLastPathComponent().deletingLastPathComponent()
+
+    /// Training resizes with PIL bilinear (OCRDataset._preprocess_image);
+    /// on-device pixels must match it or greedy decode drifts.
+    func testResizedRGBMatchesPILBilinear() throws {
+        let png = Self.macRoot.deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("training/eval/fixtures/printed/printed-001.png")
+        let image = try XCTUnwrap(NSImage(contentsOf: png)?.cgImage(forProposedRect: nil, context: nil, hints: nil))
+        let golden = try [UInt8](Data(contentsOf: Self.macRoot.appendingPathComponent("Tests/Fixtures/ocr/printed-001.pil384.rgb")))
+
+        let swift = try XCTUnwrap(TrOCREngine.resizedRGB(image, size: 384))
+
+        XCTAssertEqual(swift.count, golden.count)
+        let maxDiff = zip(swift, golden).map { abs(Int($0) - Int($1)) }.max() ?? 0
+        XCTAssertLessThanOrEqual(maxDiff, 1)
     }
 }

@@ -18,8 +18,7 @@ enum TrOCRError: Error {
 ///
 /// small/base/large are English-only (official microsoft/trocr-*-printed).
 /// khmer is a byte-BPE Khmer printed-text fine-tune (lkhapple/Khmer-TrOCR-OCR)
-/// that reads printed Khmer when the text fills the frame -- preprocess()
-/// content-crops to make that so. Tesseract remains available in Preferences
+/// that is fed exactly the training preprocessing (see preprocess()). Tesseract remains available in Preferences
 /// as an alternate Khmer option.
 enum TrOCREngine {
     /// Points at the folder containing `<size>/{encoder,decoder}.mlpackage,tokenizer.json`.
@@ -246,78 +245,76 @@ enum TrOCREngine {
         }
     }
 
-    /// Trims uniform background margin around the content (see inkMask). The
-    /// content bounding box, padded slightly, is cropped out; if nothing stands
-    /// out from the background the original image is returned unchanged.
-    private static func contentCrop(_ image: CGImage) -> CGImage {
-        guard let mask = inkMask(image) else { return image }
-        let sw = mask.width, sh = mask.height, scale = mask.scale
+    /// RGB bytes resized exactly like PIL's `Image.resize(size, BILINEAR)` --
+    /// the call training uses (trocr_khmer.dataset.OCRDataset). Separable
+    /// triangle filter whose support widens by the scale factor when
+    /// downsampling (antialias), horizontal pass then vertical, each rounded
+    /// to UInt8 like PIL's 8-bit path. Mirrors Pillow's Resample.c
+    /// precompute_coeffs.
+    static func resizedRGB(_ image: CGImage, size: Int) -> [UInt8]? {
+        let w = image.width, h = image.height
+        // Draw in the image's own RGB space so values pass through unconverted,
+        // like PIL (which ignores colour profiles); sRGB only for non-RGB images.
+        guard w > 0, h > 0, let colorSpace = image.colorSpace.flatMap({ $0.model == .rgb ? $0 : nil })
+                ?? CGColorSpace(name: CGColorSpace.sRGB) else { return nil }
+        var src = [UInt8](repeating: 0, count: w * h * 4)
+        guard let ctx = CGContext(data: &src, width: w, height: h, bitsPerComponent: 8, bytesPerRow: w * 4,
+                                  space: colorSpace, bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue) else { return nil }
+        ctx.draw(image, in: CGRect(x: 0, y: 0, width: w, height: h))
 
-        var minX = sw, minY = sh, maxX = -1, maxY = -1
-        for y in 0..<sh {
-            for x in 0..<sw where mask[x, y] {
-                if x < minX { minX = x }
-                if x > maxX { maxX = x }
-                if y < minY { minY = y }
-                if y > maxY { maxY = y }
+        // (start index, normalized weights) per output pixel along one axis.
+        func coeffs(inSize: Int, outSize: Int) -> [(Int, [Double])] {
+            let scale = Double(inSize) / Double(outSize)
+            let filterScale = max(scale, 1.0)
+            let support = filterScale   // bilinear support 1.0 * filterScale
+            return (0..<outSize).map { i in
+                let center = (Double(i) + 0.5) * scale
+                let lo = max(Int(center - support + 0.5), 0)
+                let hi = min(Int(center + support + 0.5), inSize)
+                var ws = (lo..<hi).map { x in max(0, 1 - abs((Double(x) - center + 0.5) / filterScale)) }
+                let total = ws.reduce(0, +)
+                if total > 0 { ws = ws.map { $0 / total } }
+                return (lo, ws)
             }
         }
-        let w = image.width, h = image.height
-        guard maxX >= minX, maxY >= minY else { return image }
-        // Guard against a mis-detected background (e.g. a corner sitting on ink)
-        // collapsing the box to a sliver: if content spans < 5% of either axis,
-        // don't trust the crop -- fall back to the full image.
-        if (maxX - minX + 1) * 20 < sw || (maxY - minY + 1) * 20 < sh { return image }
+        func clip8(_ v: Double) -> UInt8 { UInt8(max(0, min(255, v.rounded()))) }
 
-        // Map the scan-space bbox back to full-res, pad by 4% of the box size.
-        let padX = max(1, (maxX - minX + 1) * 4 / 100)
-        let padY = max(1, (maxY - minY + 1) * 4 / 100)
-        let x0 = max(0, (minX - padX) * scale)
-        let y0 = max(0, (minY - padY) * scale)
-        let x1 = min(w, (maxX + 1 + padX) * scale)
-        let y1 = min(h, (maxY + 1 + padY) * scale)
-        let rect = CGRect(x: x0, y: y0, width: x1 - x0, height: y1 - y0)
-        return image.cropping(to: rect) ?? image
+        let cx = coeffs(inSize: w, outSize: size), cy = coeffs(inSize: h, outSize: size)
+        var tmp = [UInt8](repeating: 0, count: size * h * 3)   // horizontal pass
+        for y in 0..<h {
+            for (ox, (lo, ws)) in cx.enumerated() {
+                for c in 0..<3 {
+                    var acc = 0.0
+                    for (k, wt) in ws.enumerated() { acc += wt * Double(src[(y * w + lo + k) * 4 + c]) }
+                    tmp[(y * size + ox) * 3 + c] = clip8(acc)
+                }
+            }
+        }
+        var out = [UInt8](repeating: 0, count: size * size * 3)  // vertical pass
+        for (oy, (lo, ws)) in cy.enumerated() {
+            for x in 0..<size {
+                for c in 0..<3 {
+                    var acc = 0.0
+                    for (k, wt) in ws.enumerated() { acc += wt * Double(tmp[((lo + k) * size + x) * 3 + c]) }
+                    out[(oy * size + x) * 3 + c] = clip8(acc)
+                }
+            }
+        }
+        return out
     }
 
-    /// Mirrors the HF `ViTImageProcessor`/`DeiTImageProcessor` preprocessing
-    /// used by all three `-printed` checkpoints: resize to 384x384 (no aspect
-    /// crop), normalize with mean=std=0.5 per channel. First trims uniform
-    /// background margin (see contentCrop) so the text fills the frame -- TrOCR
-    /// is trained on tightly-cropped text lines and, given a loose crop with
-    /// lots of background, keeps decoding past the real text into garbage.
-    private static func preprocess(image rawImage: CGImage, size: Int = 384) throws -> MLMultiArray {
-        let image = contentCrop(rawImage)
-        guard let colorSpace = CGColorSpace(name: CGColorSpace.sRGB) else { throw TrOCRError.preprocessingFailed }
-        var pixels = [UInt8](repeating: 0, count: size * size * 4)
-        guard let context = CGContext(
-            data: &pixels,
-            width: size,
-            height: size,
-            bitsPerComponent: 8,
-            bytesPerRow: size * 4,
-            space: colorSpace,
-            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-        ) else {
-            throw TrOCRError.preprocessingFailed
-        }
-        // .medium (roughly bilinear) was measured closest to the HF processor's
-        // resize among CGContext's quality levels; CGContext's resampler is a
-        // different implementation than PIL's, so this narrows but doesn't
-        // eliminate the pixel-value gap between on-device and reference output.
-        context.interpolationQuality = .medium
-        context.draw(image, in: CGRect(x: 0, y: 0, width: size, height: size))
-
+    /// ViTImageProcessor preprocessing, identical to training: PIL-bilinear
+    /// resize to 384x384 (no aspect crop, no content crop -- training images are
+    /// never cropped, and cropping measured +0.06 CER), then normalize with
+    /// mean=std=0.5.
+    private static func preprocess(image: CGImage, size: Int = 384) throws -> MLMultiArray {
+        guard let rgb = resizedRGB(image, size: size) else { throw TrOCRError.preprocessingFailed }
         let array = try MLMultiArray(shape: [1, 3, NSNumber(value: size), NSNumber(value: size)], dataType: .float32)
         let ptr = array.dataPointer.bindMemory(to: Float32.self, capacity: size * size * 3)
         let plane = size * size
-        for y in 0..<size {
-            for x in 0..<size {
-                let p = (y * size + x) * 4
-                let idx = y * size + x
-                ptr[idx] = (Float32(pixels[p]) / 255.0 - 0.5) / 0.5
-                ptr[plane + idx] = (Float32(pixels[p + 1]) / 255.0 - 0.5) / 0.5
-                ptr[2 * plane + idx] = (Float32(pixels[p + 2]) / 255.0 - 0.5) / 0.5
+        for idx in 0..<plane {
+            for c in 0..<3 {
+                ptr[c * plane + idx] = Float32(rgb[idx * 3 + c]) / 127.5 - 1.0
             }
         }
         return array
