@@ -182,3 +182,12 @@ If GPU util stays low during eval, raise `--eval_batch_size` (e.g. 96) until VRA
 python scripts/infer.py experiments/checkpoint-1/final some_image.jpg
 ```
 
+
+## Synthetic data
+
+`scripts/fetch_fonts.py` downloads 33 OFL Google Fonts Khmer files into `cache/fonts/`.
+`scripts/render_synth.py` renders lines from existing labels (minus every eval fixture / UI
+string) in those fonts — handwriting-style fonts, native + sheared italic, scanned-document
+degradation, light/dark UI panels — into parquet shards loaded as `synth` / `synth_val`.
+Rendering requires Pillow built with libraqm (checked at start). `scripts/data_stats.py` reports
+label-length / aspect outliers for any source before you mix it in.
