@@ -25,6 +25,18 @@ printed eval fixtures. A directory path loads as a local `imagefolder` (images +
 with `file_name`, `text`) — put your own collected crops (app screenshots, phone photos) in
 `cache/collected/<name>/` and pass that path to `--datasets`.
 
+
+Weight sources with `name:N` — N rows of that source per epoch (shuffled subset, or repeated
+copies when N exceeds its size). Each source gets its own seeded 3% holdout *before* resampling,
+so repeated rows never leak into eval; `--max_eval_per_source 300` keeps every domain in the eval
+set. `--max_aspect` drops images too wide to read after the 384x384 resize, and labels longer
+than `MAX_LABEL_LEN` tokens are always dropped during training (they would be truncated).
+
+    python scripts/train.py --datasets handwriting:60000 darayut:100000 soyvitou --max_eval_per_source 300
+    python scripts/evaluate_model.py experiments/checkpoint-4/final --datasets handwriting_test --full
+
+Holdouts are carved per source, so they differ from runs before 2026-10.
+
 ```bash
 python scripts/train.py --datasets soyvitou                              # one (the default)
 python scripts/train.py --datasets sokheng hanuman                       # combined

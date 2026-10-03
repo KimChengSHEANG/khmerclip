@@ -19,6 +19,7 @@ from trocr_khmer import (
     build_generation_config,
     configure_generation,
     limit_eval_dataset,
+    load_ocr_datasets,
     load_ocr_split,
     load_trocr_processor,
     run_cer_eval,
@@ -57,6 +58,12 @@ def main():
         default=None,
         help="Optional limit for a quick evaluation run",
     )
+    parser.add_argument(
+        "--full",
+        action="store_true",
+        help="Evaluate every row of --datasets (for dedicated test sets like handwriting_test, synth_val)",
+    )
+    parser.add_argument("--max_eval_per_source", type=int, default=None)
     args = parser.parse_args()
 
     assert torch.cuda.is_available(), "CUDA GPU not found — evaluation expects a GPU-enabled environment"
@@ -64,8 +71,13 @@ def main():
     torch.backends.cuda.matmul.allow_tf32 = True
     torch.backends.cudnn.allow_tf32 = True
 
-    split = load_ocr_split(args.datasets, test_size=0.03, seed=42)
-    split["test"] = limit_eval_dataset(split["test"], args.max_eval_samples)
+    if args.full:
+        eval_hf = load_ocr_datasets(args.datasets)
+    else:
+        eval_hf = load_ocr_split(
+            args.datasets, test_size=0.03, seed=42, max_eval_per_source=args.max_eval_per_source
+        )["test"]
+    eval_hf = limit_eval_dataset(eval_hf, args.max_eval_samples)
 
     processor = load_trocr_processor(args.model_dir)
     model = VisionEncoderDecoderModel.from_pretrained(args.model_dir)
@@ -79,7 +91,7 @@ def main():
     )
 
     data_collator = OCRDataCollator(processor)
-    eval_dataset = OCRDataset(split["test"], processor)
+    eval_dataset = OCRDataset(eval_hf, processor)
     cer_metric = evaluate.load("cer")
 
     print(

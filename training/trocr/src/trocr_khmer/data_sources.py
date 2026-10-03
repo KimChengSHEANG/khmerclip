@@ -22,8 +22,10 @@ the Hub and authenticate (``huggingface-cli login``) before it can be downloaded
 from pathlib import Path
 from typing import NamedTuple
 
-from datasets import Dataset, Features, Value, concatenate_datasets, load_dataset
+from datasets import Dataset, DatasetDict, Features, Value, concatenate_datasets, load_dataset
 from datasets import Image as DSImage
+
+from trocr_khmer.dataset import MAX_LABEL_LEN
 
 _SOYVITOU = "hf://datasets/SoyVitou/62k-images-khmer-printed-dataset"
 _HANDWRITING = "hf://datasets/SoyVitou/khmer-handwritten-dataset-4.2k"
@@ -127,12 +129,70 @@ def load_ocr_datasets(names, smoke_test: bool = False, smoke_samples: int = 200)
     return combined
 
 
-def load_ocr_split(names, test_size: float = 0.03, seed: int = 42,
-                   smoke_test: bool = False, smoke_samples: int = 200):
-    """Load + combine the named datasets and carve a reproducible train/validation split.
+def parse_source(entry: str) -> tuple[str, int | None]:
+    """``"name:N"`` -> ``(name, N)`` to train on exactly N rows of that source per epoch;
+    a plain name -> ``(name, None)`` for all rows."""
+    name, sep, rows = entry.rpartition(":")
+    if sep and rows.isdigit():
+        return name, int(rows)
+    return entry, None
 
-    The same ``names``, ``seed`` and ``test_size`` always yield the same held-out validation
-    split, so ``scripts/evaluate_model.py`` can reproduce training's eval set exactly.
+
+def resample(ds: Dataset, n: int, seed: int) -> Dataset:
+    """Deterministically take ``n`` rows: a shuffled subset when ``n < len(ds)``, whole shuffled
+    copies (plus a remainder) when ``n > len(ds)`` — upsampling small sources like handwriting."""
+    if len(ds) == 0:
+        raise ValueError("cannot resample an empty dataset")
+    shuffled = ds.shuffle(seed=seed)
+    return shuffled.select([i % len(shuffled) for i in range(n)])
+
+
+def filter_ocr_rows(ds: Dataset, tokenizer=None, max_label_len: int = MAX_LABEL_LEN,
+                    max_aspect: float | None = None, num_proc: int | None = None) -> Dataset:
+    """Drop rows the model can't learn from: labels longer than ``max_label_len`` tokens (they
+    would be silently truncated, teaching early stops) and images wider than ``max_aspect``
+    (unreadable after the 384x384 squash)."""
+    if tokenizer is None and max_aspect is None:
+        return ds
+
+    def keep(example) -> bool:
+        if tokenizer is not None and len(tokenizer(example["text"]).input_ids) > max_label_len:
+            return False
+        if max_aspect is not None:
+            width, height = example["image"].size
+            if height == 0 or width / height > max_aspect:
+                return False
+        return True
+
+    return ds.filter(keep, num_proc=num_proc)
+
+
+def load_ocr_split(names, test_size: float = 0.03, seed: int = 42,
+                   smoke_test: bool = False, smoke_samples: int = 200,
+                   max_eval_per_source: int | None = None, tokenizer=None,
+                   max_label_len: int = MAX_LABEL_LEN, max_aspect: float | None = None,
+                   num_proc: int | None = None) -> DatasetDict:
+    """Per source: carve a seeded holdout, cap it, resample the train part (``name:N``), filter
+    both, then concatenate across sources.
+
+    Splitting before resampling keeps upsampled duplicates out of the holdout; per-source caps
+    stop one huge source (mrrtmob) from being the whole eval set. Same names + seed -> same
+    holdout, so ``scripts/evaluate_model.py`` reproduces training's eval rows.
     """
-    dataset = load_ocr_datasets(names, smoke_test=smoke_test, smoke_samples=smoke_samples)
-    return dataset.train_test_split(test_size=test_size, seed=seed)
+    trains, tests = [], []
+    for entry in names:
+        name, rows = parse_source(entry)
+        spec = resolve_dataset(name)
+        print(f"Loading dataset {name} ({spec.path})" + (f" [smoke: {smoke_samples}]" if smoke_test else ""))
+        split = _load_one(spec, smoke_test, smoke_samples).train_test_split(test_size=test_size, seed=seed)
+        train, test = split["train"], split["test"]
+        if max_eval_per_source is not None:
+            test = test.select(range(min(max_eval_per_source, len(test))))
+        if rows is not None and not smoke_test:
+            train = resample(train, rows, seed)
+        train = _canonical(filter_ocr_rows(train, tokenizer, max_label_len, max_aspect, num_proc))
+        test = _canonical(filter_ocr_rows(test, tokenizer, max_label_len, max_aspect, num_proc))
+        print(f"  {name}: train {len(train)} / eval {len(test)}")
+        trains.append(train)
+        tests.append(test)
+    return DatasetDict(train=concatenate_datasets(trains), test=concatenate_datasets(tests))

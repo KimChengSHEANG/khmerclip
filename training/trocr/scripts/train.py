@@ -75,6 +75,7 @@ def main():
         help=(
             "One or more datasets to train on (concatenated if several). Known aliases: "
             + ", ".join(DATASET_REGISTRY) + ". Any other value is treated as a raw hub id."
+            " Append :N to train on N rows of a source per epoch (upsample/subsample), e.g. handwriting:60000."
         ),
     )
     parser.add_argument("--experiments_dir", default="experiments")
@@ -112,6 +113,19 @@ def main():
         action="store_true",
         help="Apply light train-time image augmentations (blur, contrast, JPEG, small rotate)",
     )
+    parser.add_argument(
+        "--max_eval_per_source",
+        type=int,
+        default=None,
+        help="Cap each source's holdout so the eval set covers every domain (e.g. 300)",
+    )
+    parser.add_argument(
+        "--max_aspect",
+        type=float,
+        default=None,
+        help="Drop rows whose image width/height exceeds this (unreadable after the 384x384 resize)",
+    )
+    parser.add_argument("--filter_num_proc", type=int, default=8, help="Processes for the length/aspect filter")
     args = parser.parse_args()
 
     output_dir = Path(args.output_dir) if args.output_dir else next_experiment_dir(args.experiments_dir)
@@ -122,8 +136,6 @@ def main():
     torch.backends.cudnn.benchmark = True
     torch.backends.cuda.matmul.allow_tf32 = True
     torch.backends.cudnn.allow_tf32 = True
-
-    split = load_ocr_split(args.datasets, test_size=0.03, seed=42, smoke_test=args.smoke_test)
 
     # Graft the byte-level BPE tokenizer onto the checkpoint's image processor (the small
     # model's own SentencePiece tokenizer can't round-trip Khmer); the decoder is resized to
@@ -137,6 +149,17 @@ def main():
     # vocab size into the config.
     num_added = add_khmer_tokens(processor, model)
     print(f"Added {num_added} Khmer tokens; decoder vocab is now {model.config.decoder.vocab_size}")
+
+    split = load_ocr_split(
+        args.datasets,
+        test_size=0.03,
+        seed=42,
+        smoke_test=args.smoke_test,
+        max_eval_per_source=args.max_eval_per_source,
+        tokenizer=processor.tokenizer,
+        max_aspect=args.max_aspect,
+        num_proc=args.filter_num_proc,
+    )
 
     patch_ocr_loss(model)
     configure_generation(model, processor, MAX_LABEL_LEN)
