@@ -13,6 +13,17 @@ Train (and evaluate) on one dataset or a combination via `--datasets`. Five are 
 | `hanuman` | [seanghay/khmer-hanuman-100k](https://huggingface.co/datasets/seanghay/khmer-hanuman-100k) | 100k |
 | `mrrtmob` | [mrrtmob/khmer_english_ocr_image_line](https://huggingface.co/datasets/mrrtmob/khmer_english_ocr_image_line) | 12M lines, ~40.2GB, Khmer + English (gated — accept its terms on the hub first) |
 | `kiteaether` | [KiteAether/c_khmer_gemma_ocr_train](https://huggingface.co/datasets/KiteAether/c_khmer_gemma_ocr_train) | Khmer OCR |
+| `handwriting` | [SoyVitou/khmer-handwritten-dataset-4.2k](https://huggingface.co/datasets/SoyVitou/khmer-handwritten-dataset-4.2k) train+val parquet | ~3.8k real handwritten lines/words |
+| `handwriting_test` | same, `testset.parquet` only | ~0.4k held-out handwriting eval |
+| `darayut` | [Darayut/khmer-document-synthetic-low-res](https://huggingface.co/datasets/Darayut/khmer-document-synthetic-low-res) (`label` column) | 100k low-res document lines |
+| `siemreap` | [KimkosalYon/khmer-ocr-200k-siemreap-arial](https://huggingface.co/datasets/KimkosalYon/khmer-ocr-200k-siemreap-arial) | 200k Siemreap/Arial font lines |
+| `synth` / `synth_val` | local parquet under `cache/synth/{train,val}` (Task 5–6 renderer) | 400k / 3k multi-font synthetic |
+| any dir path | local `imagefolder` + `metadata.jsonl` | user-collected crops |
+
+`soyvitou` reads only `trainset.parquet` + `validset.parquet`; its `testset.parquet` holds the
+printed eval fixtures. A directory path loads as a local `imagefolder` (images + `metadata.jsonl`
+with `file_name`, `text`) — put your own collected crops (app screenshots, phone photos) in
+`cache/collected/<name>/` and pass that path to `--datasets`.
 
 ```bash
 python scripts/train.py --datasets soyvitou                              # one (the default)

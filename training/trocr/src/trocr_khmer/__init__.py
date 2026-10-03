@@ -1,6 +1,7 @@
 from trocr_khmer.data_sources import (
     DATASET_REGISTRY,
     DEFAULT_DATASETS,
+    DatasetSpec,
     load_ocr_datasets,
     load_ocr_split,
     resolve_dataset,
@@ -15,6 +16,7 @@ __all__ = [
     "BYTE_LEVEL_TOKENIZER",
     "DATASET_REGISTRY",
     "DEFAULT_DATASETS",
+    "DatasetSpec",
     "MAX_LABEL_LEN",
     "OCRDataCollator",
     "OCRDataset",

@@ -9,22 +9,59 @@ concatenation.
     python scripts/train.py --datasets sokheng hanuman    # combined
     python scripts/train.py --datasets soyvitou sokheng hanuman mrrtmob kiteaether   # all
 
+Registry aliases include ``handwriting``, ``handwriting_test``, ``darayut``, ``siemreap``,
+``synth``, and ``synth_val``. An existing directory path loads as a local ``imagefolder``
+(images plus ``metadata.jsonl`` with ``file_name`` and ``text``).
+
 Any string that isn't a known alias is treated as a raw Hugging Face hub id (assumed to expose
 ``image``/``text`` columns), so new datasets work without a code change.
 
 Note: ``mrrtmob`` (12M lines, Khmer+English) is a gated dataset — you must accept its terms on
 the Hub and authenticate (``huggingface-cli login``) before it can be downloaded.
 """
-from datasets import Dataset, concatenate_datasets, load_dataset
+from pathlib import Path
+from typing import NamedTuple
 
-# Short aliases -> (hub id, image column, text column). All three currently use the standard
-# image/text columns, but the mapping keeps us honest if a future dataset names them otherwise.
+from datasets import Dataset, Features, Value, concatenate_datasets, load_dataset
+from datasets import Image as DSImage
+
+_SOYVITOU = "hf://datasets/SoyVitou/62k-images-khmer-printed-dataset"
+_HANDWRITING = "hf://datasets/SoyVitou/khmer-handwritten-dataset-4.2k"
+
+# Every source is normalized to exactly these columns/types so sources concatenate cleanly.
+_FEATURES = Features({"image": DSImage(), "text": Value("string")})
+
+
+class DatasetSpec(NamedTuple):
+    """How to load one source. ``path`` is a hub id, or a builder name ("parquet",
+    "imagefolder") when ``data_files`` / ``data_dir`` pin exactly which files to read."""
+
+    path: str
+    image_col: str = "image"
+    text_col: str = "text"
+    data_files: list[str] | None = None
+    data_dir: str | None = None
+
+    def load_kwargs(self) -> dict:
+        return {k: v for k, v in (("data_files", self.data_files), ("data_dir", self.data_dir)) if v is not None}
+
+
 DATASET_REGISTRY = {
-    "soyvitou": ("SoyVitou/62k-images-khmer-printed-dataset", "image", "text"),
-    "sokheng": ("Sokheng/khmer-synthetic-ocr-v1-100k", "image", "text"),
-    "hanuman": ("seanghay/khmer-hanuman-100k", "image", "text"),
-    "mrrtmob": ("mrrtmob/khmer_english_ocr_image_line", "image", "text"),  # gated: 12M Khmer+English lines
-    "kiteaether": ("KiteAether/c_khmer_gemma_ocr_train", "image", "text"),
+    # The hub card lumps train/valid/test parquets into one "train" split. testset.parquet is
+    # where training/eval/fixtures/printed comes from, so it must never be trained on.
+    "soyvitou": DatasetSpec("parquet", data_files=[f"{_SOYVITOU}/trainset.parquet", f"{_SOYVITOU}/validset.parquet"]),
+    "sokheng": DatasetSpec("Sokheng/khmer-synthetic-ocr-v1-100k"),
+    "hanuman": DatasetSpec("seanghay/khmer-hanuman-100k"),
+    "mrrtmob": DatasetSpec("mrrtmob/khmer_english_ocr_image_line"),  # gated: 12M Khmer+English lines
+    "kiteaether": DatasetSpec("KiteAether/c_khmer_gemma_ocr_train"),
+    # Real handwriting; testset.parquet is held out for evaluation (handwriting_test).
+    "handwriting": DatasetSpec("parquet", data_files=[f"{_HANDWRITING}/trainset.parquet", f"{_HANDWRITING}/valset.parquet"]),
+    "handwriting_test": DatasetSpec("parquet", data_files=[f"{_HANDWRITING}/testset.parquet"]),
+    "darayut": DatasetSpec("Darayut/khmer-document-synthetic-low-res", text_col="label"),  # low-res document lines
+    "siemreap": DatasetSpec("KimkosalYon/khmer-ocr-200k-siemreap-arial"),  # Siemreap/Arial font lines
+    # Rendered locally by scripts/render_synth.py (paths relative to training/trocr).
+    "synth": DatasetSpec("parquet", data_files=["cache/synth/train/*.parquet"]),
+    "synth_val": DatasetSpec("parquet", data_files=["cache/synth/val/*.parquet"]),
 }
 
 
@@ -32,11 +69,14 @@ DATASET_REGISTRY = {
 DEFAULT_DATASETS = ["soyvitou"]
 
 
-def resolve_dataset(name: str) -> tuple[str, str, str]:
-    """Return ``(hub_id, image_col, text_col)`` for a registry alias or a raw hub id."""
+def resolve_dataset(name: str) -> DatasetSpec:
+    """Registry alias -> its spec; an existing directory -> a local imagefolder (images plus a
+    ``metadata.jsonl`` with ``file_name`` and ``text``); anything else -> a raw hub id."""
     if name in DATASET_REGISTRY:
         return DATASET_REGISTRY[name]
-    return (name, "image", "text")  # unknown -> raw hub id with standard columns
+    if Path(name).is_dir():
+        return DatasetSpec("imagefolder", data_dir=name)
+    return DatasetSpec(name)
 
 
 def _normalize_columns(ds: Dataset, image_col: str, text_col: str) -> Dataset:
@@ -55,22 +95,31 @@ def _normalize_columns(ds: Dataset, image_col: str, text_col: str) -> Dataset:
     return ds
 
 
-def load_ocr_datasets(names, smoke_test: bool = False, smoke_samples: int = 200) -> Dataset:
-    """Load each named dataset's ``train`` split, normalize columns, and concatenate.
+def _canonical(ds: Dataset) -> Dataset:
+    """Cast to the shared features only when they differ. Call this on already-subsampled data:
+    a cast rewrites every row, which is ruinous on the 12M-row mrrtmob."""
+    return ds if ds.features == _FEATURES else ds.cast(_FEATURES)
 
-    ``smoke_test`` streams only the first ``smoke_samples`` rows of each (no full download) for a
-    fast pipeline sanity check.
+
+def _load_one(spec: DatasetSpec, smoke_test: bool = False, smoke_samples: int = 200) -> Dataset:
+    if smoke_test:
+        stream = load_dataset(spec.path, split="train", streaming=True, **spec.load_kwargs())
+        ds = Dataset.from_list(list(stream.take(smoke_samples)))
+    else:
+        ds = load_dataset(spec.path, split="train", **spec.load_kwargs())
+    return _normalize_columns(ds, spec.image_col, spec.text_col)
+
+
+def load_ocr_datasets(names, smoke_test: bool = False, smoke_samples: int = 200) -> Dataset:
+    """Load every row of each named source and concatenate (no holdout carved).
+
+    ``smoke_test`` streams only the first ``smoke_samples`` rows of each (no full download).
     """
     parts = []
     for name in names:
-        hub_id, image_col, text_col = resolve_dataset(name)
-        print(f"Loading dataset {name} ({hub_id})" + (f" [smoke: {smoke_samples}]" if smoke_test else ""))
-        if smoke_test:
-            stream = load_dataset(hub_id, split="train", streaming=True)
-            ds = Dataset.from_list(list(stream.take(smoke_samples)))
-        else:
-            ds = load_dataset(hub_id, split="train")
-        parts.append(_normalize_columns(ds, image_col, text_col))
+        spec = resolve_dataset(name)
+        print(f"Loading dataset {name} ({spec.path})" + (f" [smoke: {smoke_samples}]" if smoke_test else ""))
+        parts.append(_canonical(_load_one(spec, smoke_test, smoke_samples)))
     if len(parts) == 1:
         return parts[0]
     combined = concatenate_datasets(parts)
