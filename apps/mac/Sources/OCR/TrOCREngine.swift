@@ -373,14 +373,14 @@ enum TrOCREngine {
         static let shared = ModelCache()
 
         /// Bench knob: KHMERCLIP_TROCR_UNITS=all|gpu|ane|cpu. ponytail: env
-        /// read, not a preference -- Task 8 picks the fastest and makes it the
-        /// default here.
+        /// read, not a preference. Default `.cpuAndGPU` (2026-10-03 full-200:
+        /// CER 0.0593 tied with `.all`, median 95.3 ms vs 105.9 ms).
         private static let computeUnits: MLComputeUnits = {
             switch ProcessInfo.processInfo.environment["KHMERCLIP_TROCR_UNITS"] {
-            case "gpu": return .cpuAndGPU
+            case "all": return .all
             case "ane": return .cpuAndNeuralEngine
             case "cpu": return .cpuOnly
-            default: return .all
+            default: return .cpuAndGPU
             }
         }()
 

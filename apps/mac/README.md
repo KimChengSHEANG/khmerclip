@@ -2,7 +2,7 @@
 
 Khmer OCR menu bar app for macOS — grab-select any text on screen, get instant Khmer (and mixed Khmer/English) text extraction. A TextSniper clone with Khmer support as the primary focus.
 
-**Quick start:** clone → `brew install xcodegen` → `make run`. Tesseract OCR works immediately (switch engine in Preferences). TrOCR (default) and EasyOCR need extra setup — see [Build and run](#build-and-run) and [OCR engines](#ocr-engines).
+**Quick start:** clone → `brew install xcodegen` → `make run`. Tesseract OCR works immediately (default engine after the 2026-10-03 Mac CoreML gate). TrOCR and EasyOCR need extra setup — see [Build and run](#build-and-run) and [OCR engines](#ocr-engines).
 
 ## Features
 
@@ -29,9 +29,7 @@ Khmer OCR menu bar app for macOS — grab-select any text on screen, get instant
 
 ## OCR engines
 
-All three backends handle Khmer text mixed with English words/numerals (e.g. `"ដក language ផ្សេងទៀត"`). Pick one in **Preferences → OCR Engine**. Default is **TrOCR** until the Mac
-CoreML accuracy/latency gate runs; see [Mac CoreML gate
-policy](#mac-coreml-gate-default-engine).
+All three backends handle Khmer text mixed with English words/numerals (e.g. `"ដក language ផ្សេងទៀត"`). Pick one in **Preferences → OCR Engine**. Default is **Tesseract** after the 2026-10-03 Mac CoreML gate (TrOCR failed mixed-subset CER only); see [Mac CoreML gate policy](#mac-coreml-gate-default-engine).
 
 | Engine | Runtime | Setup | Notes |
 |--------|---------|-------|-------|
@@ -81,21 +79,21 @@ After conversion, rebuild the app (`make build`) so Xcode bundles the new `.mlpa
 
 ### Mac CoreML gate (default engine)
 
-The default OCR engine in `AppPreferences` remains `.trocr` while the Mac
-CoreML gate is pending and after a PASS. It changes to `.tesseract` only if the
-trained Khmer checkpoint still fails the accuracy gate after the small-model
-fallback. Users without converted models should pick **Tesseract** in
-Preferences.
+Gate recorded **2026-10-03** on the frozen 200-fixture set with KV-cache CoreML
+TrOCR (Release `OCRBench`). Outcome: **FAIL** on mixed-subset CER only (overall
+CER and latency passed). New installs default to **Tesseract**; TrOCR remains
+available after `make trocr-khmer`. When TrOCR runs, CoreML compute units
+default to **GPU** (`.cpuAndGPU`).
 
 Operator checklist:
 [`training/eval/results/mac_gate.md`](../../training/eval/results/mac_gate.md)
-(status **PENDING** until Task 8 training completes on the 3090).
 
 | Gate result | Default engine | Notes |
 |-------------|----------------|-------|
-| PASS | `.trocr` | No change to `AppPreferences.swift` |
+| PASS | `.trocr` | — |
+| FAIL (mixed only, 2026-10-03) | `.tesseract` | Training follow-up: mixed Khmer+Latin synthetic data |
 | FAIL (latency) | — | Re-export `trocr-small-printed`, re-gate |
-| FAIL (CER after small fallback) | `.tesseract` | Update `AppPreferences.swift`; TrOCR stays in Preferences |
+| FAIL (CER after small fallback) | `.tesseract` | TrOCR stays in Preferences |
 
 
 ### EasyOCR (Python + custom Khmer recognizer)

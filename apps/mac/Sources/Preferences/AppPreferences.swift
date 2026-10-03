@@ -43,7 +43,7 @@ final class AppPreferences: ObservableObject {
         self.showResultHUD = defaults.object(forKey: Keys.showHUD) as? Bool ?? true
         self.playCaptureSound = defaults.object(forKey: Keys.playSound) as? Bool ?? true
         self.launchAtLogin = defaults.object(forKey: Keys.launchAtLogin) as? Bool ?? false
-        self.ocrEngine = (defaults.string(forKey: Keys.ocrEngine)).flatMap(OCREngineKind.init) ?? .trocr
+        self.ocrEngine = (defaults.string(forKey: Keys.ocrEngine)).flatMap(OCREngineKind.init) ?? .tesseract
         self.preserveLinebreaks = defaults.object(forKey: Keys.preserveLinebreaks) as? Bool ?? true
     }
 }
