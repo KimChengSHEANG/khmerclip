@@ -9,6 +9,16 @@ APP      = build/Build/Products/Debug/KhmerClip.app
 # with `make trocr-khmer KHMER_CKPT=path/to/checkpoint`.
 KHMER_CKPT = raw_models/TrOCR-khmer
 
+# Conversion-only Python env (torch/transformers/coremltools). Kept outside
+# Vendor/trocr because that whole folder is bundled into the app.
+TROCR_VENV = .trocr-venv
+TROCR_PY   = $(TROCR_VENV)/bin/python3
+
+# build/test reconvert the Khmer model automatically when the checkpoint's
+# weights are newer than the converted output. Skipped if no checkpoint exists.
+KHMER_SRC   = $(wildcard $(KHMER_CKPT)/model.safetensors)
+KHMER_MODEL = $(if $(KHMER_SRC),Vendor/trocr/khmer/tokenizer.json)
+
 gen:
 	xcodegen generate
 
@@ -18,19 +28,28 @@ gen:
 # pip install torch transformers coremltools. Re-run after pointing
 # convert.py/export_tokenizer.py at a different checkpoint (e.g. a newer
 # Khmer fine-tune) by passing it as a 3rd argument to those scripts directly.
-trocr-models:
+trocr-models: $(TROCR_PY)
 	@for size in small base large khmer; do \
 		mkdir -p Vendor/trocr/$$size; \
-		python3 Vendor/trocr/convert.py $$size Vendor/trocr/$$size; \
-		python3 Vendor/trocr/export_tokenizer.py $$size Vendor/trocr/$$size/tokenizer.json; \
+		$(TROCR_PY) Vendor/trocr/convert.py $$size Vendor/trocr/$$size; \
+		$(TROCR_PY) Vendor/trocr/export_tokenizer.py $$size Vendor/trocr/$$size/tokenizer.json; \
 	done
 
 # Rebuild only the Khmer model from the local $(KHMER_CKPT) checkpoint into
 # Vendor/trocr/khmer. Use after swapping the fine-tune in raw_models/TrOCR-khmer.
+$(TROCR_PY):
+	python3 -m venv $(TROCR_VENV)
+	$(TROCR_PY) -m pip install torch==2.7.0 "transformers==4.57.*" coremltools pillow
+
+# tokenizer.json is written last, so it doubles as the up-to-date stamp.
 trocr-khmer:
+	rm -f Vendor/trocr/khmer/tokenizer.json
+	$(MAKE) Vendor/trocr/khmer/tokenizer.json
+
+Vendor/trocr/khmer/tokenizer.json: $(KHMER_SRC) | $(TROCR_PY)
 	mkdir -p Vendor/trocr/khmer
-	python3 Vendor/trocr/convert.py khmer Vendor/trocr/khmer $(KHMER_CKPT)
-	python3 Vendor/trocr/export_tokenizer.py khmer Vendor/trocr/khmer/tokenizer.json $(KHMER_CKPT)
+	$(TROCR_PY) Vendor/trocr/convert.py khmer Vendor/trocr/khmer $(KHMER_CKPT)
+	$(TROCR_PY) Vendor/trocr/export_tokenizer.py khmer $@ $(KHMER_CKPT)
 
 # Creates Vendor/easyocr/venv with EasyOCR + PyTorch. Re-run after upgrading
 # requirements.txt. The app prefers venv/bin/python3 when present.
@@ -48,7 +67,7 @@ easyocr.Reader(['en'], gpu=False, \
 model_storage_directory='Vendor/easyocr/models', \
 download_enabled=True, verbose=True)"
 
-test: gen
+test: gen $(KHMER_MODEL)
 	xcodebuild -project KhmerClip.xcodeproj -scheme KhmerClipTests -configuration Debug \
 		-derivedDataPath build \
 		CODE_SIGN_STYLE=Manual \
@@ -56,7 +75,7 @@ test: gen
 		PROVISIONING_PROFILE_SPECIFIER="" DEVELOPMENT_TEAM="" \
 		test
 
-build: gen
+build: gen $(KHMER_MODEL)
 	xcodebuild -project KhmerClip.xcodeproj -scheme KhmerClip -configuration Debug \
 		-derivedDataPath build \
 		CODE_SIGN_STYLE=Manual \

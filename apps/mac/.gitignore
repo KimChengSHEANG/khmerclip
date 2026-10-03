@@ -20,3 +20,4 @@ Vendor/
 Vendor/easyocr/venv/
 Vendor/easyocr/models/
 .devswarm-temp/
+.trocr-venv/
