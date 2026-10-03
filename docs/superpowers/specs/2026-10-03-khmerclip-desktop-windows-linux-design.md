@@ -62,7 +62,9 @@ apps/desktop/
   fullscreen overlay per screen, crop from the grabbed image using the device-pixel ratio. Selections
   smaller than 4 logical px cancel.
 - **Wayland:** `org.freedesktop.portal.Screenshot` with `interactive=true` (the desktop's own region
-  picker) via `jeepney`.
+  picker) via `jeepney`. The Qt UI itself runs under XWayland (`QT_QPA_PLATFORM=xcb` when `DISPLAY`
+  is set and the user hasn't chosen a platform): a native-Wayland background app can't reliably set
+  the clipboard or position its popup.
 
 ### Hotkey
 

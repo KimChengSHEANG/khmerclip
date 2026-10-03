@@ -3686,12 +3686,15 @@ Expected: 10 passed.
 - Produces:
   - `Controller(prefs: Prefs, history: HistoryStore, set_clipboard: Callable[[str], None] | None = None)` with signal `capture_requested()` (safe to emit from any thread). Methods: `start_capture()`, `run_ocr(image)`, `handle_text(text: str, kind: str = "text")`, `handle_error(error: BaseException)`, `copy(text: str)`, `submit(fn, on_done=None, dialog=None) -> Task`. Attribute `popup: ResultPopup`.
   - `TrayApp(controller: Controller)` with `on_command(cmd: str)`, `show_history()`, `show_prefs()`, `show_image_window()`, `check_updates(manual: bool)`, attribute `menu: QMenu`
+  - `preferred_qpa(platform: str, env: Mapping[str, str]) -> str | None`. Returns `"xcb"` on Linux when `DISPLAY` is set and `QT_QPA_PLATFORM` isn't. Under native Wayland a background app can't reliably set the clipboard or place its popup; XWayland can. Capture still uses the portal, because `capture_backend` reads `XDG_SESSION_TYPE`.
   - `run_gui(capture: bool = False) -> int` (called by `khmerclip.__main__.main`)
 
 - [ ] **Step 1: Write the failing tests**
 
 `apps/desktop/tests/test_app.py`:
 ```python
+import threading
+
 import pytest
 from PIL import Image
 
@@ -3700,7 +3703,7 @@ from khmerclip.history import HistoryStore
 from khmerclip.ocr import trocr_models
 from khmerclip.prefs import Prefs
 from khmerclip.ui import app as app_module
-from khmerclip.ui.app import Controller, TrayApp
+from khmerclip.ui.app import Controller, TrayApp, preferred_qpa
 
 
 @pytest.fixture
@@ -3750,6 +3753,22 @@ def test_run_ocr_end_to_end_off_thread(controller, qtbot, monkeypatch):
     assert controller.copied == ["សួស្តី"]
 
 
+def test_submit_delivers_results_on_gui_thread(controller, qtbot):
+    # Callbacks touch widgets, so they must run on the GUI thread, never the pool thread.
+    seen = []
+    controller.submit(lambda progress, cancel: (progress("p"), 1)[1],
+                      on_done=lambda r: seen.append(threading.current_thread() is threading.main_thread()))
+    qtbot.waitUntil(lambda: seen, timeout=3000)
+    assert seen == [True]
+
+
+def test_preferred_qpa():
+    assert preferred_qpa("linux", {"XDG_SESSION_TYPE": "wayland", "DISPLAY": ":0"}) == "xcb"
+    assert preferred_qpa("linux", {"DISPLAY": ":0", "QT_QPA_PLATFORM": "wayland"}) is None  # user choice wins
+    assert preferred_qpa("linux", {"WAYLAND_DISPLAY": "wayland-0"}) is None  # no XWayland available
+    assert preferred_qpa("win32", {"DISPLAY": ":0"}) is None
+
+
 def test_trocr_unpublished_explains_instead_of_crashing(controller, monkeypatch):
     monkeypatch.delenv("KHMERCLIP_TROCR_DIR", raising=False)
     monkeypatch.setattr(trocr_models, "load_manifest", lambda path=None: trocr_models.Manifest("khmer-v1", ()))
@@ -3789,10 +3808,10 @@ Expected: FAIL with `ModuleNotFoundError: No module named 'khmerclip.ui.app'`.
 import os
 import sys
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from functools import partial
 
-from PySide6.QtCore import QObject, QThreadPool, QTimer, QUrl, Signal
+from PySide6.QtCore import QObject, QThreadPool, QTimer, QUrl, Signal, Slot
 from PySide6.QtGui import QAction, QDesktopServices, QGuiApplication, QIcon
 from PySide6.QtWidgets import QApplication, QMenu, QMessageBox, QProgressDialog, QSystemTrayIcon
 
@@ -3829,6 +3848,36 @@ def _present(window) -> None:
     window.activateWindow()
 
 
+def preferred_qpa(platform: str, env: Mapping[str, str]) -> str | None:
+    """Run Qt under XWayland when available: a native-Wayland background app can't reliably
+    set the clipboard (no focused surface) or position its popup. Capture still goes through
+    the portal because capture_backend() reads XDG_SESSION_TYPE, not the Qt platform."""
+    if platform.startswith("linux") and not env.get("QT_QPA_PLATFORM") and env.get("DISPLAY"):
+        return "xcb"
+    return None
+
+
+class _Relay(QObject):
+    """Receives one Task's signals on the GUI thread. Bound @Slot methods of a QObject that
+    lives on the GUI thread are guaranteed queued delivery; bare closures are not."""
+
+    def __init__(self, on_progress, on_done, on_failed):
+        super().__init__()
+        self._on_progress, self._on_done, self._on_failed = on_progress, on_done, on_failed
+
+    @Slot(object)
+    def progress(self, value) -> None:
+        self._on_progress(value)
+
+    @Slot(object)
+    def done(self, result) -> None:
+        self._on_done(result)
+
+    @Slot(object)
+    def failed(self, error) -> None:
+        self._on_failed(error)
+
+
 class Controller(QObject):
     capture_requested = Signal()  # emitted from the hotkey thread / IPC; delivered on the GUI thread
 
@@ -3840,7 +3889,7 @@ class Controller(QObject):
         self.popup.copy_requested.connect(self.copy)
         self.selector = RegionSelector()
         self.selector.selected.connect(self.run_ocr)
-        self._tasks: set[Task] = set()
+        self._tasks: dict[Task, _Relay] = {}
         self.capture_requested.connect(self.start_capture)
 
     # --- capture -------------------------------------------------------------
@@ -3919,13 +3968,16 @@ class Controller(QObject):
     def submit(self, fn, on_done: Callable[[object], None] | None = None,
                dialog: QProgressDialog | None = None) -> Task:
         task = Task(fn)
-        self._tasks.add(task)  # keep the runnable (and its signals) alive until it reports back
 
         def finish() -> None:
-            self._tasks.discard(task)
+            self._tasks.pop(task, None)
             if dialog is not None:
                 dialog.close()
                 dialog.deleteLater()
+
+        def progress(value) -> None:
+            if dialog is not None:
+                _update_progress(dialog, value)
 
         def done(result) -> None:
             finish()
@@ -3936,12 +3988,14 @@ class Controller(QObject):
             finish()
             self.handle_error(error)
 
-        task.signals.done.connect(done)
-        task.signals.failed.connect(failed)
+        relay = _Relay(progress, done, failed)
+        self._tasks[task] = relay  # keep runnable, signals and relay alive until it reports back
+        task.signals.progress.connect(relay.progress)
+        task.signals.done.connect(relay.done)
+        task.signals.failed.connect(relay.failed)
         if dialog is not None:
             dialog.canceled.connect(task.cancel.set)
-            task.signals.progress.connect(partial(_update_progress, dialog))
-        QThreadPool.globalInstance().start(task)
+        QThreadPool.globalInstance().start(task)  # start only after every connection exists
         return task
 
 
@@ -4053,6 +4107,8 @@ class TrayApp(QObject):
 
 
 def run_gui(capture: bool = False) -> int:
+    if qpa := preferred_qpa(sys.platform, os.environ):
+        os.environ["QT_QPA_PLATFORM"] = qpa  # must precede QApplication
     qapp = QApplication.instance() or QApplication(sys.argv[:1])
     qapp.setApplicationName(APP_NAME)
     qapp.setQuitOnLastWindowClosed(False)  # tray app: closing a window must not quit
@@ -4075,12 +4131,20 @@ def run_gui(capture: bool = False) -> int:
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `.venv/bin/python -m pytest tests/test_app.py -v`
-Expected: 7 passed.
+Expected: 9 passed.
 
-- [ ] **Step 5: Manual smoke run (dev machine)**
+- [ ] **Step 5: Manual smoke run (dev machine, then Linux Wayland)**
 
 Run: `.venv/bin/python -m khmerclip`
 Expected: the tray icon appears and the welcome notification shows. On macOS dev, grant Screen Recording when asked. "Capture Text" shows the dimmed frozen screen. Dragging over Khmer text yields a popup with the text, which is also on the clipboard. History… lists it. Preferences… toggles persist across restarts. Run `.venv/bin/python -m khmerclip --capture` in a second terminal while the app runs. Expected: the running instance starts a capture, and the second process exits immediately.
+
+On an Ubuntu **Wayland** session (the user's Ubuntu machine), run the same app. Then run `khmerclip --capture` from a second terminal.
+Expected:
+- The GNOME screenshot picker opens.
+- After selecting Khmer text, the popup appears bottom-right.
+- Pasting into another app (e.g. gedit) yields the text.
+
+If pasting yields nothing, the XWayland override (`preferred_qpa`) isn't in effect. Check `echo $DISPLAY` and the `QT_QPA_PLATFORM` env, and report rather than shipping.
 
 - [ ] **Step 6: Run the full suite and commit**
 
@@ -4355,12 +4419,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install Tesseract 5 (Linux)
+      - name: Install Tesseract 5 + Qt xcb runtime libs + Xvfb (Linux)
         if: runner.os == 'Linux'
+        # PyInstaller can only bundle the Qt xcb plugin's deps (e.g. libxcb-cursor0) if they exist here.
         run: |
           sudo add-apt-repository -y ppa:alex-p/tesseract-ocr5
           sudo apt-get update
-          sudo apt-get install -y tesseract-ocr
+          sudo apt-get install -y tesseract-ocr libegl1 libgl1 libxkbcommon0 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-keysyms1 libxcb-shape0 libdbus-1-3 libfontconfig1 xvfb
       - name: Install Tesseract 5 (Windows)
         if: runner.os == 'Windows'
         run: choco install tesseract --no-progress -y
@@ -4385,6 +4450,11 @@ jobs:
           $text = Get-Content smoke.txt -Encoding utf8 -Raw
           if (-not $text.Trim()) { throw "frozen app produced no OCR text" }
           Write-Host $text
+          # GUI smoke: the frozen tray app must load Qt and stay up (the ocr path never imports Qt).
+          $p = Start-Process -PassThru -FilePath dist\KhmerClip\KhmerClip.exe
+          Start-Sleep -Seconds 15
+          if ($p.HasExited) { throw "frozen GUI exited early with code $($p.ExitCode)" }
+          Stop-Process -Id $p.Id -Force
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
           if (-not (Test-Path $iscc)) { choco install innosetup --no-progress -y }
           & $iscc packaging\windows\khmerclip.iss
@@ -4397,6 +4467,13 @@ jobs:
           APPIMAGE_EXTRACT_AND_RUN=1 "dist/KhmerClip-${{ steps.ver.outputs.version }}-x86_64.AppImage" \
             ocr ../mac/Tests/Fixtures/ocr/1.png -o smoke.txt
           test -s smoke.txt && cat smoke.txt
+          # GUI smoke: the tray app must load the bundled Qt xcb plugin and stay up.
+          # timeout's exit 124 = still running after 15 s = pass; anything else = crash.
+          set +e
+          APPIMAGE_EXTRACT_AND_RUN=1 xvfb-run -a timeout 15 "dist/KhmerClip-${{ steps.ver.outputs.version }}-x86_64.AppImage"
+          code=$?
+          set -e
+          test "$code" -eq 124 || { echo "frozen GUI exited early with code $code"; exit 1; }
       - uses: actions/upload-artifact@v4
         with:
           name: khmerclip-${{ runner.os }}
@@ -4488,12 +4565,13 @@ One-time setup:
 Each release:
 
 1. Bump `__version__` in `src/khmerclip/__init__.py` and commit.
-2. Run `/usr/bin/git tag desktop-v<version>` and push the tag.
+2. Run `git tag desktop-v<version>` and push the tag (`git push origin desktop-v<version>`).
 3. CI tests, builds both installers, smoke-tests the frozen apps, and publishes release `v<version>` to the releases repo. Installed apps see it within a day.
 
 Manual checklist before announcing a release:
 
 - [ ] Windows 11 at 100% and 150% scaling, two monitors: capture on each monitor crops exactly the dragged region.
+- [ ] Windows: the default `Ctrl+Shift+2` hotkey fires, and a custom hotkey set in Preferences fires after the change.
 - [ ] Ubuntu X11: hotkey, capture, popup and clipboard.
 - [ ] Ubuntu Wayland: `--capture` shortcut opens the portal picker, and text lands on the clipboard.
 - [ ] TrOCR first-use download: progress shown, Cancel works, a retry resumes, and OCR runs after the download.
