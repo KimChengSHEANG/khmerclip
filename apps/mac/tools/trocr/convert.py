@@ -1,7 +1,7 @@
 # Converts a TrOCR (VisionEncoderDecoderModel) checkpoint to a CoreML
 # encoder.mlpackage + decoder.mlpackage pair for TrOCREngine.swift.
 #
-# Usage: python3 convert.py <size> <out_dir> [checkpoint]
+# Usage: python3 tools/trocr/convert.py <size> <out_dir> [checkpoint]
 #   size        small|base|large|khmer -- picks the default checkpoint below
 #   out_dir     e.g. Vendor/trocr/base
 #   checkpoint  optional override, e.g. a local path or HF repo id (use this
@@ -11,8 +11,14 @@
 #   python3 export_tokenizer.py <size> <out_dir>/tokenizer.json [checkpoint]
 #
 # Requires: pip install torch transformers coremltools
-import sys, torch, coremltools as ct
-from transformers import VisionEncoderDecoderModel, TrOCRProcessor
+import argparse
+
+import coremltools as ct
+import numpy as np
+import torch
+from transformers import TrOCRProcessor, VisionEncoderDecoderModel
+
+from kv_decoder import KVDecoderStep
 
 DEFAULT_CHECKPOINTS = {
     "small": "microsoft/trocr-small-printed",
@@ -28,79 +34,105 @@ DEFAULT_CHECKPOINTS = {
     "khmer": "lkhapple/Khmer-TrOCR-OCR",
 }
 
-size = sys.argv[1]  # small|base|large|khmer
-out_dir = sys.argv[2]
-ckpt = sys.argv[3] if len(sys.argv) > 3 else DEFAULT_CHECKPOINTS[size]
+MAX_LEN = 128  # total decoded ids incl. start; == training MAX_LABEL_LEN
 
-model = VisionEncoderDecoderModel.from_pretrained(ckpt, low_cpu_mem_usage=False)
 
-# Some checkpoints (trocr-large-*) use sinusoidal (non-learned) decoder position
-# embeddings whose `.weights` is a plain attribute, not a registered buffer/param.
-# HF's fast/meta init computes it under the meta device during __init__ and never
-# re-materializes it (materialization only touches real params/buffers), leaving
-# it permanently meta. Recompute it for real now that we're off the meta context.
-from transformers.models.trocr.modeling_trocr import TrOCRSinusoidalPositionalEmbedding
-for mod in model.modules():
-    if isinstance(mod, TrOCRSinusoidalPositionalEmbedding) and mod.weights is not None and mod.weights.is_meta:
-        n = mod.weights.shape[0]
-        mod.weights = mod.get_embedding(n, mod.embedding_dim, mod.padding_idx)
+def load(ckpt):
+    model = VisionEncoderDecoderModel.from_pretrained(ckpt, low_cpu_mem_usage=False)
+    # trocr-large-* sinusoidal position tables are left on the meta device by
+    # HF fast init (plain attribute, not a buffer); recompute them for real.
+    from transformers.models.trocr.modeling_trocr import TrOCRSinusoidalPositionalEmbedding
+    for mod in model.modules():
+        if isinstance(mod, TrOCRSinusoidalPositionalEmbedding) and mod.weights is not None and mod.weights.is_meta:
+            mod.weights = mod.get_embedding(mod.weights.shape[0], mod.embedding_dim, mod.padding_idx)
+    return model.eval()
 
-model.eval()
-processor = TrOCRProcessor.from_pretrained(ckpt)
-
-sz = processor.image_processor.size
-img_size = sz["height"] if isinstance(sz, dict) else getattr(sz, "height", sz)
-print("img_size", img_size, "d_model(decoder hidden)", model.config.decoder.hidden_size if hasattr(model.config.decoder,'hidden_size') else model.config.decoder.d_model)
 
 class Encoder(torch.nn.Module):
     def __init__(self, m):
         super().__init__()
         self.encoder = m.encoder
+        self.proj = getattr(m, "enc_to_dec_proj", None)  # only when hidden sizes differ
+
     def forward(self, pixel_values):
-        return self.encoder(pixel_values=pixel_values).last_hidden_state
+        h = self.encoder(pixel_values=pixel_values).last_hidden_state
+        return self.proj(h) if self.proj is not None else h
 
-class DecoderStep(torch.nn.Module):
-    def __init__(self, m):
-        super().__init__()
-        self.decoder = m.decoder
-    def forward(self, input_ids, encoder_hidden_states):
-        out = self.decoder(input_ids=input_ids, encoder_hidden_states=encoder_hidden_states, use_cache=False)
-        return out.logits
 
-enc = Encoder(model)
-dec = DecoderStep(model)
+def convert_encoder(model, img_size, precision):
+    example = torch.rand(1, 3, img_size, img_size)
+    traced = torch.jit.trace(Encoder(model).eval(), (example,))
+    return ct.convert(
+        traced,
+        inputs=[ct.TensorType(name="pixel_values", shape=example.shape, dtype=np.float32)],
+        outputs=[ct.TensorType(name="encoder_hidden_states", dtype=np.float32)],
+        convert_to="mlprogram",
+        compute_precision=precision,
+        minimum_deployment_target=ct.target.macOS15,
+    )
 
-example_pixel = torch.rand(1, 3, img_size, img_size)
-enc_out = enc(example_pixel)
-print("encoder out shape", enc_out.shape)
 
-example_ids = torch.tensor([[model.config.decoder.decoder_start_token_id, 100]])
-dec_out = dec(example_ids, enc_out)
-print("decoder out shape", dec_out.shape)
+def convert_decoder(model, enc_shape, max_len, precision):
+    step = KVDecoderStep(model, max_len, cache_dtype=torch.float16).eval()
+    attn = torch.full((1, 1, 1, max_len), -1e4)
+    attn[..., 0] = 0
+    write = torch.zeros(1, 1, max_len, 1)
+    write[:, :, 0, 0] = 1
+    example = (torch.zeros(1, 1, dtype=torch.int32), torch.zeros(1, dtype=torch.int32),
+               attn, write, torch.rand(*enc_shape))
+    traced = torch.jit.trace(step, example)
+    cache = ct.TensorType(shape=tuple(step.k_cache.shape), dtype=np.float16)
+    return ct.convert(
+        traced,
+        inputs=[
+            ct.TensorType(name="input_ids", shape=(1, 1), dtype=np.int32),
+            ct.TensorType(name="position", shape=(1,), dtype=np.int32),
+            ct.TensorType(name="attn_mask", shape=(1, 1, 1, max_len), dtype=np.float32),
+            ct.TensorType(name="write_mask", shape=(1, 1, max_len, 1), dtype=np.float32),
+            ct.TensorType(name="encoder_hidden_states", shape=tuple(enc_shape), dtype=np.float32),
+        ],
+        states=[ct.StateType(wrapped_type=cache, name="k_cache"),
+                ct.StateType(wrapped_type=cache, name="v_cache")],
+        outputs=[ct.TensorType(name="logits", dtype=np.float32)],
+        convert_to="mlprogram",
+        compute_precision=precision,
+        minimum_deployment_target=ct.target.macOS15,
+    )
 
-traced_enc = torch.jit.trace(enc, (example_pixel,))
-traced_dec = torch.jit.trace(dec, (example_ids, enc_out))
 
-enc_mlmodel = ct.convert(
-    traced_enc,
-    inputs=[ct.TensorType(name="pixel_values", shape=example_pixel.shape)],
-    outputs=[ct.TensorType(name="encoder_hidden_states")],
-    convert_to="mlprogram",
-    compute_precision=ct.precision.FLOAT32,
-    minimum_deployment_target=ct.target.macOS13,
-)
-enc_mlmodel.save(f"{out_dir}/encoder.mlpackage")
+def int8(mlmodel):
+    import coremltools.optimize.coreml as cto
+    cfg = cto.OptimizationConfig(global_config=cto.OpLinearQuantizerConfig(mode="linear_symmetric"))
+    return cto.linear_quantize_weights(mlmodel, cfg)
 
-dec_mlmodel = ct.convert(
-    traced_dec,
-    inputs=[
-        ct.TensorType(name="input_ids", shape=ct.Shape(shape=(1, ct.RangeDim(1, 64))), dtype=ct.converters.mil.input_types.np.int32),
-        ct.TensorType(name="encoder_hidden_states", shape=enc_out.shape),
-    ],
-    outputs=[ct.TensorType(name="logits")],
-    convert_to="mlprogram",
-    compute_precision=ct.precision.FLOAT32,
-    minimum_deployment_target=ct.target.macOS13,
-)
-dec_mlmodel.save(f"{out_dir}/decoder.mlpackage")
-print("saved to", out_dir)
+
+def main():
+    p = argparse.ArgumentParser()
+    p.add_argument("size", choices=sorted(DEFAULT_CHECKPOINTS))
+    p.add_argument("out_dir")
+    p.add_argument("checkpoint", nargs="?")
+    p.add_argument("--encoder-fp32", action="store_true", help="keep the encoder FP32 (FP16 CER fallback)")
+    p.add_argument("--int8", action="store_true", help="int8 weight quantization (latency fallback)")
+    a = p.parse_args()
+
+    ckpt = a.checkpoint or DEFAULT_CHECKPOINTS[a.size]
+    model = load(ckpt)
+    sz = TrOCRProcessor.from_pretrained(ckpt).image_processor.size
+    img_size = sz["height"] if isinstance(sz, dict) else getattr(sz, "height", sz)
+
+    with torch.no_grad():
+        enc_shape = tuple(Encoder(model)(torch.rand(1, 3, img_size, img_size)).shape)
+    print("img_size", img_size, "encoder out", enc_shape)
+
+    enc_prec = ct.precision.FLOAT32 if a.encoder_fp32 else ct.precision.FLOAT16
+    enc_ml = convert_encoder(model, img_size, enc_prec)
+    dec_ml = convert_decoder(model, enc_shape, MAX_LEN, ct.precision.FLOAT16)  # states must be fp16
+    if a.int8:
+        enc_ml, dec_ml = int8(enc_ml), int8(dec_ml)
+    enc_ml.save(f"{a.out_dir}/encoder.mlpackage")
+    dec_ml.save(f"{a.out_dir}/decoder.mlpackage")
+    print("saved to", a.out_dir)
+
+
+if __name__ == "__main__":
+    main()
