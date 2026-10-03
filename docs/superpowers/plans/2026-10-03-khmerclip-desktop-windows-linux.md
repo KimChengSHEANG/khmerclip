@@ -21,7 +21,8 @@
 - Every text file read or write passes `encoding="utf-8"` explicitly, because the Windows default code page mangles Khmer. JSON is written with `ensure_ascii=False`.
 - Qt is imported only in `capture/overlay.py`, `single_instance.py` and `ui/*`. Core modules and `khmerclip ocr` must import without Qt.
 - Run everything from `apps/desktop/` with the venv: `.venv/bin/python -m pytest` (Windows: `.venv\Scripts\python -m pytest`).
-- **Git in this worktree session:** call `/usr/bin/git` (absolute path). The rtk hook rewrites plain `git`, and the worktree guard refuses the rewritten command. Run git from the worktree root. Do not chain git with `;` or `&&`.
+- **Work only in the execution worktree** `.claude/worktrees/desktop-windows-linux` on branch `feat/desktop-windows-linux`, created in Task 0. Task 1 starts only after Task 0 Step 4 passes.
+- **Git in a worktree session:** call `/usr/bin/git` (absolute path). The rtk hook rewrites plain `git`, and the worktree guard refuses the rewritten command. Run git from the worktree root. Do not chain git with `;` or `&&`.
 - The mac app's TrOCR is the reference for behavior. `apps/mac/Sources/OCR/TrOCREngine.swift` and `TrOCRTokenizer.swift` are ported, not redesigned.
 
 ## Review Focus
@@ -99,6 +100,65 @@ apps/desktop/
     test_*.py
 .github/workflows/desktop.yml       # test matrix, build installers, publish release
 ```
+
+---
+
+### Task 0: Create the execution worktree
+
+All implementation happens in a new, isolated worktree. Never touch the main checkout, and never touch the planning worktree `.claude/worktrees/cross-platform-builds`.
+
+**Files:** none (git state only)
+
+**Interfaces:**
+- Produces:
+  - worktree directory `.claude/worktrees/desktop-windows-linux`
+  - branch `feat/desktop-windows-linux`
+  - base: the branch that holds this plan, `worktree-cross-platform-builds`. Use `main` instead only if this plan has since been merged there.
+  - Every later task runs from that worktree root (its `apps/desktop/` for Python commands).
+
+- [ ] **Step 1: Load the worktree skill**
+
+Invoke `superpowers:using-git-worktrees` and follow its Step 0 detection. If the session is already inside a linked worktree on `feat/desktop-windows-linux`, skip to Step 4.
+
+- [ ] **Step 2: Create the worktree from the plan's branch**
+
+Do not rely on a harness default base. `EnterWorktree` branches from `origin/main`, which is behind local `main` and lacks this plan. Create it explicitly, from the **main checkout root** (`/Users/kim/Sync/workspace/khmerclip`):
+
+```bash
+/usr/bin/git worktree add .claude/worktrees/desktop-windows-linux -b feat/desktop-windows-linux worktree-cross-platform-builds
+```
+Expected: `Preparing worktree (new branch 'feat/desktop-windows-linux')` and `HEAD is now at …` naming the latest `docs:` plan commit.
+
+`.claude/` is already gitignored at the repo root, so no `.gitignore` change is needed. Confirm it:
+```bash
+/usr/bin/git check-ignore -q .claude/worktrees && echo ignored
+```
+Expected: `ignored`.
+
+- [ ] **Step 3: Switch the session into it**
+
+Native tool (preferred): `EnterWorktree` with `path: "/Users/kim/Sync/workspace/khmerclip/.claude/worktrees/desktop-windows-linux"`. Without the native tool, `cd` into that path and stay there for every later task.
+
+- [ ] **Step 4: Verify the base**
+
+From the new worktree root, run each command separately:
+```bash
+/usr/bin/git branch --show-current
+/usr/bin/git log --oneline -3
+ls docs/superpowers/plans/2026-10-03-khmerclip-desktop-windows-linux.md
+ls apps
+```
+Expected:
+- The branch is `feat/desktop-windows-linux`.
+- The log shows the `docs:` plan commits on top of `4a503ea test: add unit test for line strip extraction in TrOCREngine` (use `-5` if more plan commits exist).
+- The plan file exists.
+- `apps` lists only `mac`. There is no `apps/desktop` yet.
+
+If the plan file or `4a503ea` is missing, the base is stale. While the branch has no commits of its own, fix it with `/usr/bin/git reset --hard worktree-cross-platform-builds`, then re-run this step.
+
+- [ ] **Step 5: Baseline**
+
+No baseline suite exists for `apps/desktop` yet; Task 1 creates it. The mac app's tests need Xcode and are out of scope. Report: `Worktree ready at <path> on feat/desktop-windows-linux (base <sha>); no desktop baseline yet`. No commit for this task.
 
 ---
 
