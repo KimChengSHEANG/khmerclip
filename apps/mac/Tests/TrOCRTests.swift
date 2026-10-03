@@ -1,5 +1,6 @@
 import XCTest
 import AppKit
+import CoreML
 // TrOCREngine.swift + TrOCRTokenizer.swift are compiled directly into this test bundle (see project.yml).
 
 final class TrOCRTokenizerTests: XCTestCase {
@@ -66,7 +67,7 @@ final class TrOCRTokenizerTests: XCTestCase {
 /// the checkpoint); pixel parity with PIL is pinned by TrOCRPreprocessTests and
 /// accuracy is measured by training/eval/scripts/bench.py.
 final class TrOCREndToEndTests: XCTestCase {
-    private static let repoRoot = URL(fileURLWithPath: #filePath)
+    static let repoRoot = URL(fileURLWithPath: #filePath)
         .deletingLastPathComponent()
         .deletingLastPathComponent()
 
@@ -149,5 +150,38 @@ final class TrOCRPreprocessTests: XCTestCase {
         XCTAssertEqual(swift.count, golden.count)
         let maxDiff = zip(swift, golden).map { abs(Int($0) - Int($1)) }.max() ?? 0
         XCTAssertLessThanOrEqual(maxDiff, 1)
+    }
+}
+
+final class TrOCRDecodeGuardTests: XCTestCase {
+    func testBlockedTokenCapsRuns() {
+        XCTAssertNil(TrOCREngine.blockedToken([0, 5, 5, 5]))           // 3 in a row: allowed
+        XCTAssertEqual(TrOCREngine.blockedToken([0, 5, 5, 5, 5]), 5)   // 4 in a row: block a 5th
+        XCTAssertNil(TrOCREngine.blockedToken([0, 5, 6, 5, 6]))        // alternating: not a run
+        XCTAssertNil(TrOCREngine.blockedToken([0]))
+    }
+
+    func testArgmaxSkipsBlockedToken() throws {
+        let logits = try MLMultiArray(shape: [1, 1, 4], dataType: .float32)
+        for (i, v) in [0.1, 0.9, 0.5, 0.2].enumerated() { logits[i] = NSNumber(value: v) }
+        XCTAssertEqual(TrOCREngine.argmaxLastStep(logits), 1)
+        XCTAssertEqual(TrOCREngine.argmaxLastStep(logits, excluding: 1), 2)
+    }
+
+    func testDecodeCapMatchesTrainingMaxLabelLength() {
+        XCTAssertEqual(TrOCREngine.maxLength, 128)   // training MAX_LABEL_LEN
+    }
+}
+
+extension TrOCREndToEndTests {
+    /// printed-080 is a 75-code-point line (~1 token per Khmer code point); the
+    /// old 64-token cap cut it off. Count unicode scalars, not Characters:
+    /// a Khmer cluster (consonant + coeng + subscript + vowel) is ONE Character.
+    func testLongLineIsNotTruncatedAt64Tokens() async throws {
+        let png = Self.repoRoot.deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("training/eval/fixtures/printed/printed-080.png")
+        let image = try XCTUnwrap(NSImage(contentsOf: png)?.cgImage(forProposedRect: nil, context: nil, hints: nil))
+        let text = try await TrOCREngine.recognizeText(in: image, model: .khmer)
+        XCTAssertGreaterThan(text.unicodeScalars.count, 64)
     }
 }

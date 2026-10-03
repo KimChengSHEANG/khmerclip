@@ -31,7 +31,23 @@ enum TrOCREngine {
             ?? Bundle.main.resourceURL?.appendingPathComponent("trocr", isDirectory: true)
     }
 
-    private static let maxLength = 64
+    /// Total decoded ids incl. the start token; matches training
+    /// MAX_LABEL_LEN / generation_config.max_length (128).
+    static let maxLength = 128
+
+    /// Greedy decode on this checkpoint can lock onto one token (measured: id
+    /// 1437 "Ġ" repeated to max length on 2/20 printed fixtures) and sometimes
+    /// recovers into real text afterwards. So instead of stopping, forbid a
+    /// token from extending a run past maxRun: measured greedy CER 0.172 ->
+    /// 0.056 (beam-4: 0.048). Labels never repeat one token more than 3x.
+    /// ponytail: single-token runs only; 2-token cycles still end at maxLength.
+    static let maxRun = 4
+
+    static func blockedToken(_ ids: [Int], maxRun: Int = maxRun) -> Int? {
+        guard ids.count >= maxRun, let last = ids.last,
+              ids.suffix(maxRun).allSatisfy({ $0 == last }) else { return nil }
+        return last
+    }
 
     /// Per-call timing breakdown for OCRBench diagnostics. ponytail: global,
     /// last-call-only -- fine for the single-threaded bench CLI; return it from
@@ -120,7 +136,7 @@ enum TrOCREngine {
             guard let logits = decoderOutput.featureValue(for: "logits")?.multiArrayValue else {
                 throw TrOCRError.predictionFailed
             }
-            let nextId = argmaxLastStep(logits)
+            let nextId = argmaxLastStep(logits, excluding: blockedToken(ids))
             ids.append(nextId)
             await onStep(ids.count)
             if nextId == tokenizer.eosId { break }
@@ -131,7 +147,7 @@ enum TrOCREngine {
         return tokenizer.decode(ids: ids)
     }
 
-    private static func argmaxLastStep(_ logits: MLMultiArray) -> Int {
+    static func argmaxLastStep(_ logits: MLMultiArray, excluding: Int? = nil) -> Int {
         let shape = logits.shape.map(\.intValue)
         let strides = logits.strides.map(\.intValue)
         let seqLen = shape[1]
@@ -141,7 +157,7 @@ enum TrOCREngine {
         let ptr = logits.dataPointer.bindMemory(to: Float32.self, capacity: shape[0] * shape[1] * shape[2])
         var bestIndex = 0
         var bestValue = -Float.greatestFiniteMagnitude
-        for v in 0..<vocabSize {
+        for v in 0..<vocabSize where v != excluding {
             let value = ptr[base + v * strides[2]]
             if value > bestValue {
                 bestValue = value
