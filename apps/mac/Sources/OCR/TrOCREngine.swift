@@ -213,11 +213,22 @@ enum TrOCREngine {
                 runs.append((y, y))
             }
         }
-        // ponytail: fixed 35%-of-tallest merge cutoff; tune if headings next to
-        // small body text get merged.
+        // ponytail: fixed cutoffs. Merge a run < 35% of the tallest, or < 50%
+        // when it sits within 25% of the tallest's height of a neighbour --
+        // Khmer above-base marks form runs up to ~46% of the base line 1-3px
+        // above it (measured: the old 35%-only rule split 17/200 single-line
+        // eval fixtures), while real line gaps are far larger. Tune if
+        // headings next to small body text get merged.
         while runs.count > 1 {
             let tallest = runs.map { $0.hi - $0.lo + 1 }.max()!
-            guard let i = runs.firstIndex(where: { ($0.hi - $0.lo + 1) * 100 < tallest * 35 }) else { break }
+            func nearestGap(_ k: Int) -> Int {
+                min(k > 0 ? runs[k].lo - runs[k - 1].hi : Int.max,
+                    k < runs.count - 1 ? runs[k + 1].lo - runs[k].hi : Int.max)
+            }
+            guard let i = runs.indices.first(where: { k in
+                let h = (runs[k].hi - runs[k].lo + 1) * 100
+                return h < tallest * 35 || (h < tallest * 50 && nearestGap(k) * 4 < tallest)
+            }) else { break }
             let gapAbove = i > 0 ? runs[i].lo - runs[i - 1].hi : Int.max
             let gapBelow = i < runs.count - 1 ? runs[i + 1].lo - runs[i].hi : Int.max
             let j = gapAbove <= gapBelow ? i - 1 : i + 1

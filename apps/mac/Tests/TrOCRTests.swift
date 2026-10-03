@@ -96,6 +96,23 @@ final class TrOCREndToEndTests: XCTestCase {
 }
 
 final class TrOCRLineSplitTests: XCTestCase {
+    private static let monorepoRoot = URL(fileURLWithPath: #filePath)
+        .deletingLastPathComponent()   // Tests
+        .deletingLastPathComponent()   // apps/mac
+        .deletingLastPathComponent()   // apps
+        .deletingLastPathComponent()   // repo root
+
+    /// These frozen eval fixtures are each ONE text line whose above-base Khmer
+    /// marks form a separate ink run 37-46% of the base line's height; they
+    /// must not be read as extra lines. ui-008 is dark mode, ui-005 light.
+    func testSingleLineFixturesWithDetachedMarksStayOneStrip() throws {
+        for name in ["ui/ui-008.png", "ui/ui-005.png", "ui/ui-009.png", "printed/printed-024.png"] {
+            let url = Self.monorepoRoot.appendingPathComponent("training/eval/fixtures/\(name)")
+            let image = try XCTUnwrap(NSImage(contentsOf: url)?.cgImage(forProposedRect: nil, context: nil, hints: nil), name)
+            XCTAssertEqual(TrOCREngine.lineStrips(image).count, 1, name)
+        }
+    }
+
     /// TrOCR decodes one line per pass, so lineStrips must find each text line
     /// (including Khmer with marks above/below) or the output loses its
     /// linebreaks.
