@@ -1,6 +1,10 @@
 """Load TrOCRProcessor reliably across transformers versions."""
 
-from transformers import AutoTokenizer, TrOCRProcessor, ViTImageProcessor
+from pathlib import Path
+
+from transformers import AutoTokenizer, TrOCRProcessor, ViTImageProcessor, VisionEncoderDecoderModel
+
+from trocr_khmer.khmer import add_khmer_tokens
 
 # Byte-level BPE (RoBERTa) tokenizer used for the decoder. trocr-small-printed's own
 # XLM-RoBERTa SentencePiece tokenizer cannot round-trip per-character Khmer: the fast
@@ -73,3 +77,33 @@ def load_trocr_processor(model_name_or_path: str, tokenizer_name: str | None = N
     image_processor = ViTImageProcessor.from_pretrained(model_name_or_path)
     tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
     return TrOCRProcessor(image_processor=image_processor, tokenizer=tokenizer)
+
+
+def load_model_and_processor(model_name_or_path: str):
+    """Load a model + processor ready to train, from a hub base or a previous run's ``final/``.
+
+    A hub base (e.g. ``microsoft/trocr-base-printed``) gets the byte-level tokenizer graft and
+    the Khmer tokens, with the decoder resized to match. A local fine-tuned directory already
+    carries that extended tokenizer: reuse it exactly as saved and refuse to change the vocab —
+    shifted token ids would scramble everything the decoder learned.
+
+    Returns ``(model, processor, num_added_tokens)``.
+    """
+    model = VisionEncoderDecoderModel.from_pretrained(model_name_or_path)
+    if not Path(model_name_or_path).is_dir():
+        processor = load_trocr_processor(model_name_or_path, tokenizer_name=BYTE_LEVEL_TOKENIZER)
+        return model, processor, add_khmer_tokens(processor, model)
+
+    processor = load_trocr_processor(model_name_or_path)
+    vocab = model.config.decoder.vocab_size
+    if len(processor.tokenizer) != vocab:
+        raise ValueError(
+            f"{model_name_or_path}: tokenizer has {len(processor.tokenizer)} tokens but decoder vocab is {vocab}"
+        )
+    num_added = add_khmer_tokens(processor)
+    if num_added:
+        raise ValueError(
+            f"{model_name_or_path}: tokenizer is missing {num_added} Khmer tokens; "
+            "refusing to resize a fine-tuned decoder"
+        )
+    return model, processor, 0

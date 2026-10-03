@@ -12,7 +12,12 @@ from trocr_khmer.data_sources import (
 from trocr_khmer.dataset import MAX_LABEL_LEN, OCRDataCollator, OCRDataset, build_compute_metrics, encode_ocr_labels
 from trocr_khmer.khmer import add_khmer_tokens, khmer_token_chars
 from trocr_khmer.model import patch_ocr_loss
-from trocr_khmer.processor import BYTE_LEVEL_TOKENIZER, configure_generation, load_trocr_processor
+from trocr_khmer.processor import (
+    BYTE_LEVEL_TOKENIZER,
+    configure_generation,
+    load_model_and_processor,
+    load_trocr_processor,
+)
 from trocr_khmer.train_runtime import build_generation_config, limit_eval_dataset, run_cer_eval
 
 __all__ = [
@@ -33,6 +38,7 @@ __all__ = [
     "limit_eval_dataset",
     "load_ocr_datasets",
     "load_ocr_split",
+    "load_model_and_processor",
     "load_trocr_processor",
     "parse_source",
     "resample",

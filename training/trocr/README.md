@@ -117,6 +117,19 @@ python scripts/train.py
 python scripts/train.py --datasets soyvitou sokheng hanuman mrrtmob kiteaether   # train on all five combined
 ```
 
+
+
+## Fine-tune from a previous run
+
+Pass a run's `final/` dir as `--model_name`. This starts a fresh Trainer (new optimizer + LR
+schedule) and reuses the saved Khmer tokenizer unchanged — loading refuses if the vocab would
+change. Do **not** use `--resume_from_checkpoint` for this: it restores the old global step and
+schedule, so a finished run stops immediately.
+
+    python scripts/train.py --model_name experiments/checkpoint-3/final \
+      --datasets handwriting:60000 synth:400000 darayut:100000 soyvitou:60000 \
+      --lr 2e-5 --warmup_steps 1000 --early_stopping_patience 5 --max_eval_per_source 300 --max_eval_samples 0
+
 Each run gets its own auto-incrementing folder under `experiments/` (`experiments/checkpoint-1/`, `experiments/checkpoint-2/`, …). Inside it, HF keeps the best-CER checkpoint plus the last 2, and the final model + processor are saved to `experiments/checkpoint-N/final/`.
 
 Resume an interrupted run:

@@ -21,25 +21,23 @@ from pathlib import Path
 import evaluate
 import torch
 from transformers import (
+    EarlyStoppingCallback,
     Seq2SeqTrainer,
     Seq2SeqTrainingArguments,
-    VisionEncoderDecoderModel,
 )
 
 from trocr_khmer import (
-    BYTE_LEVEL_TOKENIZER,
     DATASET_REGISTRY,
     DEFAULT_DATASETS,
     MAX_LABEL_LEN,
     OCRDataCollator,
     OCRDataset,
-    add_khmer_tokens,
     build_compute_metrics,
     build_generation_config,
     configure_generation,
     limit_eval_dataset,
+    load_model_and_processor,
     load_ocr_split,
-    load_trocr_processor,
     patch_ocr_loss,
 )
 
@@ -66,7 +64,11 @@ def next_experiment_dir(experiments_dir: str) -> Path:
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model_name", default=MODEL_NAME, help="Base TrOCR checkpoint to fine-tune")
+    parser.add_argument(
+        "--model_name",
+        default=MODEL_NAME,
+        help="Base TrOCR checkpoint (hub id) or a previous run's final/ dir to continue fine-tuning",
+    )
     parser.add_argument(
         "--datasets",
         nargs="+",
@@ -126,6 +128,13 @@ def main():
         help="Drop rows whose image width/height exceeds this (unreadable after the 384x384 resize)",
     )
     parser.add_argument("--filter_num_proc", type=int, default=8, help="Processes for the length/aspect filter")
+    parser.add_argument("--warmup_steps", type=int, default=500)
+    parser.add_argument(
+        "--early_stopping_patience",
+        type=int,
+        default=0,
+        help="Stop after N evals without CER improvement (0 = off). Fine-tunes: 5.",
+    )
     args = parser.parse_args()
 
     output_dir = Path(args.output_dir) if args.output_dir else next_experiment_dir(args.experiments_dir)
@@ -137,17 +146,9 @@ def main():
     torch.backends.cuda.matmul.allow_tf32 = True
     torch.backends.cudnn.allow_tf32 = True
 
-    # Graft the byte-level BPE tokenizer onto the checkpoint's image processor (the small
-    # model's own SentencePiece tokenizer can't round-trip Khmer); the decoder is resized to
-    # this tokenizer's vocab below.
-    processor = load_trocr_processor(args.model_name, tokenizer_name=BYTE_LEVEL_TOKENIZER)
-    model = VisionEncoderDecoderModel.from_pretrained(args.model_name)
-
-    # Add a dedicated token per Khmer character (one token per character instead of 3 UTF-8
-    # byte tokens) and resize the decoder's embeddings + tied LM head to the grafted
-    # tokenizer's vocab. Must run before configure_generation, which reads the resized decoder
-    # vocab size into the config.
-    num_added = add_khmer_tokens(processor, model)
+    # Hub base -> graft byte-level tokenizer + add Khmer tokens; a previous run's final/ dir ->
+    # reuse its saved Khmer tokenizer unchanged (fresh Trainer: new optimizer + LR schedule).
+    model, processor, num_added = load_model_and_processor(args.model_name)
     print(f"Added {num_added} Khmer tokens; decoder vocab is now {model.config.decoder.vocab_size}")
 
     split = load_ocr_split(
@@ -192,7 +193,7 @@ def main():
         gradient_accumulation_steps=args.grad_accum,
         num_train_epochs=1 if args.smoke_test else args.epochs,
         learning_rate=args.lr,
-        warmup_steps=500,
+        warmup_steps=args.warmup_steps,
         bf16=True,
         predict_with_generate=True,
         generation_max_length=MAX_LABEL_LEN,
@@ -220,6 +221,11 @@ def main():
         eval_dataset=eval_dataset,
         data_collator=data_collator,
         compute_metrics=build_compute_metrics(processor, cer_metric),
+        callbacks=(
+            [EarlyStoppingCallback(early_stopping_patience=args.early_stopping_patience)]
+            if args.early_stopping_patience > 0
+            else None
+        ),
     )
 
     trainer.train(resume_from_checkpoint=args.resume_from_checkpoint)
