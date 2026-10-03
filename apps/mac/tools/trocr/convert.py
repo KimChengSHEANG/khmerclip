@@ -8,7 +8,7 @@
 #               to point at a newer Khmer fine-tune once one lands)
 #
 # After converting, regenerate the matching tokenizer.json with:
-#   python3 export_tokenizer.py <size> <out_dir>/tokenizer.json [checkpoint]
+#   python3 tools/trocr/export_tokenizer.py <size> <out_dir>/tokenizer.json [checkpoint]
 #
 # Requires: pip install torch transformers coremltools
 import argparse
@@ -29,8 +29,8 @@ DEFAULT_CHECKPOINTS = {
     # KiteAether/khmer-trcor-06-10 emitted broken 2-byte UTF-8 (U+FFFD), and a
     # SentencePiece one hallucinated fluent-but-unrelated Khmer. This one reads
     # printed Khmer correctly when the text fills the frame -- TrOCREngine
-    # auto-crops background before the 384 resize so it does. Swap via the
-    # checkpoint override arg if a better one lands.
+    # feeds the same PIL-bilinear 384x384 preprocessing as training (no
+    # content crop). Swap via the checkpoint override arg if a better one lands.
     "khmer": "lkhapple/Khmer-TrOCR-OCR",
 }
 

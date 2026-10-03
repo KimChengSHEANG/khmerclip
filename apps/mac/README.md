@@ -65,7 +65,7 @@ pip install torch transformers coremltools
 make trocr-khmer
 ```
 
-This runs `Vendor/trocr/convert.py` and `export_tokenizer.py` into `Vendor/trocr/khmer/`. To use a different checkpoint:
+This runs `tools/trocr/convert.py` and `tools/trocr/export_tokenizer.py` into `Vendor/trocr/khmer/`. To use a different checkpoint:
 ```bash
 make trocr-khmer KHMER_CKPT=/path/to/your/checkpoint
 ```
