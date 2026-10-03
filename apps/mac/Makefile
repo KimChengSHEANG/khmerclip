@@ -2,7 +2,7 @@
 SIGN_ID = 
 APP      = build/Build/Products/Debug/KhmerClip.app
 
-.PHONY: gen build test run clean trocr-models trocr-khmer easyocr-venv easyocr-models ocrbench
+.PHONY: gen build test run clean trocr-models trocr-khmer trocr-test easyocr-venv easyocr-models ocrbench
 
 # Local Khmer checkpoint to (re)build from. Drop a new fine-tune here and
 # `make trocr-khmer` reconverts it into Vendor/trocr/khmer. Override the dir
@@ -31,15 +31,19 @@ gen:
 trocr-models: $(TROCR_PY)
 	@for size in small base large khmer; do \
 		mkdir -p Vendor/trocr/$$size; \
-		$(TROCR_PY) Vendor/trocr/convert.py $$size Vendor/trocr/$$size; \
-		$(TROCR_PY) Vendor/trocr/export_tokenizer.py $$size Vendor/trocr/$$size/tokenizer.json; \
+		$(TROCR_PY) tools/trocr/convert.py $$size Vendor/trocr/$$size; \
+		$(TROCR_PY) tools/trocr/export_tokenizer.py $$size Vendor/trocr/$$size/tokenizer.json; \
 	done
 
 # Rebuild only the Khmer model from the local $(KHMER_CKPT) checkpoint into
 # Vendor/trocr/khmer. Use after swapping the fine-tune in raw_models/TrOCR-khmer.
 $(TROCR_PY):
 	python3 -m venv $(TROCR_VENV)
-	$(TROCR_PY) -m pip install torch==2.7.0 "transformers==4.57.*" coremltools pillow
+	$(TROCR_PY) -m pip install torch==2.7.0 "transformers==4.57.*" coremltools pillow pytest jiwer
+
+# Converter unit tests (tiny random models; no checkpoint or network needed).
+trocr-test: | $(TROCR_PY)
+	$(TROCR_PY) -m pytest tools/trocr/tests -v
 
 # tokenizer.json is written last, so it doubles as the up-to-date stamp.
 trocr-khmer:
@@ -48,8 +52,8 @@ trocr-khmer:
 
 Vendor/trocr/khmer/tokenizer.json: $(KHMER_SRC) | $(TROCR_PY)
 	mkdir -p Vendor/trocr/khmer
-	$(TROCR_PY) Vendor/trocr/convert.py khmer Vendor/trocr/khmer $(KHMER_CKPT)
-	$(TROCR_PY) Vendor/trocr/export_tokenizer.py khmer $@ $(KHMER_CKPT)
+	$(TROCR_PY) tools/trocr/convert.py khmer Vendor/trocr/khmer $(KHMER_CKPT)
+	$(TROCR_PY) tools/trocr/export_tokenizer.py khmer $@ $(KHMER_CKPT)
 
 # Creates Vendor/easyocr/venv with EasyOCR + PyTorch. Re-run after upgrading
 # requirements.txt. The app prefers venv/bin/python3 when present.
