@@ -53,6 +53,30 @@ enum TrOCREngine {
         let (encoder, decoder, tokenizer) = try await ModelCache.shared.models(for: size, resourceRoot: root)
 
         await progress?(.encoding)
+        // TrOCR reads one text line per pass, so a multi-line clip is split into
+        // line strips and each decoded separately; joining with "\n" is what lets
+        // Preserve Linebreaks have anything to preserve.
+        var lines: [String] = []
+        var doneTokens = 0
+        for strip in lineStrips(image) {
+            var lineTokens = 0
+            let line = try await recognizeLine(strip, encoder: encoder, decoder: decoder, tokenizer: tokenizer) { n in
+                lineTokens = n
+                await progress?(.reading(tokens: doneTokens + n))
+            }
+            doneTokens += lineTokens
+            if !line.isEmpty { lines.append(line) }
+        }
+        return lines.joined(separator: "\n")
+    }
+
+    private static func recognizeLine(
+        _ image: CGImage,
+        encoder: MLModel,
+        decoder: MLModel,
+        tokenizer: TrOCRTokenizer,
+        onStep: (Int) async -> Void
+    ) async throws -> String {
         let pixelValues = try preprocess(image: image)
         let encoderOutput = try await encoder.prediction(from: MLDictionaryFeatureProvider(dictionary: [
             "pixel_values": MLFeatureValue(multiArray: pixelValues),
@@ -77,7 +101,7 @@ enum TrOCREngine {
             }
             let nextId = argmaxLastStep(logits)
             ids.append(nextId)
-            await progress?(.reading(tokens: ids.count))
+            await onStep(ids.count)
             if nextId == tokenizer.eosId { break }
         }
 
@@ -104,27 +128,29 @@ enum TrOCREngine {
         return bestIndex
     }
 
-    /// Trims uniform background margin around the content. Background colour is
-    /// taken from the image corners (works for both dark- and light-mode clips),
-    /// and any pixel differing from it beyond a threshold counts as content. The
-    /// content bounding box, padded slightly, is cropped out; if nothing stands
-    /// out from the background the original image is returned unchanged. Scans a
-    /// downscaled copy (long edge <= scanMax) so cost stays bounded on big clips.
-    private static func contentCrop(_ image: CGImage, scanMax: Int = 512) -> CGImage {
+    /// Downscaled (long edge <= scanMax) ink mask of the image. Background
+    /// colour is taken from the image corners (works for both dark- and
+    /// light-mode clips); any pixel differing from it by > 40/255 on any RGB
+    /// channel counts as ink. `scale` maps mask coordinates back to full-res.
+    private struct InkMask {
+        let ink: [Bool]
+        let width: Int, height: Int, scale: Int
+        subscript(x: Int, y: Int) -> Bool { ink[y * width + x] }
+    }
+
+    private static func inkMask(_ image: CGImage, scanMax: Int = 512) -> InkMask? {
         let w = image.width, h = image.height
-        guard w > 1, h > 1 else { return image }
+        guard w > 1, h > 1 else { return nil }
         let scale = max(1, (max(w, h) + scanMax - 1) / scanMax)
         let sw = w / scale, sh = h / scale
-        guard sw > 1, sh > 1, let colorSpace = CGColorSpace(name: CGColorSpace.sRGB) else { return image }
+        guard sw > 1, sh > 1, let colorSpace = CGColorSpace(name: CGColorSpace.sRGB) else { return nil }
 
         var px = [UInt8](repeating: 0, count: sw * sh * 4)
         guard let ctx = CGContext(data: &px, width: sw, height: sh, bitsPerComponent: 8,
                                   bytesPerRow: sw * 4, space: colorSpace,
-                                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return image }
+                                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return nil }
         ctx.draw(image, in: CGRect(x: 0, y: 0, width: sw, height: sh))
 
-        // Background = average of the four corners. Content = differs by > 40/255
-        // on any RGB channel.
         func rgb(_ x: Int, _ y: Int) -> (Int, Int, Int) {
             let p = (y * sw + x) * 4
             return (Int(px[p]), Int(px[p + 1]), Int(px[p + 2]))
@@ -135,18 +161,73 @@ enum TrOCREngine {
                   corners.map(\.2).reduce(0, +) / 4)
         let threshold = 40
 
-        var minX = sw, minY = sh, maxX = -1, maxY = -1
+        var ink = [Bool](repeating: false, count: sw * sh)
         for y in 0..<sh {
             for x in 0..<sw {
                 let (r, g, b) = rgb(x, y)
-                if abs(r - bg.0) > threshold || abs(g - bg.1) > threshold || abs(b - bg.2) > threshold {
-                    if x < minX { minX = x }
-                    if x > maxX { maxX = x }
-                    if y < minY { minY = y }
-                    if y > maxY { maxY = y }
-                }
+                ink[y * sw + x] = abs(r - bg.0) > threshold || abs(g - bg.1) > threshold || abs(b - bg.2) > threshold
             }
         }
+        return InkMask(ink: ink, width: sw, height: sh, scale: scale)
+    }
+
+    /// Splits a clip into horizontal text-line strips by row ink projection:
+    /// runs of inked rows separated by blank rows. Runs much shorter than the
+    /// tallest (a detached Khmer vowel/subscript mark, a stray dot) are merged
+    /// into the nearer neighbour rather than read as their own line. Strips
+    /// extend halfway into the surrounding gaps so marks above/below the line
+    /// stay attached. Returns [image] when there is 0 or 1 line.
+    static func lineStrips(_ image: CGImage) -> [CGImage] {
+        guard let mask = inkMask(image) else { return [image] }
+        var runs: [(lo: Int, hi: Int)] = []
+        for y in 0..<mask.height {
+            let inked = (0..<mask.width).contains { mask[$0, y] }
+            if !inked { continue }
+            if let last = runs.last, last.hi == y - 1 {
+                runs[runs.count - 1].hi = y
+            } else {
+                runs.append((y, y))
+            }
+        }
+        // ponytail: fixed 35%-of-tallest merge cutoff; tune if headings next to
+        // small body text get merged.
+        while runs.count > 1 {
+            let tallest = runs.map { $0.hi - $0.lo + 1 }.max()!
+            guard let i = runs.firstIndex(where: { ($0.hi - $0.lo + 1) * 100 < tallest * 35 }) else { break }
+            let gapAbove = i > 0 ? runs[i].lo - runs[i - 1].hi : Int.max
+            let gapBelow = i < runs.count - 1 ? runs[i + 1].lo - runs[i].hi : Int.max
+            let j = gapAbove <= gapBelow ? i - 1 : i + 1
+            runs[min(i, j)] = (min(runs[i].lo, runs[j].lo), max(runs[i].hi, runs[j].hi))
+            runs.remove(at: max(i, j))
+        }
+        guard runs.count > 1 else { return [image] }
+
+        return runs.indices.compactMap { k in
+            let top = k == 0 ? 0 : (runs[k - 1].hi + runs[k].lo + 1) / 2
+            let bottom = k == runs.count - 1 ? mask.height : (runs[k].hi + runs[k + 1].lo + 1) / 2
+            let rect = CGRect(x: 0, y: top * mask.scale, width: image.width,
+                              height: min(image.height, bottom * mask.scale) - top * mask.scale)
+            return image.cropping(to: rect)
+        }
+    }
+
+    /// Trims uniform background margin around the content (see inkMask). The
+    /// content bounding box, padded slightly, is cropped out; if nothing stands
+    /// out from the background the original image is returned unchanged.
+    private static func contentCrop(_ image: CGImage) -> CGImage {
+        guard let mask = inkMask(image) else { return image }
+        let sw = mask.width, sh = mask.height, scale = mask.scale
+
+        var minX = sw, minY = sh, maxX = -1, maxY = -1
+        for y in 0..<sh {
+            for x in 0..<sw where mask[x, y] {
+                if x < minX { minX = x }
+                if x > maxX { maxX = x }
+                if y < minY { minY = y }
+                if y > maxY { maxY = y }
+            }
+        }
+        let w = image.width, h = image.height
         guard maxX >= minX, maxY >= minY else { return image }
         // Guard against a mis-detected background (e.g. a corner sitting on ink)
         // collapsing the box to a sliver: if content spans < 5% of either axis,

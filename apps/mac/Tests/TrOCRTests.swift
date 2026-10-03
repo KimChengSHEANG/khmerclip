@@ -94,3 +94,29 @@ final class TrOCREndToEndTests: XCTestCase {
         NSImage(contentsOf: url)?.cgImage(forProposedRect: nil, context: nil, hints: nil)
     }
 }
+
+final class TrOCRLineSplitTests: XCTestCase {
+    /// TrOCR decodes one line per pass, so lineStrips must find each text line
+    /// (including Khmer with marks above/below) or the output loses its
+    /// linebreaks.
+    func testLineStripsSplitsMultiLineClipIntoOneStripPerLine() throws {
+        let lines = ["ច្បាប់ភូមិបាល", "ផ្តល់សិទ្ធិអំណាចឲ្យរដ្ឋ", "Hello world"]
+        let size = NSSize(width: 600, height: 240)
+        let rep = try XCTUnwrap(NSBitmapImageRep(
+            bitmapDataPlanes: nil, pixelsWide: Int(size.width), pixelsHigh: Int(size.height),
+            bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+            colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0))
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
+        NSColor.white.setFill()
+        NSRect(origin: .zero, size: size).fill()
+        let attrs: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: 36), .foregroundColor: NSColor.black]
+        for (i, line) in lines.enumerated() {
+            (line as NSString).draw(at: NSPoint(x: 20, y: size.height - CGFloat(i + 1) * 75), withAttributes: attrs)
+        }
+        NSGraphicsContext.restoreGraphicsState()
+        let image = try XCTUnwrap(rep.cgImage)
+
+        XCTAssertEqual(TrOCREngine.lineStrips(image).count, 3)
+    }
+}
