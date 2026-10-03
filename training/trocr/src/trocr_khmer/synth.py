@@ -99,6 +99,7 @@ def require_raqm() -> None:
 
 def render_text(text, font_path, size, fg, bg, pad=(8, 6)) -> Image.Image:
     """Shaped single-line render on a tight canvas plus padding."""
+    require_raqm()
     font = ImageFont.truetype(str(font_path), size, layout_engine=ImageFont.Layout.RAQM)
     left, top, right, bottom = ImageDraw.Draw(Image.new("RGB", (1, 1))).textbbox((0, 0), text, font=font)
     px, py = pad
