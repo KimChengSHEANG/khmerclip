@@ -40,3 +40,4 @@ wandb/
 *.egg-info/
 dist/
 .worktrees/
+docs/superpowers/
