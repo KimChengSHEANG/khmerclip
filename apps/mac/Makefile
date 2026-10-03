@@ -2,7 +2,7 @@
 SIGN_ID = 
 APP      = build/Build/Products/Debug/KhmerClip.app
 
-.PHONY: gen build test run clean trocr-models trocr-khmer easyocr-venv easyocr-models
+.PHONY: gen build test run clean trocr-models trocr-khmer easyocr-venv easyocr-models ocrbench
 
 # Local Khmer checkpoint to (re)build from. Drop a new fine-tune here and
 # `make trocr-khmer` reconverts it into Vendor/trocr/khmer. Override the dir
@@ -66,6 +66,13 @@ import easyocr; \
 easyocr.Reader(['en'], gpu=False, \
 model_storage_directory='Vendor/easyocr/models', \
 download_enabled=True, verbose=True)"
+
+# Release OCRBench CLI for the eval harness (training/eval/scripts/bench.py
+# --trocr-coreml-bin build/Build/Products/Release/OCRBench). Tool targets
+# need an ad-hoc identity; an empty one fails to sign.
+ocrbench: gen $(KHMER_MODEL)
+	xcodebuild -project KhmerClip.xcodeproj -scheme OCRBench -configuration Release \
+		-derivedDataPath build CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO build
 
 test: gen $(KHMER_MODEL)
 	xcodebuild -project KhmerClip.xcodeproj -scheme KhmerClipTests -configuration Debug \

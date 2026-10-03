@@ -74,3 +74,20 @@ def test_recognize_many_allows_missing_timings(
     assert trocr_coreml.recognize_many(
         [Path("/tmp/one.png"), Path("/tmp/two.png")], Path("/tmp/OCRBench")
     ) == [("one", 3.0), ("two", None)]
+
+
+def test_recognize_many_ignores_stats_lines(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        trocr_coreml.subprocess,
+        "run",
+        lambda *args, **kwargs: CompletedProcess(
+            args[0],
+            0,
+            "one\n",
+            "ms=7.5\nstats strips=1 enc_ms=3.0 steps=4 dec_ms=4.0\n",
+        ),
+    )
+
+    assert trocr_coreml.recognize_many(
+        [Path("/tmp/one.png")], Path("/tmp/OCRBench")
+    ) == [("one", 7.5)]

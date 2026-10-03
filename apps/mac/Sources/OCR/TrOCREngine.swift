@@ -34,6 +34,22 @@ enum TrOCREngine {
 
     private static let maxLength = 64
 
+    /// Per-call timing breakdown for OCRBench diagnostics. ponytail: global,
+    /// last-call-only -- fine for the single-threaded bench CLI; return it from
+    /// recognizeText if the app ever needs it.
+    struct RunStats {
+        var strips = 0
+        var decoderSteps = 0
+        var encoderMs = 0.0
+        var decoderMs = 0.0
+    }
+    static var lastRunStats = RunStats()
+
+    static func milliseconds(since start: ContinuousClock.Instant) -> Double {
+        let d = start.duration(to: .now)
+        return Double(d.components.seconds) * 1_000 + Double(d.components.attoseconds) / 1e15
+    }
+
     /// Warms the model cache ahead of an actual recognize call. Called when a
     /// capture starts so the slow first-time compile/load overlaps the user's
     /// selection drag instead of blocking after it. Best-effort: any error is
@@ -58,7 +74,10 @@ enum TrOCREngine {
         // Preserve Linebreaks have anything to preserve.
         var lines: [String] = []
         var doneTokens = 0
-        for strip in lineStrips(image) {
+        lastRunStats = RunStats()
+        let strips = lineStrips(image)
+        lastRunStats.strips = strips.count
+        for strip in strips {
             var lineTokens = 0
             let line = try await recognizeLine(strip, encoder: encoder, decoder: decoder, tokenizer: tokenizer) { n in
                 lineTokens = n
@@ -78,13 +97,16 @@ enum TrOCREngine {
         onStep: (Int) async -> Void
     ) async throws -> String {
         let pixelValues = try preprocess(image: image)
+        let encodeStart = ContinuousClock.now
         let encoderOutput = try await encoder.prediction(from: MLDictionaryFeatureProvider(dictionary: [
             "pixel_values": MLFeatureValue(multiArray: pixelValues),
         ]))
+        lastRunStats.encoderMs += milliseconds(since: encodeStart)
         guard let encoderHidden = encoderOutput.featureValue(for: "encoder_hidden_states")?.multiArrayValue else {
             throw TrOCRError.predictionFailed
         }
 
+        let decodeStart = ContinuousClock.now
         var ids = [tokenizer.decoderStartId]
         while ids.count < maxLength {
             try Task.checkCancellation()
@@ -105,6 +127,8 @@ enum TrOCREngine {
             if nextId == tokenizer.eosId { break }
         }
 
+        lastRunStats.decoderMs += milliseconds(since: decodeStart)
+        lastRunStats.decoderSteps += ids.count - 1
         return tokenizer.decode(ids: ids)
     }
 
