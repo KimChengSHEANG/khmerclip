@@ -55,3 +55,17 @@ Printed/mixed deltas are informational only (init trained on soyvitou testset ov
 1. **handwriting_test & synth_val below init** — PASS (0.0142 & 0.0082 vs 0.3180 & 0.0561).
 2. **ui ≤ init + 0.005; darayut & siemreap ≤ init** — PASS (ui 0.0021 ≤ 0.0636; darayut 0.0089; siemreap 0.0756).
 3. **Replay holdouts ≤ init + 0.01** — PASS (soyvitou 0.0182 ≤ 0.0971; sokheng 0.0429 ≤ 0.3167; hanuman 0.0146 ≤ 0.1174; kiteaether 0.0551 ≤ 0.3505; mrrtmob 0.0144 ≤ 0.0361).
+
+## Mac CoreML (Task 9, 2026-10-04)
+
+On-device gate (`bench.py` vs Tesseract, n=200, checkpoint-4 CoreML, sha256 `004a0e4bc6f687ac…`):
+
+| Engine | Mean CER | Median ms | Mixed CER |
+| --- | ---: | ---: | ---: |
+| tesseract | 0.2580 | 110.0 | 0.0894 |
+| trocr-coreml | 0.1700 | 1441.4 | 0.0226 |
+
+**Mac gate:** FAIL (latency only — median > 2× Tesseract); accuracy passes. Default engine policy: Step 4b in `mac_gate.md` (keep TrOCR default).
+
+**Manual app check:** KhmerClip launched with new build; automated smoke only — operator should confirm TrOCR clips on UI/PDF/handwriting match on-screen text.
+

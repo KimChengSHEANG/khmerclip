@@ -1,6 +1,6 @@
 # Mac CoreML OCR gate
 
-**Status:** PENDING — waiting for Task 8 Step 5 (3090 multi-dataset train) to produce `experiments/checkpoint-N/final/`.
+**Status:** FAIL (latency only) — TrOCR fine-tune v1 CoreML gate run 2026-10-04 on this Mac. Accuracy beats Tesseract; median latency exceeds 2× baseline (Step 4b — keep TrOCR default, consider `trocr-small` re-export per below).
 
 This gate compares on-device CoreML TrOCR (`trocr-coreml` via `OCRBench`) against the vendored Tesseract baseline on the frozen 200-fixture set. Outcome drives the app default OCR engine policy in `AppPreferences.swift`.
 
@@ -130,20 +130,22 @@ self.ocrEngine = (defaults.string(forKey: Keys.ocrEngine)).flatMap(OCREngineKind
 
 ---
 
-## Results (fill after Step 3)
+## Results (Task 9, 2026-10-04)
 
 | Engine | n | Mean CER | Median ms | Mixed CER |
 | --- | ---: | ---: | ---: | ---: |
-| tesseract | — | — | — | — |
-| trocr-coreml | — | — | — | — |
+| tesseract | 200 | 0.2580 | 110.0 | 0.0894 |
+| trocr-coreml | 200 | 0.1700 | 1441.4 | 0.0226 |
 
-**Gate:** _(PASS / FAIL — pending)_
+**Gate:** FAIL — `median_ms 1441.4 > 2× Tess 110.0` (overall CER and mixed CER pass vs Tesseract on the same run).
 
-**Default policy applied:** _(none yet — pending gate)_
+**Default policy applied:** Step **4b** (latency-only FAIL) — app default remains **TrOCR** (`?? .trocr` in `AppPreferences.swift`; no Step 4c edit).
 
-**Checkpoint:** `experiments/checkpoint-${CHECKPOINT_N}/final/` → `apps/mac/raw_models/TrOCR-khmer/`
+**Model:** TrOCR fine-tune v1, `experiments/checkpoint-4/final/`, sha256 `004a0e4bc6f687ac…` → `apps/mac/raw_models/TrOCR-khmer/` (v0 step-72k backed up as `TrOCR-khmer-v0-step72k`, sha256 `04c0ac11e85d3665…`).
 
-**Artifacts:** `results/mac_gate.csv` (gitignored if large; commit summary in this file only)
+**Artifacts:** `$TMPDIR/mac_gate_finetune_v1.csv` (local only; summary in this file)
+
+**Smoke (OCRBench):** `printed-001` and `ui-001` produced readable Khmer (`ui-001` → `បើកឯកសារ`). **App:** `make run` + `pgrep -x KhmerClip` OK (PID observed); manual region clips not verified in automation.
 
 ---
 
