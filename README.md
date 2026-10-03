@@ -10,7 +10,6 @@ macOS menu-bar OCR for Khmer (and mixed Khmer/English) text — screen capture, 
 | [`training/easyocr`](training/easyocr) | EasyOCR-compatible Khmer recognition training |
 | [`training/trocr`](training/trocr) | TrOCR Khmer fine-tuning |
 | [`training/tesseract`](training/tesseract) | Tesseract `khm` LSTM fine-tune (CPU, Docker) |
-| [`training/tesseract`](training/tesseract) | Tesseract `khm` LSTM fine-tune (CPU, Docker) |
 
 Training outputs feed the app’s EasyOCR and TrOCR engines. Large build products and model weights are **not** in git — follow each subproject README / `Makefile` to generate them locally.
 
