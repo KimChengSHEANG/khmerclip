@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "khmerclip"
+dynamic = ["version"]
+description = "Khmer OCR screen capture for Windows and Linux"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "PySide6-Essentials~=6.8.0",
+  "onnxruntime>=1.20,<2",
+  "numpy>=1.26,<3",
+  "pillow>=10.4",
+  "platformdirs>=4.2",
+  "pynput>=1.7.7; sys_platform != 'darwin'",
+  "jeepney>=0.8; sys_platform == 'linux'",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-qt>=4.4", "pyinstaller>=6.10"]
+tools = ["torch==2.7.0", "transformers==4.57.*", "onnx>=1.16", "huggingface_hub>=0.25"]
+
+[project.scripts]
+khmerclip = "khmerclip.__main__:main"
+
+[tool.setuptools.dynamic]
+version = { attr = "khmerclip.__version__" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+khmerclip = ["ocr/*.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+qt_api = "pyside6"
