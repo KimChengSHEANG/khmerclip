@@ -6,3 +6,4 @@ jiwer
 accelerate>=0.30
 pillow
 tensorboard
+fonttools>=4.40
