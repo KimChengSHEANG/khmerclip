@@ -4,7 +4,7 @@ import subprocess
 from pathlib import Path
 
 
-def recognize(image_path: Path, vendor_root: Path) -> str:
+def recognize(image_path: Path, vendor_root: Path, lang: str = "khm+eng") -> str:
     vendor_root = Path(vendor_root)
     image_path = Path(image_path)
     binary = vendor_root / "bin/tesseract"
@@ -17,7 +17,7 @@ def recognize(image_path: Path, vendor_root: Path) -> str:
             "--tessdata-dir",
             str(tessdata),
             "-l",
-            "khm+eng",
+            lang,
             "--psm",
             "6",
         ],

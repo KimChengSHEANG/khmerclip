@@ -29,11 +29,13 @@ def main() -> None:
         "--engine",
         action="append",
         required=True,
-        choices=["tesseract", "easyocr", "trocr-hf", "trocr-coreml"],
+        choices=["tesseract", "tesseract-ft", "easyocr", "trocr-hf", "trocr-coreml"],
     )
     p.add_argument("--limit", type=int, default=None)
     p.add_argument("--out", type=Path, default=Path("bench_results.csv"))
     p.add_argument("--tesseract-root", type=Path, default=DEFAULT_TESS)
+    p.add_argument("--tesseract-ft-root", type=Path, default=None)
+    p.add_argument("--tesseract-ft-lang", default="khm+eng")
     p.add_argument("--easyocr-root", type=Path, default=DEFAULT_EASYOCR)
     p.add_argument(
         "--easyocr-python",
@@ -81,6 +83,12 @@ def main() -> None:
             t0 = time.perf_counter()
             if engine == "tesseract":
                 pred = tess_runner.recognize(item.image_path, args.tesseract_root)
+            elif engine == "tesseract-ft":
+                if not args.tesseract_ft_root:
+                    raise SystemExit("--tesseract-ft-root required")
+                pred = tess_runner.recognize(
+                    item.image_path, args.tesseract_ft_root, args.tesseract_ft_lang
+                )
             elif engine == "easyocr":
                 pred = easyocr_runner.recognize(
                     item.image_path, args.easyocr_root, args.easyocr_python
@@ -118,7 +126,8 @@ def main() -> None:
     for engine, stats in by.items():
         print(
             f"{engine}: n={stats['n']} cer={stats['cer']:.4f} "
-            f"median_ms={stats['median_ms']:.1f} mixed_cer={stats['mixed_cer']:.4f}"
+            f"median_ms={stats['median_ms']:.1f} mixed_cer={stats['mixed_cer']:.4f} "
+            f"ui_cer={stats['ui_cer']:.4f}"
         )
     if args.candidate and args.compare_to in by and args.candidate in by:
         ok, reasons = passes_gate(by[args.candidate], by[args.compare_to])
