@@ -101,6 +101,23 @@ self.ocrEngine = (defaults.string(forKey: Keys.ocrEngine)).flatMap(OCREngineKind
 
 ---
 
+## Results (fine-tune v1 gate, 2026-10-04 — pre-KV-cache decoder)
+
+| Engine | n | Mean CER | Median ms | Mixed CER |
+| --- | ---: | ---: | ---: | ---: |
+| tesseract | 200 | 0.2580 | 110.0 | 0.0894 |
+| trocr-coreml | 200 | 0.1700 | 1441.4 | 0.0226 |
+
+**Gate:** FAIL — `median_ms 1441.4 > 2× Tess 110.0` (overall CER and mixed CER pass vs Tesseract on the same run).
+
+**Default policy at the time:** Step 4b (latency-only FAIL), keep TrOCR. Superseded by the KV-cache gate below: app default is `.tesseract`.
+
+**Model:** TrOCR fine-tune v1, `experiments/checkpoint-4/final/`, sha256 `004a0e4bc6f687ac…` → `apps/mac/raw_models/TrOCR-khmer/` (v0 step-72k backed up as `TrOCR-khmer-v0-step72k`, sha256 `04c0ac11e85d3665…`).
+
+**Artifacts:** `$TMPDIR/mac_gate_finetune_v1.csv` (local only; summary in this file)
+
+**Smoke (OCRBench):** `printed-001` and `ui-001` produced readable Khmer (`ui-001` → `បើកឯកសារ`). **App:** `make run` + `pgrep -x KhmerClip` OK (PID observed); manual region clips not verified in automation.
+
 ## Results (Task 8 — 2026-10-03, chosen run `KHMERCLIP_TROCR_UNITS=gpu`)
 
 | Engine | n | Mean CER | Median ms | Mixed CER |

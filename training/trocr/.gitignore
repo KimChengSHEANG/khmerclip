@@ -57,6 +57,8 @@ Thumbs.db
 wandb/
 
 # Model artifacts
+# Fonts + rendered synthetic data (scripts/fetch_fonts.py, scripts/render_synth.py)
+cache/
 experiments/
 trocr-khmer-checkpoints/
 trocr-khmer-final/

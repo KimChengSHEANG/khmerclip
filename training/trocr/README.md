@@ -13,6 +13,29 @@ Train (and evaluate) on one dataset or a combination via `--datasets`. Five are 
 | `hanuman` | [seanghay/khmer-hanuman-100k](https://huggingface.co/datasets/seanghay/khmer-hanuman-100k) | 100k |
 | `mrrtmob` | [mrrtmob/khmer_english_ocr_image_line](https://huggingface.co/datasets/mrrtmob/khmer_english_ocr_image_line) | 12M lines, ~40.2GB, Khmer + English (gated — accept its terms on the hub first) |
 | `kiteaether` | [KiteAether/c_khmer_gemma_ocr_train](https://huggingface.co/datasets/KiteAether/c_khmer_gemma_ocr_train) | Khmer OCR |
+| `handwriting` | [SoyVitou/khmer-handwritten-dataset-4.2k](https://huggingface.co/datasets/SoyVitou/khmer-handwritten-dataset-4.2k) train+val parquet | ~3.8k real handwritten lines/words |
+| `handwriting_test` | same, `testset.parquet` only | ~0.4k held-out handwriting eval |
+| `darayut` | [Darayut/khmer-document-synthetic-low-res](https://huggingface.co/datasets/Darayut/khmer-document-synthetic-low-res) (`label` column) | 100k low-res document lines |
+| `siemreap` | [KimkosalYon/khmer-ocr-200k-siemreap-arial](https://huggingface.co/datasets/KimkosalYon/khmer-ocr-200k-siemreap-arial) | 200k Siemreap/Arial font lines |
+| `synth` / `synth_val` | local parquet under `cache/synth/{train,val}` (Task 5–6 renderer) | 400k / 3k multi-font synthetic |
+| any dir path | local `imagefolder` + `metadata.jsonl` | user-collected crops |
+
+`soyvitou` reads only `trainset.parquet` + `validset.parquet`; its `testset.parquet` holds the
+printed eval fixtures. A directory path loads as a local `imagefolder` (images + `metadata.jsonl`
+with `file_name`, `text`) — put your own collected crops (app screenshots, phone photos) in
+`cache/collected/<name>/` and pass that path to `--datasets`.
+
+
+Weight sources with `name:N` — N rows of that source per epoch (shuffled subset, or repeated
+copies when N exceeds its size). Each source gets its own seeded 3% holdout *before* resampling,
+so repeated rows never leak into eval; `--max_eval_per_source 300` keeps every domain in the eval
+set. `--max_aspect` drops images too wide to read after the 384x384 resize, and labels longer
+than `MAX_LABEL_LEN` tokens are always dropped during training (they would be truncated).
+
+    python scripts/train.py --datasets handwriting:60000 darayut:100000 soyvitou --max_eval_per_source 300
+    python scripts/evaluate_model.py experiments/checkpoint-4/final --datasets handwriting_test --full
+
+Holdouts are carved per source, so they differ from runs before 2026-10.
 
 ```bash
 python scripts/train.py --datasets soyvitou                              # one (the default)
@@ -94,6 +117,19 @@ python scripts/train.py
 python scripts/train.py --datasets soyvitou sokheng hanuman mrrtmob kiteaether   # train on all five combined
 ```
 
+
+
+## Fine-tune from a previous run
+
+Pass a run's `final/` dir as `--model_name`. This starts a fresh Trainer (new optimizer + LR
+schedule) and reuses the saved Khmer tokenizer unchanged — loading refuses if the vocab would
+change. Do **not** use `--resume_from_checkpoint` for this: it restores the old global step and
+schedule, so a finished run stops immediately.
+
+    python scripts/train.py --model_name experiments/checkpoint-3/final \
+      --datasets handwriting:60000 synth:400000 darayut:100000 soyvitou:60000 \
+      --lr 2e-5 --warmup_steps 1000 --early_stopping_patience 5 --max_eval_per_source 300 --max_eval_samples 0
+
 Each run gets its own auto-incrementing folder under `experiments/` (`experiments/checkpoint-1/`, `experiments/checkpoint-2/`, …). Inside it, HF keeps the best-CER checkpoint plus the last 2, and the final model + processor are saved to `experiments/checkpoint-N/final/`.
 
 Resume an interrupted run:
@@ -146,3 +182,12 @@ If GPU util stays low during eval, raise `--eval_batch_size` (e.g. 96) until VRA
 python scripts/infer.py experiments/checkpoint-1/final some_image.jpg
 ```
 
+
+## Synthetic data
+
+`scripts/fetch_fonts.py` downloads 33 OFL Google Fonts Khmer files into `cache/fonts/`.
+`scripts/render_synth.py` renders lines from existing labels (minus every eval fixture / UI
+string) in those fonts — handwriting-style fonts, native + sheared italic, scanned-document
+degradation, light/dark UI panels — into parquet shards loaded as `synth` / `synth_val`.
+Rendering requires Pillow built with libraqm (checked at start). `scripts/data_stats.py` reports
+label-length / aspect outliers for any source before you mix it in.
