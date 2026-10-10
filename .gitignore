@@ -23,8 +23,7 @@ Thumbs.db
 *.xcuserstate
 apps/mac/build/
 apps/mac/raw_models/
-# Vendor exceptions are owned by apps/mac/.gitignore.
-apps/mac/Vendor/
+# apps/mac/Vendor/ rules (and exceptions) live in apps/mac/.gitignore.
 
 # Python (safety net; training projects keep their own gitignores)
 __pycache__/

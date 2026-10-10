@@ -3,21 +3,24 @@ DerivedData/
 *.xcuserstate
 build
 
-# Converted TrOCR CoreML models (~5.8GB) -- regenerate with `make trocr-models`
-# (see Vendor/trocr/convert.py). Not committed; the *.py scripts are (the
-# glob below only matches subdirectories, not convert.py/export_tokenizer.py).
-Vendor/trocr/*/
+# Vendor/ holds engines + models bundled into the app. Only the scripts and
+# small config files are tracked; binaries, weights and venvs are regenerated
+# locally (see docs/PROJECT.md §9.2). Directory-level re-includes are needed
+# because git never descends into an ignored directory.
 raw_models/
-Vendor/
+Vendor/*
+!Vendor/trocr/
+Vendor/trocr/*
+!Vendor/trocr/convert.py
+!Vendor/trocr/export_tokenizer.py
+!Vendor/easyocr/
+Vendor/easyocr/*
 !Vendor/easyocr/install_khmer_model.py
 !Vendor/easyocr/recognize.py
 !Vendor/easyocr/requirements.txt
 !Vendor/easyocr/khmer/
-!Vendor/easyocr/khmer/**
+Vendor/easyocr/khmer/*.pth
+__pycache__/
 
-
-# EasyOCR venv + downloaded/bundled weights (regenerate with make easyocr-venv / easyocr-models)
-Vendor/easyocr/venv/
-Vendor/easyocr/models/
 .devswarm-temp/
 .trocr-venv/

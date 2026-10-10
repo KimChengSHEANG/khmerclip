@@ -20,3 +20,7 @@ See [`apps/mac/README.md`](apps/mac/README.md): install `xcodegen`, then `make r
 
 - EasyOCR: [`training/easyocr/README.md`](training/easyocr/README.md)
 - TrOCR: [`training/trocr/README.md`](training/trocr/README.md)
+
+## Project guide
+
+Full overview — models, training, datasets, fonts, build/run, known issues: [`docs/PROJECT.md`](docs/PROJECT.md)
