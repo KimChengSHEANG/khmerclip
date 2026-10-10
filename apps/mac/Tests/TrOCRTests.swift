@@ -1,5 +1,6 @@
 import XCTest
 import AppKit
+import CoreML
 // TrOCREngine.swift + TrOCRTokenizer.swift are compiled directly into this test bundle (see project.yml).
 
 final class TrOCRTokenizerTests: XCTestCase {
@@ -62,17 +63,11 @@ final class TrOCRTokenizerTests: XCTestCase {
 }
 
 /// End-to-end smoke test for the CoreML pipeline (preprocessing -> encoder ->
-/// greedy decode -> tokenizer). Deliberately does NOT assert exact text:
-/// measured against the reference PyTorch/HF pipeline, on-device pixel
-/// values differ by up to ~0.5 (of a [-1,1] range) because CGContext's
-/// resampler is a different implementation than PIL's -- not a bug, but a
-/// real, unresolved precision gap between this Swift preprocessing and the
-/// Python reference used when the models were converted. That gap is enough
-/// to change greedy-decoded words on some inputs. Fixing it would mean
-/// reimplementing PIL's resampling filters in Swift, which is out of scope
-/// here. This test only proves the pipeline runs and produces text.
+/// greedy decode -> tokenizer). Does not assert exact text (that depends on
+/// the checkpoint); pixel parity with PIL is pinned by TrOCRPreprocessTests and
+/// accuracy is measured by training/eval/scripts/bench.py.
 final class TrOCREndToEndTests: XCTestCase {
-    private static let repoRoot = URL(fileURLWithPath: #filePath)
+    static let repoRoot = URL(fileURLWithPath: #filePath)
         .deletingLastPathComponent()
         .deletingLastPathComponent()
 
@@ -96,6 +91,23 @@ final class TrOCREndToEndTests: XCTestCase {
 }
 
 final class TrOCRLineSplitTests: XCTestCase {
+    private static let monorepoRoot = URL(fileURLWithPath: #filePath)
+        .deletingLastPathComponent()   // Tests
+        .deletingLastPathComponent()   // apps/mac
+        .deletingLastPathComponent()   // apps
+        .deletingLastPathComponent()   // repo root
+
+    /// These frozen eval fixtures are each ONE text line whose above-base Khmer
+    /// marks form a separate ink run 37-46% of the base line's height; they
+    /// must not be read as extra lines. ui-008 is dark mode, ui-005 light.
+    func testSingleLineFixturesWithDetachedMarksStayOneStrip() throws {
+        for name in ["ui/ui-008.png", "ui/ui-005.png", "ui/ui-009.png", "printed/printed-024.png"] {
+            let url = Self.monorepoRoot.appendingPathComponent("training/eval/fixtures/\(name)")
+            let image = try XCTUnwrap(NSImage(contentsOf: url)?.cgImage(forProposedRect: nil, context: nil, hints: nil), name)
+            XCTAssertEqual(TrOCREngine.lineStrips(image).count, 1, name)
+        }
+    }
+
     /// TrOCR decodes one line per pass, so lineStrips must find each text line
     /// (including Khmer with marks above/below) or the output loses its
     /// linebreaks.
@@ -118,5 +130,75 @@ final class TrOCRLineSplitTests: XCTestCase {
         let image = try XCTUnwrap(rep.cgImage)
 
         XCTAssertEqual(TrOCREngine.lineStrips(image).count, 3)
+    }
+}
+
+final class TrOCRPreprocessTests: XCTestCase {
+    private static let macRoot = URL(fileURLWithPath: #filePath)
+        .deletingLastPathComponent().deletingLastPathComponent()
+
+    /// Training resizes with PIL bilinear (OCRDataset._preprocess_image);
+    /// on-device pixels must match it or greedy decode drifts.
+    func testResizedRGBMatchesPILBilinear() throws {
+        let png = Self.macRoot.deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("training/eval/fixtures/printed/printed-001.png")
+        let image = try XCTUnwrap(NSImage(contentsOf: png)?.cgImage(forProposedRect: nil, context: nil, hints: nil))
+        let golden = try [UInt8](Data(contentsOf: Self.macRoot.appendingPathComponent("Tests/Fixtures/ocr/printed-001.pil384.rgb")))
+
+        let swift = try XCTUnwrap(TrOCREngine.resizedRGB(image, size: 384))
+
+        XCTAssertEqual(swift.count, golden.count)
+        let maxDiff = zip(swift, golden).map { abs(Int($0) - Int($1)) }.max() ?? 0
+        XCTAssertLessThanOrEqual(maxDiff, 1)
+    }
+}
+
+final class TrOCRDecodeGuardTests: XCTestCase {
+    func testBlockedTokenCapsRuns() {
+        XCTAssertNil(TrOCREngine.blockedToken([0, 5, 5, 5]))           // 3 in a row: allowed
+        XCTAssertEqual(TrOCREngine.blockedToken([0, 5, 5, 5, 5]), 5)   // 4 in a row: block a 5th
+        XCTAssertNil(TrOCREngine.blockedToken([0, 5, 6, 5, 6]))        // alternating: not a run
+        XCTAssertNil(TrOCREngine.blockedToken([0]))
+    }
+
+    func testArgmaxSkipsBlockedToken() throws {
+        let logits = try MLMultiArray(shape: [1, 1, 4], dataType: .float32)
+        for (i, v) in [0.1, 0.9, 0.5, 0.2].enumerated() { logits[i] = NSNumber(value: v) }
+        XCTAssertEqual(TrOCREngine.argmaxLastStep(logits), 1)
+        XCTAssertEqual(TrOCREngine.argmaxLastStep(logits, excluding: 1), 2)
+    }
+
+    func testDecodeCapMatchesTrainingMaxLabelLength() {
+        XCTAssertEqual(TrOCREngine.maxLength, 128)   // training MAX_LABEL_LEN
+    }
+}
+
+extension TrOCREndToEndTests {
+    /// printed-080 is a 75-code-point line (~1 token per Khmer code point); the
+    /// old 64-token cap cut it off. Count unicode scalars, not Characters:
+    /// a Khmer cluster (consonant + coeng + subscript + vowel) is ONE Character.
+    func testLongLineIsNotTruncatedAt64Tokens() async throws {
+        let png = Self.repoRoot.deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("training/eval/fixtures/printed/printed-080.png")
+        let image = try XCTUnwrap(NSImage(contentsOf: png)?.cgImage(forProposedRect: nil, context: nil, hints: nil))
+        let text = try await TrOCREngine.recognizeText(in: image, model: .khmer)
+        XCTAssertGreaterThan(text.unicodeScalars.count, 64)
+    }
+
+    /// Each line gets a fresh, zeroed KV state: recognizing A, then B, then A
+    /// again must give the same A (no stale cache leaking between calls).
+    func testRepeatedRecognitionIsDeterministic() async throws {
+        let fixtures = Self.repoRoot.deletingLastPathComponent().deletingLastPathComponent()
+            .appendingPathComponent("training/eval/fixtures")
+        func load(_ name: String) throws -> CGImage {
+            try XCTUnwrap(NSImage(contentsOf: fixtures.appendingPathComponent(name))?
+                .cgImage(forProposedRect: nil, context: nil, hints: nil))
+        }
+        let a = try load("printed/printed-001.png"), b = try load("ui/ui-008.png")
+        let first = try await TrOCREngine.recognizeText(in: a, model: .khmer)
+        _ = try await TrOCREngine.recognizeText(in: b, model: .khmer)
+        let again = try await TrOCREngine.recognizeText(in: a, model: .khmer)
+        XCTAssertEqual(first, again)
+        XCTAssertFalse(first.isEmpty)
     }
 }

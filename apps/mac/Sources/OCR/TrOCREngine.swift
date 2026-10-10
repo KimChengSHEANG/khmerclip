@@ -7,19 +7,17 @@ enum TrOCRError: Error {
     case predictionFailed
 }
 
-/// Runs a TrOCR checkpoint (see Vendor/trocr/convert.py's DEFAULT_CHECKPOINTS
+/// Runs a TrOCR checkpoint (see tools/trocr/convert.py's DEFAULT_CHECKPOINTS
 /// for which one per TrOCRModelSize) converted to CoreML
 /// (Vendor/trocr/<size>/{encoder,decoder}.mlpackage, produced offline by
 /// convert.py + export_tokenizer.py -- a one-time step per model, re-run
-/// whenever a checkpoint changes). Greedy, no-KV-cache decode loop: OCR text
-/// regions are short enough that re-running the full decoder each step is
-/// simple and fast enough, without CoreML's more complex stateful-model
-/// support.
+/// whenever a checkpoint changes). Greedy decode, one token per call, with
+/// the decoder's self-attention KV cache held in a CoreML state (macOS 15)
+/// -- see tools/trocr/kv_decoder.py for the mask contract.
 ///
 /// small/base/large are English-only (official microsoft/trocr-*-printed).
 /// khmer is a byte-BPE Khmer printed-text fine-tune (lkhapple/Khmer-TrOCR-OCR)
-/// that reads printed Khmer when the text fills the frame -- preprocess()
-/// content-crops to make that so. Tesseract remains available in Preferences
+/// that is fed exactly the training preprocessing (see preprocess()). Tesseract remains available in Preferences
 /// as an alternate Khmer option.
 enum TrOCREngine {
     /// Points at the folder containing `<size>/{encoder,decoder}.mlpackage,tokenizer.json`.
@@ -32,7 +30,39 @@ enum TrOCREngine {
             ?? Bundle.main.resourceURL?.appendingPathComponent("trocr", isDirectory: true)
     }
 
-    private static let maxLength = 64
+    /// Total decoded ids incl. the start token; matches training
+    /// MAX_LABEL_LEN / generation_config.max_length (128).
+    static let maxLength = 128
+
+    /// Greedy decode on this checkpoint can lock onto one token (measured: id
+    /// 1437 "Ġ" repeated to max length on 2/20 printed fixtures) and sometimes
+    /// recovers into real text afterwards. So instead of stopping, forbid a
+    /// token from extending a run past maxRun: measured greedy CER 0.172 ->
+    /// 0.056 (beam-4: 0.048). Labels never repeat one token more than 3x.
+    /// ponytail: single-token runs only; 2-token cycles still end at maxLength.
+    static let maxRun = 4
+
+    static func blockedToken(_ ids: [Int], maxRun: Int = maxRun) -> Int? {
+        guard ids.count >= maxRun, let last = ids.last,
+              ids.suffix(maxRun).allSatisfy({ $0 == last }) else { return nil }
+        return last
+    }
+
+    /// Per-call timing breakdown for OCRBench diagnostics. ponytail: global,
+    /// last-call-only -- fine for the single-threaded bench CLI; return it from
+    /// recognizeText if the app ever needs it.
+    struct RunStats {
+        var strips = 0
+        var decoderSteps = 0
+        var encoderMs = 0.0
+        var decoderMs = 0.0
+    }
+    static var lastRunStats = RunStats()
+
+    static func milliseconds(since start: ContinuousClock.Instant) -> Double {
+        let d = start.duration(to: .now)
+        return Double(d.components.seconds) * 1_000 + Double(d.components.attoseconds) / 1e15
+    }
 
     /// Warms the model cache ahead of an actual recognize call. Called when a
     /// capture starts so the slow first-time compile/load overlaps the user's
@@ -58,7 +88,10 @@ enum TrOCREngine {
         // Preserve Linebreaks have anything to preserve.
         var lines: [String] = []
         var doneTokens = 0
-        for strip in lineStrips(image) {
+        lastRunStats = RunStats()
+        let strips = lineStrips(image)
+        lastRunStats.strips = strips.count
+        for strip in strips {
             var lineTokens = 0
             let line = try await recognizeLine(strip, encoder: encoder, decoder: decoder, tokenizer: tokenizer) { n in
                 lineTokens = n
@@ -78,37 +111,72 @@ enum TrOCREngine {
         onStep: (Int) async -> Void
     ) async throws -> String {
         let pixelValues = try preprocess(image: image)
+        let encodeStart = ContinuousClock.now
         let encoderOutput = try await encoder.prediction(from: MLDictionaryFeatureProvider(dictionary: [
             "pixel_values": MLFeatureValue(multiArray: pixelValues),
         ]))
+        lastRunStats.encoderMs += milliseconds(since: encodeStart)
         guard let encoderHidden = encoderOutput.featureValue(for: "encoder_hidden_states")?.multiArrayValue else {
             throw TrOCRError.predictionFailed
         }
 
-        var ids = [tokenizer.decoderStartId]
-        while ids.count < maxLength {
-            try Task.checkCancellation()
-            let inputIds = try MLMultiArray(shape: [1, NSNumber(value: ids.count)], dataType: .int32)
-            let idsPtr = inputIds.dataPointer.bindMemory(to: Int32.self, capacity: ids.count)
-            for (i, id) in ids.enumerated() { idsPtr[i] = Int32(id) }
+        // Fresh KV state per line. Zero it: masked-out garbage could still be
+        // NaN, and NaN * 0 survives both the mask and the one-hot blend.
+        let state = decoder.makeState()
+        for name in ["k_cache", "v_cache"] {
+            state.withMultiArray(for: name) { cache in
+                // Whole backing buffer incl. any stride padding -- one missed
+                // element brings the NaN back.
+                cache.withUnsafeMutableBytes { raw, _ in
+                    if let base = raw.baseAddress { memset(base, 0, raw.count) }
+                }
+            }
+        }
 
-            let decoderOutput = try await decoder.prediction(from: MLDictionaryFeatureProvider(dictionary: [
-                "input_ids": MLFeatureValue(multiArray: inputIds),
-                "encoder_hidden_states": MLFeatureValue(multiArray: encoderHidden),
-            ]))
-            guard let logits = decoderOutput.featureValue(for: "logits")?.multiArrayValue else {
+        // Mask contract (tools/trocr/kv_decoder.py): at step pos, attn_mask is
+        // 0 for j <= pos and -1e4 after; write_mask is one-hot at pos.
+        let n = NSNumber(value: maxLength)
+        let inputIds = try MLMultiArray(shape: [1, 1], dataType: .int32)
+        let position = try MLMultiArray(shape: [1], dataType: .int32)
+        let attnMask = try MLMultiArray(shape: [1, 1, 1, n], dataType: .float32)
+        let writeMask = try MLMultiArray(shape: [1, 1, n, 1], dataType: .float32)
+        let attnPtr = attnMask.dataPointer.bindMemory(to: Float32.self, capacity: maxLength)
+        let writePtr = writeMask.dataPointer.bindMemory(to: Float32.self, capacity: maxLength)
+        for j in 0..<maxLength { attnPtr[j] = -1e4; writePtr[j] = 0 }
+        let inputs = try MLDictionaryFeatureProvider(dictionary: [
+            "input_ids": MLFeatureValue(multiArray: inputIds),
+            "position": MLFeatureValue(multiArray: position),
+            "attn_mask": MLFeatureValue(multiArray: attnMask),
+            "write_mask": MLFeatureValue(multiArray: writeMask),
+            "encoder_hidden_states": MLFeatureValue(multiArray: encoderHidden),
+        ])
+
+        let decodeStart = ContinuousClock.now
+        var ids = [tokenizer.decoderStartId]
+        for pos in 0..<(maxLength - 1) {
+            try Task.checkCancellation()
+            inputIds[0] = NSNumber(value: ids[pos])
+            position[0] = NSNumber(value: pos)
+            attnPtr[pos] = 0
+            if pos > 0 { writePtr[pos - 1] = 0 }
+            writePtr[pos] = 1
+
+            let out = try await decoder.prediction(from: inputs, using: state)
+            guard let logits = out.featureValue(for: "logits")?.multiArrayValue else {
                 throw TrOCRError.predictionFailed
             }
-            let nextId = argmaxLastStep(logits)
+            let nextId = argmaxLastStep(logits, excluding: blockedToken(ids))
             ids.append(nextId)
             await onStep(ids.count)
             if nextId == tokenizer.eosId { break }
         }
 
+        lastRunStats.decoderMs += milliseconds(since: decodeStart)
+        lastRunStats.decoderSteps += ids.count - 1
         return tokenizer.decode(ids: ids)
     }
 
-    private static func argmaxLastStep(_ logits: MLMultiArray) -> Int {
+    static func argmaxLastStep(_ logits: MLMultiArray, excluding: Int? = nil) -> Int {
         let shape = logits.shape.map(\.intValue)
         let strides = logits.strides.map(\.intValue)
         let seqLen = shape[1]
@@ -118,7 +186,7 @@ enum TrOCREngine {
         let ptr = logits.dataPointer.bindMemory(to: Float32.self, capacity: shape[0] * shape[1] * shape[2])
         var bestIndex = 0
         var bestValue = -Float.greatestFiniteMagnitude
-        for v in 0..<vocabSize {
+        for v in 0..<vocabSize where v != excluding {
             let value = ptr[base + v * strides[2]]
             if value > bestValue {
                 bestValue = value
@@ -189,11 +257,22 @@ enum TrOCREngine {
                 runs.append((y, y))
             }
         }
-        // ponytail: fixed 35%-of-tallest merge cutoff; tune if headings next to
-        // small body text get merged.
+        // ponytail: fixed cutoffs. Merge a run < 35% of the tallest, or < 50%
+        // when it sits within 25% of the tallest's height of a neighbour --
+        // Khmer above-base marks form runs up to ~46% of the base line 1-3px
+        // above it (measured: the old 35%-only rule split 17/200 single-line
+        // eval fixtures), while real line gaps are far larger. Tune if
+        // headings next to small body text get merged.
         while runs.count > 1 {
             let tallest = runs.map { $0.hi - $0.lo + 1 }.max()!
-            guard let i = runs.firstIndex(where: { ($0.hi - $0.lo + 1) * 100 < tallest * 35 }) else { break }
+            func nearestGap(_ k: Int) -> Int {
+                min(k > 0 ? runs[k].lo - runs[k - 1].hi : Int.max,
+                    k < runs.count - 1 ? runs[k + 1].lo - runs[k].hi : Int.max)
+            }
+            guard let i = runs.indices.first(where: { k in
+                let h = (runs[k].hi - runs[k].lo + 1) * 100
+                return h < tallest * 35 || (h < tallest * 50 && nearestGap(k) * 4 < tallest)
+            }) else { break }
             let gapAbove = i > 0 ? runs[i].lo - runs[i - 1].hi : Int.max
             let gapBelow = i < runs.count - 1 ? runs[i + 1].lo - runs[i].hi : Int.max
             let j = gapAbove <= gapBelow ? i - 1 : i + 1
@@ -211,78 +290,76 @@ enum TrOCREngine {
         }
     }
 
-    /// Trims uniform background margin around the content (see inkMask). The
-    /// content bounding box, padded slightly, is cropped out; if nothing stands
-    /// out from the background the original image is returned unchanged.
-    private static func contentCrop(_ image: CGImage) -> CGImage {
-        guard let mask = inkMask(image) else { return image }
-        let sw = mask.width, sh = mask.height, scale = mask.scale
+    /// RGB bytes resized exactly like PIL's `Image.resize(size, BILINEAR)` --
+    /// the call training uses (trocr_khmer.dataset.OCRDataset). Separable
+    /// triangle filter whose support widens by the scale factor when
+    /// downsampling (antialias), horizontal pass then vertical, each rounded
+    /// to UInt8 like PIL's 8-bit path. Mirrors Pillow's Resample.c
+    /// precompute_coeffs.
+    static func resizedRGB(_ image: CGImage, size: Int) -> [UInt8]? {
+        let w = image.width, h = image.height
+        // Draw in the image's own RGB space so values pass through unconverted,
+        // like PIL (which ignores colour profiles); sRGB only for non-RGB images.
+        guard w > 0, h > 0, let colorSpace = image.colorSpace.flatMap({ $0.model == .rgb ? $0 : nil })
+                ?? CGColorSpace(name: CGColorSpace.sRGB) else { return nil }
+        var src = [UInt8](repeating: 0, count: w * h * 4)
+        guard let ctx = CGContext(data: &src, width: w, height: h, bitsPerComponent: 8, bytesPerRow: w * 4,
+                                  space: colorSpace, bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue) else { return nil }
+        ctx.draw(image, in: CGRect(x: 0, y: 0, width: w, height: h))
 
-        var minX = sw, minY = sh, maxX = -1, maxY = -1
-        for y in 0..<sh {
-            for x in 0..<sw where mask[x, y] {
-                if x < minX { minX = x }
-                if x > maxX { maxX = x }
-                if y < minY { minY = y }
-                if y > maxY { maxY = y }
+        // (start index, normalized weights) per output pixel along one axis.
+        func coeffs(inSize: Int, outSize: Int) -> [(Int, [Double])] {
+            let scale = Double(inSize) / Double(outSize)
+            let filterScale = max(scale, 1.0)
+            let support = filterScale   // bilinear support 1.0 * filterScale
+            return (0..<outSize).map { i in
+                let center = (Double(i) + 0.5) * scale
+                let lo = max(Int(center - support + 0.5), 0)
+                let hi = min(Int(center + support + 0.5), inSize)
+                var ws = (lo..<hi).map { x in max(0, 1 - abs((Double(x) - center + 0.5) / filterScale)) }
+                let total = ws.reduce(0, +)
+                if total > 0 { ws = ws.map { $0 / total } }
+                return (lo, ws)
             }
         }
-        let w = image.width, h = image.height
-        guard maxX >= minX, maxY >= minY else { return image }
-        // Guard against a mis-detected background (e.g. a corner sitting on ink)
-        // collapsing the box to a sliver: if content spans < 5% of either axis,
-        // don't trust the crop -- fall back to the full image.
-        if (maxX - minX + 1) * 20 < sw || (maxY - minY + 1) * 20 < sh { return image }
+        func clip8(_ v: Double) -> UInt8 { UInt8(max(0, min(255, v.rounded()))) }
 
-        // Map the scan-space bbox back to full-res, pad by 4% of the box size.
-        let padX = max(1, (maxX - minX + 1) * 4 / 100)
-        let padY = max(1, (maxY - minY + 1) * 4 / 100)
-        let x0 = max(0, (minX - padX) * scale)
-        let y0 = max(0, (minY - padY) * scale)
-        let x1 = min(w, (maxX + 1 + padX) * scale)
-        let y1 = min(h, (maxY + 1 + padY) * scale)
-        let rect = CGRect(x: x0, y: y0, width: x1 - x0, height: y1 - y0)
-        return image.cropping(to: rect) ?? image
+        let cx = coeffs(inSize: w, outSize: size), cy = coeffs(inSize: h, outSize: size)
+        var tmp = [UInt8](repeating: 0, count: size * h * 3)   // horizontal pass
+        for y in 0..<h {
+            for (ox, (lo, ws)) in cx.enumerated() {
+                for c in 0..<3 {
+                    var acc = 0.0
+                    for (k, wt) in ws.enumerated() { acc += wt * Double(src[(y * w + lo + k) * 4 + c]) }
+                    tmp[(y * size + ox) * 3 + c] = clip8(acc)
+                }
+            }
+        }
+        var out = [UInt8](repeating: 0, count: size * size * 3)  // vertical pass
+        for (oy, (lo, ws)) in cy.enumerated() {
+            for x in 0..<size {
+                for c in 0..<3 {
+                    var acc = 0.0
+                    for (k, wt) in ws.enumerated() { acc += wt * Double(tmp[((lo + k) * size + x) * 3 + c]) }
+                    out[(oy * size + x) * 3 + c] = clip8(acc)
+                }
+            }
+        }
+        return out
     }
 
-    /// Mirrors the HF `ViTImageProcessor`/`DeiTImageProcessor` preprocessing
-    /// used by all three `-printed` checkpoints: resize to 384x384 (no aspect
-    /// crop), normalize with mean=std=0.5 per channel. First trims uniform
-    /// background margin (see contentCrop) so the text fills the frame -- TrOCR
-    /// is trained on tightly-cropped text lines and, given a loose crop with
-    /// lots of background, keeps decoding past the real text into garbage.
-    private static func preprocess(image rawImage: CGImage, size: Int = 384) throws -> MLMultiArray {
-        let image = contentCrop(rawImage)
-        guard let colorSpace = CGColorSpace(name: CGColorSpace.sRGB) else { throw TrOCRError.preprocessingFailed }
-        var pixels = [UInt8](repeating: 0, count: size * size * 4)
-        guard let context = CGContext(
-            data: &pixels,
-            width: size,
-            height: size,
-            bitsPerComponent: 8,
-            bytesPerRow: size * 4,
-            space: colorSpace,
-            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-        ) else {
-            throw TrOCRError.preprocessingFailed
-        }
-        // .medium (roughly bilinear) was measured closest to the HF processor's
-        // resize among CGContext's quality levels; CGContext's resampler is a
-        // different implementation than PIL's, so this narrows but doesn't
-        // eliminate the pixel-value gap between on-device and reference output.
-        context.interpolationQuality = .medium
-        context.draw(image, in: CGRect(x: 0, y: 0, width: size, height: size))
-
+    /// ViTImageProcessor preprocessing, identical to training: PIL-bilinear
+    /// resize to 384x384 (no aspect crop, no content crop -- training images are
+    /// never cropped, and cropping measured +0.06 CER), then normalize with
+    /// mean=std=0.5.
+    private static func preprocess(image: CGImage, size: Int = 384) throws -> MLMultiArray {
+        guard let rgb = resizedRGB(image, size: size) else { throw TrOCRError.preprocessingFailed }
         let array = try MLMultiArray(shape: [1, 3, NSNumber(value: size), NSNumber(value: size)], dataType: .float32)
         let ptr = array.dataPointer.bindMemory(to: Float32.self, capacity: size * size * 3)
         let plane = size * size
-        for y in 0..<size {
-            for x in 0..<size {
-                let p = (y * size + x) * 4
-                let idx = y * size + x
-                ptr[idx] = (Float32(pixels[p]) / 255.0 - 0.5) / 0.5
-                ptr[plane + idx] = (Float32(pixels[p + 1]) / 255.0 - 0.5) / 0.5
-                ptr[2 * plane + idx] = (Float32(pixels[p + 2]) / 255.0 - 0.5) / 0.5
+        for idx in 0..<plane {
+            for c in 0..<3 {
+                ptr[c * plane + idx] = Float32(rgb[idx * 3 + c]) / 127.5 - 1.0
             }
         }
         return array
@@ -294,6 +371,18 @@ enum TrOCREngine {
     /// Application Support to avoid recompiling on every launch.
     private actor ModelCache {
         static let shared = ModelCache()
+
+        /// Bench knob: KHMERCLIP_TROCR_UNITS=all|gpu|ane|cpu. ponytail: env
+        /// read, not a preference. Default `.cpuAndGPU` (2026-10-03 full-200:
+        /// CER 0.0593 tied with `.all`, median 95.3 ms vs 105.9 ms).
+        private static let computeUnits: MLComputeUnits = {
+            switch ProcessInfo.processInfo.environment["KHMERCLIP_TROCR_UNITS"] {
+            case "all": return .all
+            case "ane": return .cpuAndNeuralEngine
+            case "cpu": return .cpuOnly
+            default: return .cpuAndGPU
+            }
+        }()
 
         private var loaded: [TrOCRModelSize: (encoder: MLModel, decoder: MLModel, tokenizer: TrOCRTokenizer)] = [:]
 
@@ -329,7 +418,9 @@ enum TrOCREngine {
                 }
                 try fm.moveItem(at: freshlyCompiled, to: compiledURL)
             }
-            return try MLModel(contentsOf: compiledURL)
+            let config = MLModelConfiguration()
+            config.computeUnits = Self.computeUnits
+            return try MLModel(contentsOf: compiledURL, configuration: config)
         }
 
         private static func isOlder(_ url: URL, than other: URL) -> Bool {

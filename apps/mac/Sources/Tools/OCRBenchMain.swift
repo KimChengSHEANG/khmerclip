@@ -61,7 +61,13 @@ struct OCRBenchMain {
                     + Double(elapsed.components.attoseconds) / 1_000_000_000_000_000
 
                 fputs(String(format: "ms=%.3f\n", milliseconds), stderr)
-                print(text.replacingOccurrences(of: "\n", with: " "))
+                if engine == "trocr" {
+                    let s = TrOCREngine.lastRunStats
+                    fputs(String(format: "stats strips=%d enc_ms=%.1f steps=%d dec_ms=%.1f\n",
+                                 s.strips, s.encoderMs, s.decoderSteps, s.decoderMs), stderr)
+                }
+                let oneLine = text.split(whereSeparator: \.isNewline).joined(separator: " ")
+                print(oneLine)
             }
         } catch {
             fputs("\(error)\n", stderr)

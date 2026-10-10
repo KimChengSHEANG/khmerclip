@@ -1,87 +1,71 @@
 # Mac CoreML OCR gate
 
-**Status:** PENDING — waiting for Task 8 Step 5 (3090 multi-dataset train) to produce `experiments/checkpoint-N/final/`.
+**Status:** FAIL (mixed-subset CER only) — recorded 2026-10-03 after Task 8
+full-200 KV-cache FP16 bench on Apple Silicon.
 
 This gate compares on-device CoreML TrOCR (`trocr-coreml` via `OCRBench`) against the vendored Tesseract baseline on the frozen 200-fixture set. Outcome drives the app default OCR engine policy in `AppPreferences.swift`.
 
 ## Prerequisites
 
 - Mac with Apple Silicon, Xcode 16+, Python 3.12+
-- Completed 3090 training run with checkpoint at `training/trocr/experiments/checkpoint-N/final/`
-- Eval harness installed: `cd training/eval && python -m pip install -e .`
-- CoreML conversion deps: `pip install torch transformers coremltools`
-
-Set repo root once (adjust if your clone path differs):
+- Khmer checkpoint at `apps/mac/raw_models/TrOCR-khmer/` (KV-cache FP16 export in `Vendor/trocr/khmer/`)
+- Eval harness: `cd training/eval && ../apps/mac/.trocr-venv/bin/pip install -e .`
 
 ```bash
-export REPO=/path/to/khmerclip
-export CHECKPOINT_N=1   # replace with actual checkpoint number from 3090
+export REPO=$(git rev-parse --show-toplevel)
+export KHMERCLIP_VENDOR=$REPO/apps/mac/Vendor
 ```
 
 ---
 
-## Step 1: Copy checkpoint to Mac
-
-From the 3090 host, copy the Hugging Face `final/` folder to the Mac app raw-models directory (gitignored):
-
-```bash
-mkdir -p "$REPO/apps/mac/raw_models/TrOCR-khmer"
-rsync -av "3090:$REPO/training/trocr/experiments/checkpoint-${CHECKPOINT_N}/final/" \
-  "$REPO/apps/mac/raw_models/TrOCR-khmer/"
-```
-
-Verify the folder contains model weights, config, and the extended tokenizer saved by training.
-
----
-
-## Step 2: Convert to CoreML and build
+## Step 1: Convert to CoreML and build
 
 From `apps/mac`:
 
 ```bash
 cd "$REPO/apps/mac"
 make trocr-khmer KHMER_CKPT=raw_models/TrOCR-khmer
-make build
-xcodebuild -project KhmerClip.xcodeproj -scheme OCRBench -configuration Debug \
-  -derivedDataPath build \
-  CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="" \
-  PROVISIONING_PROFILE_SPECIFIER="" DEVELOPMENT_TEAM="" \
-  build
+make ocrbench
 ```
 
-This writes CoreML packages to `Vendor/trocr/khmer/` (gitignored) and builds `OCRBench` at `build/Build/Products/Debug/OCRBench`.
+Release `OCRBench` lands at `build/Build/Products/Release/OCRBench`. For a one-off Debug build:
+
+```bash
+xcodebuild -project KhmerClip.xcodeproj -scheme OCRBench -configuration Debug \
+  -derivedDataPath build \
+  CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO \
+  build
+```
 
 Smoke-test TrOCR before the full bench:
 
 ```bash
 export KHMERCLIP_VENDOR="$REPO/apps/mac/Vendor"
-"$REPO/apps/mac/build/Build/Products/Debug/OCRBench" \
+"$REPO/apps/mac/build/Build/Products/Release/OCRBench" \
   --engine trocr --preload \
   "$REPO/training/eval/fixtures/printed/printed-001.png"
 ```
 
 ---
 
-## Step 3: Mac gate bench
+## Step 2: Mac gate bench
 
-Run the full fixture bench (`trocr-coreml` vs `tesseract`), writing `mac_gate.csv`:
+Full fixture bench (`trocr-coreml` vs `tesseract`), same run for gate numbers:
 
 ```bash
 cd "$REPO/training/eval"
 export KHMERCLIP_VENDOR="$REPO/apps/mac/Vendor"
-python scripts/bench.py \
+KHMERCLIP_TROCR_UNITS=gpu python scripts/bench.py \
   --engine tesseract \
   --engine trocr-coreml \
-  --trocr-coreml-bin "$REPO/apps/mac/build/Build/Products/Debug/OCRBench" \
-  --out results/mac_gate.csv \
+  --trocr-coreml-bin "$REPO/apps/mac/build/Build/Products/Release/OCRBench" \
+  --out results/stage2_kv_gpu.csv \
   --candidate trocr-coreml \
   --compare-to tesseract
 ```
 
 The script prints per-engine aggregates and a final `PASS` or `FAIL` from `passes_gate()`.
-The CoreML runner sends all fixture paths to one `OCRBench` process. TrOCR is
-preloaded before the timed loop, and each CSV `ms` value comes from the
-per-image `recognizeText` timing rather than process startup or model loading.
+TrOCR is preloaded before the timed loop; each CSV `ms` is per-image `recognizeText` time.
 
 ### Gate criteria (`khmerclip_eval.summary.passes_gate`)
 
@@ -93,72 +77,57 @@ TrOCR CoreML **passes** only if all of the following hold vs Tesseract on the sa
 | Latency | `trocr-coreml` median ms **≤ 2×** Tesseract median ms |
 | Mixed-script CER | `trocr-coreml` mixed-subset mean CER **≤** Tesseract mixed-subset mean CER |
 
-Reference baseline (2026-08-27): see [baseline.md](baseline.md).
-
 ---
 
-## Step 4: Record outcome and default policy
+## Step 3: Record outcome and default policy
 
-Update **Status** at the top of this file to `PASS` or `FAIL`, fill in the results table, and apply the default-engine policy below.
+### Step 3a — PASS
 
-### Step 4a — PASS
+- **App default:** keep `.trocr` in `AppPreferences.swift` (`?? .trocr`).
+- Document aggregate stats and `PASS` reasons below.
 
-- **App default:** keep `.trocr` in `AppPreferences.swift` (`?? .trocr` — already the current default).
-- **Ship:** TrOCR remains the default OCR engine; Tesseract and EasyOCR stay selectable in Preferences.
-- Document aggregate stats and `PASS` reasons here.
+### Step 3b — FAIL (latency only)
 
-### Step 4b — FAIL (latency only)
+Re-export `microsoft/trocr-small-printed` on 3090, repeat bench, re-evaluate.
 
-If CER and mixed CER pass but median ms exceeds 2× Tesseract:
+### Step 3c — FAIL (CER / mixed / after small fallback)
 
-1. Re-train or export from `microsoft/trocr-small-printed` on 3090.
-2. Repeat Steps 1–3 with the small checkpoint.
-3. Re-evaluate; if small model passes, follow Step 4a.
-
-### Step 4c — FAIL (CER after small fallback)
-
-If the small model still fails the gate (accuracy):
-
-- **App default:** change `AppPreferences.swift` line 46 to `?? .tesseract`.
-- **Ship:** Tesseract becomes the default; TrOCR (and EasyOCR) remain available in Preferences for users who convert models locally.
-- Document `FAIL` reasons and both engine aggregates here.
+- **App default:** `?? .tesseract` in `AppPreferences.swift` (applied 2026-10-03).
+- TrOCR remains selectable in Preferences for users with converted models.
 
 ```swift
-// AppPreferences.swift — apply ONLY on Step 4c FAIL
 self.ocrEngine = (defaults.string(forKey: Keys.ocrEngine)).flatMap(OCREngineKind.init) ?? .tesseract
 ```
 
 ---
 
-## Results (fill after Step 3)
+## Results (Task 8 — 2026-10-03, chosen run `KHMERCLIP_TROCR_UNITS=gpu`)
 
 | Engine | n | Mean CER | Median ms | Mixed CER |
 | --- | ---: | ---: | ---: | ---: |
-| tesseract | — | — | — | — |
-| trocr-coreml | — | — | — | — |
+| tesseract | 200 | 0.2580 | 106.1 | 0.0894 |
+| trocr-coreml | 200 | 0.0593 | 95.3 | 0.0950 |
 
-**Gate:** _(PASS / FAIL — pending)_
+**Compute-unit sweep (same checkpoint, full 200):**
 
-**Default policy applied:** _(none yet — pending gate)_
+| Units | trocr-coreml CER | Median ms | Mixed CER | Gate |
+| --- | ---: | ---: | ---: | --- |
+| all | 0.0593 | 105.9 | 0.0950 | FAIL (mixed) |
+| gpu | 0.0593 | 95.3 | 0.0950 | FAIL (mixed) |
+| ane | — | — | — | CoreML plan error -14 (decoder); not measured |
 
-**Checkpoint:** `experiments/checkpoint-${CHECKPOINT_N}/final/` → `apps/mac/raw_models/TrOCR-khmer/`
+**Gate:** **FAIL**
 
-**Artifacts:** `results/mac_gate.csv` (gitignored if large; commit summary in this file only)
+- PASS overall CER: 0.0593 < 0.2580
+- PASS latency: 95.3 ms ≤ 2× 106.1 ms
+- FAIL mixed CER: 0.0950 > 0.0894 (Tesseract)
 
----
+**Default policy applied:** `.tesseract` for new installs (`AppPreferences.swift`). TrOCR default compute units when selected: `.cpuAndGPU` (`TrOCREngine.ModelCache`).
 
-## Step 5: Commit
+**Training follow-up (mixed-only failure):** mixed Khmer+Latin synthetic data on the training side (per speed+accuracy plan; not `ui_strings.txt` content). See `docs/superpowers/plans/2026-10-03-trocr-finetune-new-data.md`.
 
-After recording PASS/FAIL:
+**Skipped fallbacks:** encoder FP32 and int8 (stage-2 CER equals stage-1 parity 0.0593; latency already under 2× Tesseract).
 
-```bash
-git add training/eval/results/mac_gate.md training/eval/README.md apps/mac/README.md
-# If Step 4c FAIL only:
-# git add apps/mac/Sources/Preferences/AppPreferences.swift
-git commit -m "$(cat <<'EOF'
-docs(eval): record Mac CoreML OCR gate outcome and default policy
-EOF
-)"
-```
+**Checkpoint:** `apps/mac/raw_models/TrOCR-khmer/` → KV FP16 `Vendor/trocr/khmer/`
 
-Never commit `.mlpackage` weights, `raw_models/`, or `Vendor/trocr/*/`.
+**Artifacts:** `results/stage2_kv_*.csv` / `.txt` (gitignored CSVs; summary in this file only)
