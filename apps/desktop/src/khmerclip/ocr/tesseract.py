@@ -1,0 +1,87 @@
+"""Tesseract subprocess engine (khm+eng), mirroring TesseractEngine.swift."""
+
+import io
+import os
+import shutil
+import subprocess
+import sys
+from collections.abc import Mapping
+from pathlib import Path
+
+from PIL import Image
+
+from khmerclip.errors import EngineUnavailable, KhmerClipError
+from khmerclip.paths import resource_dir
+
+LANGS = "khm+eng"
+TIMEOUT_S = 60
+
+
+def find_tesseract(env: Mapping[str, str] | None = None) -> str | None:
+    env = os.environ if env is None else env
+    if override := env.get("KHMERCLIP_TESSERACT"):
+        return override
+    exe = "tesseract.exe" if sys.platform == "win32" else "tesseract"
+    bundled = resource_dir() / "tesseract" / exe
+    if bundled.is_file():
+        return str(bundled)
+    # Linux AppImage: AppRun puts the bundled binary first on PATH.
+    return shutil.which("tesseract", path=env.get("PATH"))
+
+
+def tessdata_dir() -> Path:
+    return resource_dir() / "tesseract" / "tessdata"
+
+
+def subprocess_env(env: Mapping[str, str], frozen: bool) -> dict[str, str]:
+    """PyInstaller's Linux bootloader points LD_LIBRARY_PATH at its own bundled libs
+    (saving the original in LD_LIBRARY_PATH_ORIG). Tesseract must not inherit that."""
+    out = dict(env)
+    if frozen:
+        if "LD_LIBRARY_PATH_ORIG" in out:
+            out["LD_LIBRARY_PATH"] = out["LD_LIBRARY_PATH_ORIG"]
+        else:
+            out.pop("LD_LIBRARY_PATH", None)
+    return out
+
+
+def ascii_path(path: Path) -> str:
+    """Tesseract opens --tessdata-dir through the ANSI code page on Windows, so an
+    install under a non-ASCII profile (e.g. a Khmer username) fails. Use the 8.3 short path."""
+    s = str(path)
+    if sys.platform != "win32" or s.isascii():
+        return s
+    import ctypes
+
+    buf = ctypes.create_unicode_buffer(32768)
+    n = ctypes.windll.kernel32.GetShortPathNameW(s, buf, len(buf))
+    return buf.value if 0 < n < len(buf) else s
+
+
+def recognize(image: Image.Image) -> str:
+    exe = find_tesseract()
+    if exe is None:
+        raise EngineUnavailable("Tesseract was not found. Reinstall KhmerClip (developers: install tesseract-ocr).")
+    tessdata = tessdata_dir()
+    if not (tessdata / "khm.traineddata").is_file():
+        raise EngineUnavailable("Khmer language data is missing. Developers: run tools/fetch_tessdata.py.")
+
+    png = io.BytesIO()
+    image.convert("RGB").save(png, "PNG")
+    cmd = [exe, "stdin", "stdout", "--tessdata-dir", ascii_path(tessdata), "-l", LANGS, "--psm", "6"]
+    try:
+        proc = subprocess.run(
+            cmd,
+            input=png.getvalue(),
+            capture_output=True,
+            timeout=TIMEOUT_S,
+            env=subprocess_env(os.environ, getattr(sys, "frozen", False)),
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),  # no console flash on Windows
+        )
+    except subprocess.TimeoutExpired as e:
+        raise KhmerClipError("Tesseract timed out.") from e
+    except OSError as e:
+        raise EngineUnavailable(f"Could not run Tesseract: {e}") from e
+    if proc.returncode != 0:
+        raise KhmerClipError("Tesseract failed: " + proc.stderr.decode("utf-8", "replace").strip())
+    return proc.stdout.decode("utf-8", "replace").strip()

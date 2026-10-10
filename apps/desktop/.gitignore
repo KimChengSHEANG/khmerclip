@@ -1,0 +1,6 @@
+.venv/
+build/
+dist/
+resources/tesseract/
+exported/
+*.AppImage
