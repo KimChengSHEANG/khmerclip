@@ -13,11 +13,13 @@ def aggregate(rows: list[dict]) -> dict[str, dict]:
         cers = [float(r["cer"]) for r in items]
         mss = [float(r["ms"]) for r in items]
         mixed = [float(r["cer"]) for r in items if r.get("subset") == "mixed"]
+        ui = [float(r["cer"]) for r in items if r.get("subset") == "ui"]
         out[engine] = {
             "n": len(items),
             "cer": sum(cers) / len(cers),
             "median_ms": statistics.median(mss),
             "mixed_cer": (sum(mixed) / len(mixed)) if mixed else 0.0,
+            "ui_cer": (sum(ui) / len(ui)) if ui else 0.0,
         }
     return out
 
@@ -35,5 +37,9 @@ def passes_gate(candidate: dict, tesseract: dict) -> tuple[bool, list[str]]:
     if not (candidate["mixed_cer"] <= tesseract["mixed_cer"]):
         reasons.append(
             f"mixed_cer {candidate['mixed_cer']:.4f} > Tess {tesseract['mixed_cer']:.4f}"
+        )
+    if candidate.get("ui_cer", 0.0) > tesseract.get("ui_cer", 0.0):
+        reasons.append(
+            f"ui_cer {candidate.get('ui_cer', 0.0):.4f} > Tess {tesseract.get('ui_cer', 0.0):.4f}"
         )
     return (len(reasons) == 0, reasons)

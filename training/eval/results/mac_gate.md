@@ -76,6 +76,7 @@ TrOCR CoreML **passes** only if all of the following hold vs Tesseract on the sa
 | Overall CER | `trocr-coreml` mean CER **<** Tesseract mean CER |
 | Latency | `trocr-coreml` median ms **≤ 2×** Tesseract median ms |
 | Mixed-script CER | `trocr-coreml` mixed-subset mean CER **≤** Tesseract mixed-subset mean CER |
+| UI CER | candidate UI-subset mean CER **≤** Tesseract UI-subset mean CER |
 
 ---
 
