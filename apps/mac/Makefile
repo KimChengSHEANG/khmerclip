@@ -50,7 +50,8 @@ trocr-khmer:
 	rm -f Vendor/trocr/khmer/tokenizer.json
 	$(MAKE) Vendor/trocr/khmer/tokenizer.json
 
-Vendor/trocr/khmer/tokenizer.json: $(KHMER_SRC) | $(TROCR_PY)
+# Converter changes (e.g. the KV-cache decoder export) also trigger a rebuild.
+Vendor/trocr/khmer/tokenizer.json: $(KHMER_SRC) $(if $(KHMER_SRC),$(wildcard tools/trocr/*.py)) | $(TROCR_PY)
 	mkdir -p Vendor/trocr/khmer
 	$(TROCR_PY) tools/trocr/convert.py khmer Vendor/trocr/khmer $(KHMER_CKPT)
 	$(TROCR_PY) tools/trocr/export_tokenizer.py khmer $@ $(KHMER_CKPT)

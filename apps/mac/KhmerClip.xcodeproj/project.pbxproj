@@ -63,6 +63,7 @@
 		C1A8FF3908EADEED8107F6BB /* 2.png in Resources */ = {isa = PBXBuildFile; fileRef = BA7D68CA7B298B49CA56E1C4 /* 2.png */; };
 		C22795622E2CD6145F872E34 /* 1.png in Resources */ = {isa = PBXBuildFile; fileRef = BB263D87A43A720A0D872BBA /* 1.png */; };
 		C321D1D92BD527D82CA7AED0 /* OCRTextFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6902F6D94FB487C6EE888A7 /* OCRTextFormatter.swift */; };
+		C402E54A9E2C79FFF5333AC3 /* printed-001.pil384.rgb in Resources */ = {isa = PBXBuildFile; fileRef = 71067B571A8F652733E03BA6 /* printed-001.pil384.rgb */; };
 		C6AF9F5EADE093C539977639 /* BarcodeEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AF42B15030FAE26DAE414CD /* BarcodeEngine.swift */; };
 		CEFB376100563168C0BEB4B7 /* OCREngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A839A38973DE12649A2B49AE /* OCREngine.swift */; };
 		D257C17027A8D9C9057E1E38 /* TesseractEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30AD7270593AC4C9DC7B6CB8 /* TesseractEngine.swift */; };
@@ -97,6 +98,7 @@
 		6C57D6188A09D12382F4C53E /* 5.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = 5.png; sourceTree = "<group>"; };
 		6E4C8B0E890E4D78CB98AC0A /* ScanHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanHistoryStore.swift; sourceTree = "<group>"; };
 		705A93999820618E034AB26E /* KhmerClipTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KhmerClipTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		71067B571A8F652733E03BA6 /* printed-001.pil384.rgb */ = {isa = PBXFileReference; path = "printed-001.pil384.rgb"; sourceTree = "<group>"; };
 		7609E4DBCB72B234A485B231 /* EasyOCREngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EasyOCREngine.swift; sourceTree = "<group>"; };
 		83EFA75EF7390F3761F3C80B /* ScreenCaptureManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenCaptureManager.swift; sourceTree = "<group>"; };
 		84240B22CF5DC4369019FF7E /* WindowPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowPicker.swift; sourceTree = "<group>"; };
@@ -297,6 +299,7 @@
 				275733D8BA12749124D5457B /* 5.txt */,
 				D76B52BEC4C54A3AC5D3B454 /* 6.png */,
 				E7FB98C098DE34C4E947ACB8 /* 6.txt */,
+				71067B571A8F652733E03BA6 /* printed-001.pil384.rgb */,
 			);
 			path = ocr;
 			sourceTree = "<group>";
@@ -464,6 +467,7 @@
 				A34CA6CC51CD3567396C60DA /* 5.txt in Resources */,
 				02B5A9DA5DED5F776368762D /* 6.png in Resources */,
 				7B6184EC31E95213DB70B8E5 /* 6.txt in Resources */,
+				C402E54A9E2C79FFF5333AC3 /* printed-001.pil384.rgb in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
