@@ -136,6 +136,62 @@ def line_strips(image: Image.Image) -> list[Image.Image]:
     return strips
 
 
+WIDE_SPLIT_ASPECT = 8.0  # mac TrOCREngine.wideSplitAspect
+
+
+def split_wide(strip: Image.Image, max_aspect: float = WIDE_SPLIT_ASPECT) -> list[tuple[str, Image.Image]]:
+    """Cut a strip whose line is wider than `max_aspect` x the strip height into ~equal pieces
+    at blank-column runs (port of mac TrOCREngine.splitWide). The line's extent comes from ink in
+    the strip's central band, so blank tails and neighbour-line marks never become pieces. Cuts
+    snap to the nearest blank run within a quarter piece width or are skipped. Separator: " " for
+    a gap >= a quarter of the text height, else ""."""
+    w, h = strip.size
+    if w <= max_aspect * h:
+        return [("", strip)]
+    m = ink_mask(strip, scan_max=max(w, h))
+    if m is None:
+        return [("", strip)]
+    ink = m.ink
+    top = int(0.3 * h)
+    core = np.nonzero(ink[top:max(top + 1, int(0.7 * h))].any(axis=0))[0]
+    if core.size == 0:
+        return [("", strip)]
+    pad = max(2, h // 5)
+    x0, x1 = max(0, int(core[0]) - pad), min(w, int(core[-1]) + 1 + pad)
+    if x1 - x0 <= max_aspect * h:
+        return [("", strip)]
+    rows = np.nonzero(ink.any(axis=1))[0]
+    text_h = int(rows[-1] - rows[0] + 1)
+    blank = ~ink.any(axis=0)
+    gaps, x = [], x0
+    while x < x1:
+        if blank[x]:
+            start = x
+            while x < x1 and blank[x]:
+                x += 1
+            if start > x0 and x < x1:
+                gaps.append((start, x))
+        else:
+            x += 1
+    n = math.ceil((x1 - x0) / (max_aspect * h))
+    piece_w = (x1 - x0) / n
+    cuts: list[tuple[int, str]] = []
+    for k in range(1, n):
+        ideal = x0 + k * piece_w
+        near = [g for g in gaps if abs((g[0] + g[1]) / 2 - ideal) <= 0.25 * piece_w
+                and (not cuts or g[0] > cuts[-1][0])]
+        if near:
+            g = min(near, key=lambda g: abs((g[0] + g[1]) / 2 - ideal))
+            cuts.append(((g[0] + g[1]) // 2, " " if g[1] - g[0] >= 0.25 * text_h else ""))
+    if not cuts:
+        return [("", strip)]
+    pieces, left, sep = [], x0, ""
+    for cx, next_sep in cuts + [(x1, "")]:
+        pieces.append((sep, strip.crop((left, 0, cx, h))))
+        left, sep = cx, next_sep
+    return pieces
+
+
 def content_crop(image: Image.Image) -> Image.Image:
     """Trim uniform background margin so the text fills the frame (TrOCR decodes garbage
     past the real text when given a loose crop)."""

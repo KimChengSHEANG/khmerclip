@@ -93,3 +93,30 @@ def test_line_strips_splits_touching_lines_at_the_pitch():
     strips = line_strips(img)
     assert len(strips) == 4
     assert sum(s.height for s in strips) == img.height
+
+
+# Mirrors apps/mac TrOCRWideSplitTests and training/eval/tests/test_pipeline.py.
+def wide(size, boxes, fg="black", bg="white"):
+    img = Image.new("RGB", size, bg)
+    draw = ImageDraw.Draw(img)
+    for box in boxes:
+        draw.rectangle(box, fill=fg)
+    return img
+
+
+def test_split_wide_gap_and_join_rule():
+    from khmerclip.ocr.preprocess import split_wide
+
+    assert [s for s, _ in split_wide(wide((400, 24), [(0, 2, 189, 21), (210, 2, 399, 21)]), 10)] == ["", " "]
+    assert [s for s, _ in split_wide(wide((400, 24), [(0, 2, 198, 21), (201, 2, 399, 21)]), 10)] == ["", ""]
+    assert len(split_wide(wide((400, 24), [(0, 2, 399, 21)]), 10)) == 1
+    dark = wide((400, 24), [(0, 2, 189, 21), (210, 2, 399, 21)], fg=(230, 230, 230), bg=(25, 25, 25))
+    assert len(split_wide(dark, 10)) == 2
+
+
+def test_split_wide_ignores_blank_tail_and_neighbour_marks():
+    from khmerclip.ocr.preprocess import split_wide
+
+    assert len(split_wide(wide((400, 24), [(0, 6, 69, 18), (80, 6, 150, 18)]), 10)) == 1
+    pieces = split_wide(wide((600, 24), [(0, 6, 140, 18), (160, 6, 300, 18), (420, 0, 440, 2), (520, 21, 540, 23)]), 8)
+    assert len(pieces) == 2 and all(p.width <= 320 for _, p in pieces)

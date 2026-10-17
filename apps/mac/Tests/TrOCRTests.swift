@@ -163,6 +163,57 @@ final class TrOCRLineSplitTests: XCTestCase {
     }
 }
 
+/// Mirrors training/eval/tests/test_pipeline.py test_split_wide_*.
+final class TrOCRWideSplitTests: XCTestCase {
+    /// White strip with black PIL-style inclusive boxes (x0, y0, x1, y1), y down.
+    private func strip(_ width: Int, _ height: Int, _ boxes: [(Int, Int, Int, Int)],
+                       dark: Bool = false) throws -> CGImage {
+        let ctx = try XCTUnwrap(CGContext(data: nil, width: width, height: height, bitsPerComponent: 8,
+                                          bytesPerRow: 0, space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                                          bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue))
+        ctx.setFillColor(dark ? CGColor(gray: 0.1, alpha: 1) : .white)
+        ctx.fill(CGRect(x: 0, y: 0, width: width, height: height))
+        ctx.setFillColor(dark ? CGColor(gray: 0.9, alpha: 1) : .black)
+        for (x0, y0, x1, y1) in boxes {
+            ctx.fill(CGRect(x: x0, y: height - 1 - y1, width: x1 - x0 + 1, height: y1 - y0 + 1))
+        }
+        return try XCTUnwrap(ctx.makeImage())
+    }
+
+    func testWideLineSplitsAtTheGapWithASpace() throws {
+        let pieces = TrOCREngine.splitWide(try strip(400, 24, [(0, 2, 189, 21), (210, 2, 399, 21)]), maxAspect: 10)
+        XCTAssertEqual(pieces.map(\.separator), ["", " "])
+    }
+
+    func testNarrowGapJoinsWithoutASpace() throws {
+        let pieces = TrOCREngine.splitWide(try strip(400, 24, [(0, 2, 198, 21), (201, 2, 399, 21)]), maxAspect: 10)
+        XCTAssertEqual(pieces.map(\.separator), ["", ""])
+    }
+
+    func testNoGapKeepsTheStripWhole() throws {
+        let pieces = TrOCREngine.splitWide(try strip(400, 24, [(0, 2, 399, 21)]), maxAspect: 10)
+        XCTAssertEqual(pieces.count, 1)
+        XCTAssertEqual(pieces[0].image.width, 400)
+    }
+
+    func testDarkModeSplits() throws {
+        let image = try strip(400, 24, [(0, 2, 189, 21), (210, 2, 399, 21)], dark: true)
+        XCTAssertEqual(TrOCREngine.splitWide(image, maxAspect: 10).count, 2)
+    }
+
+    func testMeasuresTheLineNotTheBlankTail() throws {
+        let image = try strip(400, 24, [(0, 6, 69, 18), (80, 6, 150, 18)])
+        XCTAssertEqual(TrOCREngine.splitWide(image, maxAspect: 10).count, 1)
+    }
+
+    func testNeverEmitsAPieceOfNeighbourMarks() throws {
+        let image = try strip(600, 24, [(0, 6, 140, 18), (160, 6, 300, 18), (420, 0, 440, 2), (520, 21, 540, 23)])
+        let pieces = TrOCREngine.splitWide(image, maxAspect: 8)
+        XCTAssertEqual(pieces.count, 2)
+        XCTAssertTrue(pieces.allSatisfy { $0.image.width <= 320 })
+    }
+}
+
 final class TrOCRPreprocessTests: XCTestCase {
     private static let macRoot = URL(fileURLWithPath: #filePath)
         .deletingLastPathComponent().deletingLastPathComponent()

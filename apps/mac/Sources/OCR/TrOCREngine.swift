@@ -98,12 +98,18 @@ enum TrOCREngine {
         let strips = lineStrips(image)
         lastRunStats.strips = strips.count
         for strip in strips {
-            var lineTokens = 0
-            let line = try await recognizeLine(strip, encoder: encoder, decoder: decoder, tokenizer: tokenizer) { n in
-                lineTokens = n
-                await progress?(.reading(tokens: doneTokens + n))
+            // A long line squashed into 384x384 loses its thin marks; decode it in pieces.
+            var line = ""
+            for piece in splitWide(strip, maxAspect: wideSplitAspect) {
+                var pieceTokens = 0
+                let text = try await recognizeLine(piece.image, encoder: encoder, decoder: decoder, tokenizer: tokenizer) { n in
+                    pieceTokens = n
+                    await progress?(.reading(tokens: doneTokens + n))
+                }
+                doneTokens += pieceTokens
+                let trimmed = text.trimmingCharacters(in: .whitespaces)
+                if !trimmed.isEmpty { line += (line.isEmpty ? "" : piece.separator) + trimmed }
             }
-            doneTokens += lineTokens
             // The Khmer fine-tune misspells clean English UI text ("Warrantly",
             // "PriceSnbox") that Tesseract reads perfectly, but Tesseract is worse
             // on low-res scanned English. So a Latin-only line switches to
@@ -387,6 +393,68 @@ enum TrOCREngine {
             runs.remove(at: max(i, j))
         }
         return runs
+    }
+
+    /// Lines wider than this many strip heights are decoded in pieces
+    /// (training/eval/results/accuracy_v3.md: long screen lines CER
+    /// 0.043 -> 0.014 at 8).
+    static let wideSplitAspect = 8.0
+
+    /// Cuts a strip whose *line* is wider than `maxAspect` x the strip height
+    /// into ~equal pieces at blank-column runs. The line's extent comes from
+    /// ink in the strip's central band (rows 30-70%): a strip spans the whole
+    /// clip width and its edges hold the neighbour lines' marks, and a piece
+    /// of that blank tail makes TrOCR hallucinate. Each ideal cut snaps to the
+    /// nearest blank run within a quarter piece width, or is skipped (never
+    /// cuts ink). The separator is " " for a gap >= a quarter of the text
+    /// height, else "" (Khmer words often have no space).
+    /// Mirrors training/eval/src/khmerclip_eval/pipeline.py split_wide.
+    static func splitWide(_ strip: CGImage, maxAspect: Double) -> [(separator: String, image: CGImage)] {
+        let w = strip.width, h = strip.height
+        let whole = [(separator: "", image: strip)]
+        guard Double(w) > maxAspect * Double(h),
+              let mask = inkMask(strip, scanMax: max(w, h)), mask.width == w, mask.height == h else { return whole }
+        let bandTop = Int(0.3 * Double(h)), bandBottom = max(bandTop + 1, Int(0.7 * Double(h)))
+        let coreCols = (0..<w).filter { x in (bandTop..<bandBottom).contains { mask[x, $0] } }
+        guard let first = coreCols.first, let last = coreCols.last else { return whole }
+        let pad = max(2, h / 5)
+        let x0 = max(0, first - pad), x1 = min(w, last + 1 + pad)
+        guard Double(x1 - x0) > maxAspect * Double(h) else { return whole }
+        let inkRows = (0..<h).filter { y in (0..<w).contains { mask[$0, y] } }
+        let textH = (inkRows.last ?? h - 1) - (inkRows.first ?? 0) + 1
+        let blank = (0..<w).map { x in !(0..<h).contains { mask[x, $0] } }
+        var gaps: [(Int, Int)] = []   // [start, end) blank-column runs inside the line
+        var x = x0
+        while x < x1 {
+            if blank[x] {
+                let start = x
+                while x < x1 && blank[x] { x += 1 }
+                if start > x0 && x < x1 { gaps.append((start, x)) }
+            } else {
+                x += 1
+            }
+        }
+        let n = Int((Double(x1 - x0) / (maxAspect * Double(h))).rounded(.up))
+        let pieceW = Double(x1 - x0) / Double(n)
+        var cuts: [(x: Int, separator: String)] = []
+        for k in 1..<max(1, n) {
+            let ideal = Double(x0) + Double(k) * pieceW
+            let centre = { (g: (Int, Int)) in Double(g.0 + g.1) / 2 }
+            let near = gaps.filter { abs(centre($0) - ideal) <= 0.25 * pieceW && (cuts.isEmpty || $0.0 > cuts.last!.x) }
+            guard let g = near.min(by: { abs(centre($0) - ideal) < abs(centre($1) - ideal) }) else { continue }
+            cuts.append(((g.0 + g.1) / 2, Double(g.1 - g.0) >= 0.25 * Double(textH) ? " " : ""))
+        }
+        guard !cuts.isEmpty else { return whole }
+        var pieces: [(separator: String, image: CGImage)] = []
+        var left = x0, separator = ""
+        for cut in cuts + [(x: x1, separator: "")] {
+            if let piece = strip.cropping(to: CGRect(x: left, y: 0, width: cut.x - left, height: h)) {
+                pieces.append((separator, piece))
+            }
+            left = cut.x
+            separator = cut.separator
+        }
+        return pieces
     }
 
     /// RGB bytes resized exactly like PIL's `Image.resize(size, BILINEAR)` --

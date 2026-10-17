@@ -13,7 +13,7 @@ from PIL import Image
 
 from khmerclip.errors import Cancelled, EngineUnavailable, KhmerClipError
 from khmerclip.ocr import trocr_models
-from khmerclip.ocr.preprocess import line_strips, pixel_values
+from khmerclip.ocr.preprocess import line_strips, pixel_values, split_wide
 from khmerclip.ocr.tokenizer import TrOCRTokenizer
 
 # Total decoded ids incl. the start token; matches training MAX_LABEL_LEN and the mac
@@ -113,22 +113,27 @@ def recognize_with_session(session, image: Image.Image, progress: Callable[[str]
     lines: list[str] = []
     done = 0
     for strip in line_strips(image):
-        hidden = session.encoder.run(["encoder_hidden_states"], {"pixel_values": pixel_values(strip)})[0]
-        ids = [tok.decoder_start_id]
-        while len(ids) < MAX_LENGTH:
-            if cancel is not None and cancel.is_set():
-                raise Cancelled()
-            logits = session.decoder.run(
-                ["logits"], {"input_ids": np.array([ids], dtype=np.int64), "encoder_hidden_states": hidden})[0]
-            step = logits[0, -1].copy()
-            if (blocked := blocked_token(ids)) is not None:
-                step[blocked] = -np.inf
-            ids.append(int(np.argmax(step)))
-            if progress:
-                progress(f"Reading text… ({done + len(ids)})")
-            if ids[-1] == tok.eos_id:
-                break
-        done += len(ids)
-        if line := latin_fallback(strip, tok.decode(ids)):
+        # A long line squashed into 384x384 loses its thin marks; decode it in pieces.
+        text = ""
+        for sep, piece in split_wide(strip):
+            hidden = session.encoder.run(["encoder_hidden_states"], {"pixel_values": pixel_values(piece)})[0]
+            ids = [tok.decoder_start_id]
+            while len(ids) < MAX_LENGTH:
+                if cancel is not None and cancel.is_set():
+                    raise Cancelled()
+                logits = session.decoder.run(
+                    ["logits"], {"input_ids": np.array([ids], dtype=np.int64), "encoder_hidden_states": hidden})[0]
+                step = logits[0, -1].copy()
+                if (blocked := blocked_token(ids)) is not None:
+                    step[blocked] = -np.inf
+                ids.append(int(np.argmax(step)))
+                if progress:
+                    progress(f"Reading text… ({done + len(ids)})")
+                if ids[-1] == tok.eos_id:
+                    break
+            done += len(ids)
+            if piece_text := tok.decode(ids).strip():
+                text += (sep if text else "") + piece_text
+        if line := latin_fallback(strip, text):
             lines.append(line)
     return "\n".join(lines)
