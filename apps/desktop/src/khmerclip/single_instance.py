@@ -23,9 +23,7 @@ def send_command(command: str, name: str | None = None, timeout_ms: int = 1000) 
     if not sock.waitForConnected(timeout_ms):
         return False
     sock.write(command.encode("utf-8") + b"\n")
-    # A Windows named-pipe write can complete immediately; waitForBytesWritten() then has
-    # nothing pending and returns False although the command was delivered.
-    ok = sock.bytesToWrite() == 0 or sock.waitForBytesWritten(timeout_ms)
+    ok = sock.waitForBytesWritten(timeout_ms)
     sock.disconnectFromServer()
     return ok
 
