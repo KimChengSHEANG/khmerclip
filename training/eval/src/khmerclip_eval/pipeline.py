@@ -8,6 +8,7 @@ Candidate improvements are opt-in keyword flags on `recognize` so each can be ga
   beam_gate=T      re-decode a line with beam 4 when its least likely greedy token has p < T
   normalize=True   post-decode cleanup (see normalize_text)
   split_touching=True  cut runs of touching lines at the line pitch (line_strips)
+  cycle_cap=True   also block a token continuing a 2-token cycle repeated 4 times
 """
 from __future__ import annotations
 
@@ -29,6 +30,15 @@ def blocked_token(ids: list[int], max_run: int = MAX_RUN) -> int | None:
     """Token that may not extend a run of `max_run` identical ids (mac TrOCREngine.blockedToken)."""
     tail = ids[-max_run:]
     return tail[-1] if len(ids) >= max_run and len(set(tail)) == 1 else None
+
+
+def cycle_blocked_token(ids: list[int], cycles: int = 4) -> int | None:
+    """Token that would continue a 2-token cycle already repeated `cycles` times (greedy decode
+    loops on " ។ ។ ។" past a line's end; the single-token repeat cap can't see it)."""
+    tail = ids[-2 * cycles:]
+    if len(tail) < 2 * cycles or tail[0] == tail[1]:
+        return None
+    return tail[0] if all(t == tail[i % 2] for i, t in enumerate(tail)) else None
 
 
 def ink_mask(image: Image.Image, scan_max: int | None = 512) -> tuple[np.ndarray, int] | None:
@@ -149,11 +159,15 @@ def line_strips(image: Image.Image, split_touching: bool = False) -> list[Image.
 
 def split_wide(strip: Image.Image, max_aspect: float, space_gap: float = 0.25,
                window: float = 0.25) -> list[tuple[str, Image.Image]]:
-    """Cut a strip wider than `max_aspect` x its height into ~equal pieces at blank-column runs.
+    """Cut a line strip whose *line* is wider than `max_aspect` x the strip height into ~equal
+    pieces at blank-column runs.
 
-    Each ideal cut point (k * w / n) snaps to the centre of the nearest blank-column run within
-    +-`window` of a piece width; with no blank run there, that cut is skipped (never cut ink).
-    Returns (separator, piece): " " when the gap is >= `space_gap` x text height, else "".
+    The line's horizontal extent comes from ink in the strip's central band (rows 30-70%): a strip
+    spans the whole clip width and its top / bottom edges hold the neighbour lines' marks, and
+    a piece cut from that blank tail makes TrOCR hallucinate text. Each ideal cut point snaps to
+    the centre of the nearest blank-column run within +-`window` of a piece width; with no blank
+    run there, that cut is skipped (never cut ink). Returns (separator, piece): " " when the gap
+    is >= `space_gap` x text height, else "".
     """
     w, h = strip.size
     if w <= max_aspect * h:
@@ -162,35 +176,44 @@ def split_wide(strip: Image.Image, max_aspect: float, space_gap: float = 0.25,
     if m is None:
         return [("", strip)]
     mask = m[0]
+    core = np.nonzero(mask[int(0.3 * h): max(int(0.3 * h) + 1, int(0.7 * h))].any(axis=0))[0]
+    if core.size == 0:
+        return [("", strip)]
+    pad = max(2, h // 5)
+    x0, x1 = max(0, int(core[0]) - pad), min(w, int(core[-1]) + 1 + pad)
+    if x1 - x0 <= max_aspect * h:
+        return [("", strip)]
     rows = np.nonzero(mask.any(axis=1))[0]
-    text_h = int(rows[-1] - rows[0] + 1) if rows.size else h
+    text_h = int(rows[-1] - rows[0] + 1)
     blank = ~mask.any(axis=0)
-    gaps, x = [], 0  # (start, end_exclusive) of interior blank-column runs
-    while x < w:
+    gaps, x = [], x0  # (start, end_exclusive) of blank-column runs inside the line
+    while x < x1:
         if blank[x]:
             start = x
-            while x < w and blank[x]:
+            while x < x1 and blank[x]:
                 x += 1
-            if start > 0 and x < w:
+            if start > x0 and x < x1:
                 gaps.append((start, x))
         else:
             x += 1
-    n = math.ceil(w / (max_aspect * h))
-    piece_w = w / n
+    n = math.ceil((x1 - x0) / (max_aspect * h))
+    piece_w = (x1 - x0) / n
     cuts: list[tuple[int, str]] = []
     for k in range(1, n):
-        ideal = k * piece_w
+        ideal = x0 + k * piece_w
         near = [g for g in gaps if abs((g[0] + g[1]) / 2 - ideal) <= window * piece_w
                 and (not cuts or g[0] > cuts[-1][0])]
         if not near:
             continue
         g = min(near, key=lambda g: abs((g[0] + g[1]) / 2 - ideal))
         cuts.append(((g[0] + g[1]) // 2, " " if g[1] - g[0] >= space_gap * text_h else ""))
-    pieces, left, sep = [], 0, ""
+    if not cuts:
+        return [("", strip)]
+    pieces, left, sep = [], x0, ""
     for cx, next_sep in cuts:
         pieces.append((sep, strip.crop((left, 0, cx, h))))
         left, sep = cx, next_sep
-    pieces.append((sep, strip.crop((left, 0, w, h))))
+    pieces.append((sep, strip.crop((left, 0, x1, h))))
     return pieces
 
 
@@ -242,7 +265,8 @@ def default_device() -> str:
     return "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
 
 
-def decode(images: list[Image.Image], model_dir: Path, device: str, beams: int = 1) -> list[tuple[str, float]]:
+def decode(images: list[Image.Image], model_dir: Path, device: str, beams: int = 1,
+           cycle_cap: bool = False) -> list[tuple[str, float]]:
     """(text, min greedy token probability) per image."""
     import torch
     from transformers import LogitsProcessor, LogitsProcessorList
@@ -250,8 +274,9 @@ def decode(images: list[Image.Image], model_dir: Path, device: str, beams: int =
     class RepeatCap(LogitsProcessor):
         def __call__(self, input_ids, scores):
             for row, ids in enumerate(input_ids.tolist()):
-                if (b := blocked_token(ids)) is not None:
-                    scores[row, b] = -math.inf
+                for b in (blocked_token(ids), cycle_blocked_token(ids) if cycle_cap else None):
+                    if b is not None:
+                        scores[row, b] = -math.inf
             return scores
 
     processor, model = load(str(model_dir), device)
@@ -274,18 +299,18 @@ def decode(images: list[Image.Image], model_dir: Path, device: str, beams: int =
 
 def recognize(image: Image.Image, model_dir: Path, device: str | None = None, *, split_wide_at: float | None = None,
               crop: bool = False, beam_gate: float | None = None, normalize: bool = False,
-              split_touching: bool = False) -> str:
+              split_touching: bool = False, cycle_cap: bool = False) -> str:
     device = device or default_device()
     units: list[tuple[str, Image.Image]] = []  # (separator before, image to decode)
     for k, strip in enumerate(line_strips(image, split_touching)):
         pieces = split_wide(strip, split_wide_at) if split_wide_at else [("", strip)]
         units += [((" " if k else "") if i == 0 else sep, p) for i, (sep, p) in enumerate(pieces)]
     images = [content_crop(p) if crop else p for _, p in units]
-    results = decode(images, model_dir, device)
+    results = decode(images, model_dir, device, cycle_cap=cycle_cap)
     if beam_gate is not None:
         redo = [i for i, (_, p) in enumerate(results) if p < beam_gate]
         if redo:
-            for i, r in zip(redo, decode([images[i] for i in redo], model_dir, device, beams=4)):
+            for i, r in zip(redo, decode([images[i] for i in redo], model_dir, device, beams=4, cycle_cap=cycle_cap)):
                 results[i] = r
     text = "".join(sep + t for (sep, _), (t, _) in zip(units, results) if t or sep)
     return normalize_text(text) if normalize else " ".join(text.split())

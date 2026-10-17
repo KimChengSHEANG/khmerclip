@@ -83,3 +83,25 @@ def test_split_touching_four_lines():
 def test_split_touching_keeps_single_line_with_marks():
     img = blocks((200, 60), [(10, 20, 190, 40), (50, 14, 60, 17), (80, 41, 90, 50)])
     assert len(line_strips(img, split_touching=True)) == 1
+
+
+def test_split_wide_measures_the_line_not_the_blank_tail():
+    # A short line in a wide multi-line clip: ink spans 150 of 400 px -> aspect 6.25 < 10, keep whole.
+    img = blocks((400, 24), [(0, 6, 69, 18), (80, 6, 150, 18)])
+    assert len(split_wide(img, max_aspect=10)) == 1
+
+
+def test_split_wide_never_emits_a_piece_without_core_ink():
+    # Neighbour-line marks at the strip's top edge past the line's end must not become pieces.
+    img = blocks((600, 24), [(0, 6, 140, 18), (160, 6, 300, 18), (420, 0, 440, 2), (520, 21, 540, 23)])
+    pieces = split_wide(img, max_aspect=8)  # line 0-300 px -> 2 pieces, ideal cut on the gap
+    assert len(pieces) == 2
+    assert all(p.width <= 320 for _, p in pieces)
+
+
+def test_cycle_blocked_token():
+    from khmerclip_eval.pipeline import cycle_blocked_token
+
+    assert cycle_blocked_token([0, 7, 9, 7, 9, 7, 9, 7, 9, 7]) == 9  # a 5th "7 9" would follow
+    assert cycle_blocked_token([0, 7, 9, 7, 9, 7, 9, 7]) is None  # ". . . " stays legal
+    assert cycle_blocked_token([0, 5, 5, 5, 5]) is None  # single-token runs: blocked_token's job
