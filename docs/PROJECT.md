@@ -171,7 +171,7 @@ The default is `soyvitou`. Use `--datasets a b c` to concatenate several, or pas
 
 > **Test-set leak (fixed 2026-10).** The `soyvitou` alias used to load `split="train"`, which on the Hub includes `testset.parquet`, where the printed eval fixtures come from. It now reads only `trainset.parquet` + `validset.parquet`. Checkpoints trained before the fix (including `checkpoint-3`, the init for fine-tune v1) still have inflated printed CER.
 
-**Synthetic data.** `scripts/fetch_fonts.py` downloads 33 OFL Google Fonts Khmer files into `cache/fonts/`. `scripts/render_synth.py` renders lines from existing dataset labels in those fonts, with every eval fixture and UI string removed first. It renders handwriting-style fonts, native and sheared italics, scanned-document degradation, and light/dark UI panels into parquet shards under `cache/synth/{train,val}`, loaded as `synth` / `synth_val`. Rendering fails closed if Pillow lacks libraqm. `scripts/data_stats.py` reports label-length and aspect outliers for a source before you mix it in.
+**Synthetic data.** `scripts/fetch_fonts.py` downloads 33 OFL Google Fonts Khmer files plus 26 Latin ones into `cache/fonts/`. `scripts/render_synth.py` renders lines from existing dataset labels in those fonts, with every eval fixture and UI string removed first. It renders handwriting-style fonts, native and sheared italics, scanned-document degradation, and light/dark UI panels into parquet shards under `cache/synth/{train,val}`, loaded as `synth` / `synth_val`. Rendering fails closed if Pillow lacks libraqm. `scripts/data_stats.py` reports label-length and aspect outliers for a source before you mix it in.
 
 ### 4.3a Fine-tune v1 (`experiments/checkpoint-4`)
 
@@ -195,9 +195,33 @@ Early-stopped at step 40,000 (best weights at step 30,000, mid-train CER 0.0228)
 
 New-domain CER also dropped sharply: handwriting test 0.318 → 0.014, synth val 0.056 → 0.008, siemreap 0.279 → 0.076. Printed and mixed deltas are informational because the init trained on the leaked test set.
 
+### 4.3b Fine-tune v2 (`experiments/checkpoint-5`, step 10k): clean English
+
+v1 misread clean English UI text ("Warrantly", "Batter", lowercased "condition", "PriceSnbox") because its English data is mostly scanned Gutenberg prose. v2 adds `synth_en`: 150k Latin-only lines (English Wikipedia paragraphs + English labels from `soyvitou`/`mrrtmob`) rendered only in the 26 OFL Latin fonts of `synth.GOOGLE_LATIN_FONTS`, with case augmentation (capitalised / title / upper) and wide UI strips. Khmer fonts' Latin glyphs are excluded there: caps-only faces like Bayon contradict mixed-case labels.
+
+```bash
+python scripts/render_synth.py --latin_only --english_texts 300000 --text_sources soyvitou mrrtmob \
+  --part train --count 150000 --seed 3 --out cache/synth_en/train
+python scripts/train.py --model_name experiments/checkpoint-4/final \
+  --datasets synth_en:150000 synth:100000 handwriting:20000 darayut:40000 siemreap:40000 soyvitou:40000 \
+             sokheng:30000 hanuman:30000 kiteaether:30000 mrrtmob:80000 \
+  --augment --epochs 1 --lr 1e-5 --warmup_steps 500 \
+  --max_eval_per_source 300 --max_eval_samples 0 --eval_steps 2000 --early_stopping_patience 4 --max_aspect 24
+```
+
+Mid-train greedy CER was flat (best at step 2k) while eval loss kept falling, so `final/` (step 2k) and `checkpoint-10000` were both gated; step 10k shipped. Gate: `scripts/eval_english.py` renders `training/eval/en_ui_strings.txt` (excluded from synth) in held-out macOS fonts.
+
+| HF greedy + run cap | en_ui line acc | en_ui CER | fixtures all | printed | ui | mixed |
+|---|---:|---:|---:|---:|---:|---:|
+| v1 `checkpoint-4` | 0.623 | 0.0584 | 0.0069 | 0.0064 | 0.0021 | 0.0271 |
+| v2 `final` (step 2k) | 0.700 | 0.0395 | 0.0076 | 0.0057 | 0.0033 | 0.0309 |
+| **v2 step 10k (shipped)** | **0.760** | **0.0341** | **0.0054** | 0.0055 | 0.0032 | **0.0133** |
+
+The ui delta is one line (`ui-054`, a doubled `ង`). Backups: `raw_models/TrOCR-khmer-v1-ckpt4`, `TrOCR-khmer-v0-step72k`.
+
 ### 4.4 Shipping to the app (CoreML)
 
-1. Copy `experiments/checkpoint-N/final/` to `apps/mac/raw_models/TrOCR-khmer/`. Locally this currently holds fine-tune v1 (`checkpoint-4`). The previous model is backed up as `raw_models/TrOCR-khmer-v0-step72k`.
+1. Copy `experiments/checkpoint-N/final/` to `apps/mac/raw_models/TrOCR-khmer/`. Locally this currently holds fine-tune v2 (`checkpoint-5` step 10k). Older models are backed up as `raw_models/TrOCR-khmer-v1-ckpt4` and `raw_models/TrOCR-khmer-v0-step72k`.
 2. Convert from `apps/mac`:
    - Run `make trocr-khmer`, or `make trocr-khmer KHMER_CKPT=path`.
    - The first run creates `.trocr-venv` with `torch==2.7.0`, `transformers==4.57.*`, `coremltools`, `pillow`, `pytest` and `jiwer`.
@@ -209,10 +233,13 @@ At runtime, `TrOCREngine` does the following:
 - splits the image into line strips (`lineStrips`). A single Khmer line with detached marks stays one strip
 - resizes each strip to 384×384 with a PIL-exact bilinear resize, with no content crop, to match training preprocessing
 - greedy-decodes up to 128 tokens per line, with a fresh zeroed KV state per line. A repeat-run cap of 4 stops one token from looping to max length
+- re-reads a line with Tesseract (`khm+eng`) when the TrOCR line has no Khmer and every Tesseract word has confidence >= 70 (`tesseractMinConfidence`). Tesseract reads clean English UI text better; the confidence gate keeps TrOCR on low-res scans, where Tesseract adds junk. Costs ~90 ms per Latin-only line. The desktop app does the same (`trocr.latin_fallback`)
 - runs on CoreML compute units `.cpuAndGPU` by default. `KHMERCLIP_TROCR_UNITS=all|gpu|ane|cpu` overrides this for benchmarks. ANE fails to build a plan for the stateful decoder (error -14)
 - caches compiled `.mlmodelc` files and preloads the model when a capture starts
 
 ### 4.5 Current measured state
+
+**Fine-tune v2 (2026-10-17, CoreML, 200 fixtures).** CER 0.0054 without the Latin fallback, **0.0044** with it (mixed 0.0133 → 0.0046, ui 0.0032), median 105 ms. v1 with fallback was 0.0063. The table below is the older v0 history.
 
 Source: `training/eval/results/trocr_speed_accuracy.md`. Full 200 fixtures, Release `OCRBench`, same `bench.py` run as Tesseract. Checkpoint: v0 (`checkpoint-3`, step 72k).
 
