@@ -24,3 +24,4 @@ __pycache__/
 
 .devswarm-temp/
 .trocr-venv/
+dist/

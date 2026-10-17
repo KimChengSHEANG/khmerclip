@@ -4,7 +4,7 @@
 # packages in. Python 3.12 is what apps/desktop requires (<3.13).
 UVT = uv run --isolated --no-project --managed-python --python 3.12 --with pytest --with-editable
 
-.PHONY: run build build-mac build-desktop check check-eval check-tesseract check-trocr check-desktop check-mac-tools check-mac
+.PHONY: run build build-mac build-desktop release-mac check check-eval check-tesseract check-trocr check-desktop check-mac-tools check-mac
 
 # `make run` builds and launches the Mac app.
 run:
@@ -17,6 +17,20 @@ build: build-mac
 # archive steps are in apps/mac/README.md.
 build-mac:
 	$(MAKE) -C apps/mac build
+
+# Unsigned (ad-hoc) Release KhmerClip.app, zipped -> apps/mac/dist/KhmerClip-<ver>-macos.zip.
+# Ships Tesseract + TrOCR only: EasyOCR's bundled venv (~1.1 GB) has machine-specific paths.
+# ponytail: ad-hoc signed, not notarized; add Developer ID signing + notarytool when there's a cert.
+release-mac:
+	$(MAKE) -C apps/mac gen
+	cd apps/mac && xcodebuild -project KhmerClip.xcodeproj -scheme KhmerClip -configuration Release \
+		-derivedDataPath build CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO build
+	rm -rf apps/mac/build/Build/Products/Release/KhmerClip.app/Contents/Resources/easyocr
+	codesign --force --deep --sign - apps/mac/build/Build/Products/Release/KhmerClip.app
+	ver=$$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' apps/mac/build/Build/Products/Release/KhmerClip.app/Contents/Info.plist) && \
+		mkdir -p apps/mac/dist && rm -f apps/mac/dist/KhmerClip-$$ver-macos.zip && \
+		ditto -c -k --keepParent apps/mac/build/Build/Products/Release/KhmerClip.app apps/mac/dist/KhmerClip-$$ver-macos.zip && \
+		ls -lh apps/mac/dist/KhmerClip-$$ver-macos.zip
 
 # Frozen app for THIS OS -> apps/desktop/dist/KhmerClip/. PyInstaller can't cross-compile:
 # the Windows installer and Linux AppImage come from .github/workflows/desktop.yml

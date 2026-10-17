@@ -14,7 +14,7 @@ PySide6. The macOS app lives in [`../mac`](../mac) and is separate.
 
 ## Install
 
-Download from [KhmerClip releases](https://github.com/KimChengSHEANG/khmerclip-releases/releases):
+Download from [KhmerClip releases](https://github.com/KimChengSHEANG/khmerclip/releases):
 
 - **Windows:** `KhmerClip-<ver>-windows-x64-setup.exe`. Per-user install, no admin. Builds are unsigned, so SmartScreen warns: More info → Run anyway.
 - **Linux:** `KhmerClip-<ver>-x86_64.AppImage`. Run `chmod +x` on it, then start it. GNOME needs the AppIndicator extension for the tray icon (on by default on Ubuntu).
@@ -41,17 +41,12 @@ You need a `tesseract` 5.x on `PATH`, or `KHMERCLIP_TESSERACT=/path/to/tesseract
 
 ## Release
 
-One-time setup:
-
-1. Create the public repo `KimChengSHEANG/khmerclip-releases`.
-2. Create a fine-grained PAT with *Contents: read and write* on that repo.
-3. Store the PAT as the `RELEASES_TOKEN` secret in this repo.
-
-Each release:
+Releases are published to this repo's GitHub Releases with the workflow's own `GITHUB_TOKEN` (no secret to set up). Each release:
 
 1. Bump `__version__` in `src/khmerclip/__init__.py` and commit.
 2. Run `git tag desktop-v<version>` and push the tag (`git push origin desktop-v<version>`).
-3. CI tests, builds both installers, smoke-tests the frozen apps, and publishes release `v<version>` to the releases repo. Installed apps see it within a day.
+3. CI tests, builds both installers, smoke-tests the frozen apps, and publishes release `v<version>`. Installed apps see it within a day.
+4. From the repo root on a Mac, run `make release-mac` and `gh release upload v<version> apps/mac/dist/KhmerClip-<version>-macos.zip`.
 
 Manual checklist before announcing a release:
 

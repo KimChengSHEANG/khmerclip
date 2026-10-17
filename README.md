@@ -2,6 +2,14 @@
 
 macOS menu-bar OCR for Khmer (and mixed Khmer/English) text — screen capture, file OCR, and on-device engines.
 
+## Download
+
+Builds for macOS, Windows and Linux are on the [Releases](https://github.com/KimChengSHEANG/khmerclip/releases) page. They are unsigned:
+
+- **macOS:** unzip, move KhmerClip to Applications, then right-click → Open the first time (or run `xattr -dr com.apple.quarantine /Applications/KhmerClip.app`).
+- **Windows:** SmartScreen warns on first run: More info → Run anyway.
+- **Linux:** `chmod +x KhmerClip-*.AppImage`, then run it.
+
 ## Layout
 
 | Path | What it is |
@@ -29,3 +37,7 @@ Windows/Linux: see [`apps/desktop/README.md`](apps/desktop/README.md) (`pip inst
 ## Project guide
 
 Full overview — models, training, datasets, fonts, build/run, known issues: [`docs/PROJECT.md`](docs/PROJECT.md)
+
+## License
+
+MIT, see [LICENSE](LICENSE). Bundled third-party components keep their own licenses (Tesseract: Apache-2.0; Google Fonts: OFL).

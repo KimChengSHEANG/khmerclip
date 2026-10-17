@@ -1,4 +1,4 @@
-"""Daily check of the public releases repo. Never installs anything: the UI offers to
+"""Daily check of the project's GitHub releases. Never installs anything: the UI offers to
 open the release page."""
 
 import json
@@ -9,7 +9,7 @@ from dataclasses import dataclass
 
 from khmerclip import __version__
 
-FEED_URL = "https://api.github.com/repos/KimChengSHEANG/khmerclip-releases/releases/latest"
+FEED_URL = "https://api.github.com/repos/KimChengSHEANG/khmerclip/releases/latest"
 CHECK_INTERVAL_S = 24 * 3600
 
 

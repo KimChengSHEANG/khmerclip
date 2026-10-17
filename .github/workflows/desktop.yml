@@ -123,6 +123,8 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/desktop-v')
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     defaults:
       run:
         working-directory: .
@@ -137,11 +139,12 @@ jobs:
         with:
           path: artifacts
           merge-multiple: true
-      - name: Publish to public releases repo
+      - name: Publish GitHub release
         env:
-          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+        # The macOS zip is built locally (`make release-mac`) and added with `gh release upload`.
         run: |
           gh release create "v$VERSION" artifacts/* \
-            --repo KimChengSHEANG/khmerclip-releases \
+            --repo "$GITHUB_REPOSITORY" \
             --title "KhmerClip $VERSION" \
-            --notes "KhmerClip $VERSION for Windows (installer) and Linux (AppImage)."
+            --notes "KhmerClip $VERSION for Windows (installer) and Linux (AppImage). The macOS build is attached separately."

@@ -529,7 +529,7 @@ Spec: `docs/superpowers/specs/2026-10-03-khmerclip-desktop-windows-linux-design.
 
 **Stack.** Python 3.12 (`<3.13`), PySide6-Essentials 6.8, onnxruntime (CPU), `platformdirs`, `pynput` (hotkeys on Windows/X11), `jeepney` (Wayland portal). One codebase for both OSes.
 
-**v1 features:** tray app, region capture, OCR, auto-copy, result popup, history, preferences, image-file OCR, launch at login, TrOCR (ONNX, downloaded on first use), daily update check against the public `KimChengSHEANG/khmerclip-releases` GitHub repo. Out of v1: QR/barcode, EasyOCR, TTS, translate, window picker.
+**v1 features:** tray app, region capture, OCR, auto-copy, result popup, history, preferences, image-file OCR, launch at login, TrOCR (ONNX, downloaded on first use), daily update check against this repo's GitHub Releases. Out of v1: QR/barcode, EasyOCR, TTS, translate, window picker.
 
 | Area | Modules |
 |---|---|
@@ -541,7 +541,7 @@ Spec: `docs/superpowers/specs/2026-10-03-khmerclip-desktop-windows-linux-design.
 | Tools | `tools/fetch_tessdata.py`, `tools/export_onnx.py` (checkpoint → ONNX, parity-checked), `tools/publish_models.py` (HF upload + manifest pin) |
 | Packaging | `packaging/khmerclip.spec` (PyInstaller), `packaging/windows/khmerclip.iss` (Inno Setup), `packaging/linux/build_appimage.sh` |
 
-**Builds.** `make build-desktop` freezes for the current OS. Windows/Linux installers come from `.github/workflows/desktop.yml`: `test` and `build` run on PRs and `workflow_dispatch`; pushing a `desktop-v<version>` tag also publishes `v<version>` to `KimChengSHEANG/khmerclip-releases` (needs the `RELEASES_TOKEN` secret). Full details in `apps/desktop/README.md`.
+**Builds.** `make build-desktop` freezes for the current OS. Windows/Linux installers come from `.github/workflows/desktop.yml`: `test` and `build` run on PRs and `workflow_dispatch`; pushing a `desktop-v<version>` tag also publishes GitHub release `v<version>` in this repo. The macOS zip is added to it by hand: `make release-mac`, then `gh release upload`. Full details in `apps/desktop/README.md`.
 
 **TrOCR model.** `trocr_manifest.json` pins fine-tune v2 (`khmer-v2`) on the public HF repo `kcsheang/khmerclip-trocr-khmer-onnx` by commit revision + SHA-256; the app downloads it on first TrOCR use. Republish with `tools/publish_models.py exported/khmer --version khmer-vN` (needs a write token for `kcsheang`). Test a local export with `KHMERCLIP_TROCR_DIR=exported/khmer`.
 
