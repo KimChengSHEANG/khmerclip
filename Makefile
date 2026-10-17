@@ -14,10 +14,12 @@ build: build-mac
 build-mac:
 	$(MAKE) -C apps/mac build
 
-# ponytail: stub until the desktop GUI (plan Tasks 5-15) and packaging (Task 16) land.
-# PyInstaller can't cross-compile, so Windows/Linux artifacts will come from CI (Task 17).
+# Frozen app for THIS OS -> apps/desktop/dist/KhmerClip/. PyInstaller can't cross-compile:
+# the Windows installer and Linux AppImage come from .github/workflows/desktop.yml
+# (run it manually, or push a desktop-v<version> tag to publish a release).
 build-desktop:
-	@echo "apps/desktop has no GUI or packaging yet -- see docs/PROJECT.md §10" >&2; exit 1
+	cd apps/desktop && $(UVT) '.[dev]' python tools/fetch_tessdata.py
+	cd apps/desktop && $(UVT) '.[dev]' pyinstaller packaging/khmerclip.spec --noconfirm
 
 check: check-eval check-tesseract check-trocr check-desktop check-mac-tools check-mac
 	@echo "make check: all suites passed"

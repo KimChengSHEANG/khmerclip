@@ -8,7 +8,7 @@ Last verified against the tree on 2026-10-10 (commit `21a117b`, after merging `f
 
 ## 1. What the project is
 
-KhmerClip is a menu-bar app for macOS that runs OCR on any region of the screen. It is a TextSniper-style tool built mainly for **Khmer** text and for mixed Khmer/English text. Apple's Vision framework doesn't support Khmer (`VNRecognizeTextRequest` doesn't list it), so the app ships its own OCR engines. This repo contains the app, the training code for those engines, and an in-progress Windows/Linux port (§10).
+KhmerClip is a menu-bar app for macOS that runs OCR on any region of the screen. It is a TextSniper-style tool built mainly for **Khmer** text and for mixed Khmer/English text. Apple's Vision framework doesn't support Khmer (`VNRecognizeTextRequest` doesn't list it), so the app ships its own OCR engines. This repo contains the app, the training code for those engines, and the Windows/Linux port (§10).
 
 App features:
 - drag-select screen capture
@@ -45,7 +45,7 @@ khmerclip/
 │   ├── tools/trocr/             CoreML converter: convert.py, kv_decoder.py, export_tokenizer.py, tests/
 │   ├── Vendor/                  engines + models (only scripts/config in git, see §9.2)
 │   └── raw_models/              Hugging Face checkpoints for CoreML conversion (gitignored)
-├── apps/desktop/                Windows/Linux app (Python 3.12, PySide6, onnxruntime), in progress (§10)
+├── apps/desktop/                Windows/Linux app (Python 3.12, PySide6, onnxruntime) (§10)
 ├── training/
 │   ├── trocr/                   TrOCR fine-tuning (HF Transformers, CUDA) + synthetic renderer
 │   ├── tesseract/               Tesseract khm fine-tune (tesstrain in Docker, CPU)
@@ -477,7 +477,7 @@ After any change to models or the venv, **rebuild**. `Vendor/` is copied into th
 | `~/khm-tesstrain/.venv` | training server, via `UV_PROJECT_ENVIRONMENT` in `training/tesseract/Makefile` | Tesseract ground-truth export |
 | throwaway uv envs (Python 3.12, uv-managed) | created by `make check` | Running each Python test suite in isolation |
 
-From the repo root, `make build` builds every app that can be built on this machine. Today that's only the macOS app (`build-mac`, the same Debug build as `make -C apps/mac build`). `make build-desktop` exits with an error until the Windows/Linux GUI and packaging exist (§10). Those artifacts will come from CI, because PyInstaller can't cross-compile.
+From the repo root, `make build` builds every app that can be built on this machine. Today that's only the macOS app (`build-mac`, the same Debug build as `make -C apps/mac build`). `make build-desktop` freezes `apps/desktop` for the current OS into `apps/desktop/dist/KhmerClip/` (PyInstaller onedir). PyInstaller can't cross-compile, so the Windows installer and Linux AppImage come from CI (§10).
 
 ### 9.5 `make check` (all tests)
 
@@ -496,27 +496,27 @@ Each Python suite runs through `uv run --isolated --no-project --managed-python 
 
 ---
 
-## 10. Desktop app for Windows + Linux (`apps/desktop`, in progress)
+## 10. Desktop app for Windows + Linux (`apps/desktop`)
 
 Spec: `docs/superpowers/specs/2026-10-03-khmerclip-desktop-windows-linux-design.md`. Plan: `docs/superpowers/plans/2026-10-03-khmerclip-desktop-windows-linux.md`. `apps/mac` is untouched by this work.
 
 **Stack.** Python 3.12 (`<3.13`), PySide6-Essentials 6.8, onnxruntime (CPU), `platformdirs`, `pynput` (hotkeys on Windows/X11), `jeepney` (Wayland portal). One codebase for both OSes.
 
-**Planned v1:** tray app, region capture, OCR, auto-copy, result popup, history, preferences, image-file OCR, launch at login, TrOCR (ONNX, downloaded on first use), daily update check against the public `KimChengSHEANG/khmerclip-releases` GitHub repo. Out of v1: QR/barcode, EasyOCR, TTS, translate, window picker.
+**v1 features:** tray app, region capture, OCR, auto-copy, result popup, history, preferences, image-file OCR, launch at login, TrOCR (ONNX, downloaded on first use), daily update check against the public `KimChengSHEANG/khmerclip-releases` GitHub repo. Out of v1: QR/barcode, EasyOCR, TTS, translate, window picker.
 
-**Implemented so far (first 4 plan tasks):**
-
-| Module | What it does |
+| Area | Modules |
 |---|---|
-| `khmerclip/paths.py` | Per-user config/data dirs via `platformdirs` |
-| `khmerclip/prefs.py` | JSON-backed preferences (`prefs.json`), atomic UTF-8 writes |
-| `khmerclip/history.py` | Scan history (`history.json`, max 200, newest first). A corrupt file moves to `.bak` instead of crashing |
-| `khmerclip/download.py` | Checksum-verified, cancellable downloader (`.part` → SHA-256 → atomic rename) |
-| `khmerclip/ocr/tesseract.py` | Tesseract subprocess (PNG via stdin, `-l khm+eng --psm 6`) with pinned tessdata |
-| `khmerclip/formatter.py`, `errors.py` | Output formatting, error types |
-| `tools/fetch_tessdata.py` | Fetches the pinned `tessdata_fast` files |
+| Persistence | `paths.py` (platformdirs), `prefs.py` (`prefs.json`), `history.py` (`history.json`, max 200; corrupt file → `.bak`) |
+| OCR | `ocr/tesseract.py` (subprocess, pinned `tessdata_fast`), `ocr/trocr.py` (onnxruntime greedy decode), `ocr/preprocess.py` + `ocr/tokenizer.py` (ports of the mac `TrOCREngine`/`TrOCRTokenizer`), `ocr/trocr_models.py` + committed `trocr_manifest.json` |
+| Capture | `capture/overlay.py` (Qt frozen-screenshot selector, Windows/X11), `capture/portal.py` (Wayland `org.freedesktop.portal.Screenshot`), `capture/geometry.py` (DPI-correct crop, backend choice) |
+| System | `hotkey.py` (pynput; Wayland users bind `khmerclip --capture`), `single_instance.py` (QLocalSocket command channel), `autostart.py` (HKCU Run key / XDG autostart), `updater.py` |
+| UI | `ui/app.py` (controller, tray, `run_gui`), `ui/popup.py`, `ui/history_window.py`, `ui/prefs_window.py`, `ui/image_window.py`, `ui/worker.py`, `ui/fonts.py` |
+| Tools | `tools/fetch_tessdata.py`, `tools/export_onnx.py` (checkpoint → ONNX, parity-checked), `tools/publish_models.py` (HF upload + manifest pin) |
+| Packaging | `packaging/khmerclip.spec` (PyInstaller), `packaging/windows/khmerclip.iss` (Inno Setup), `packaging/linux/build_appimage.sh` |
 
-**Not built yet:** the Qt GUI (overlay capture, Wayland portal, tray, popup, windows), the TrOCR ONNX engine and export tool, the updater, autostart, hotkeys, packaging (PyInstaller, Inno Setup, AppImage) and the GitHub Actions workflow.
+**Builds.** `make build-desktop` freezes for the current OS. Windows/Linux installers come from `.github/workflows/desktop.yml`: `test` and `build` run on PRs and `workflow_dispatch`; pushing a `desktop-v<version>` tag also publishes `v<version>` to `KimChengSHEANG/khmerclip-releases` (needs the `RELEASES_TOKEN` secret). Full details in `apps/desktop/README.md`.
+
+**TrOCR model.** `trocr_manifest.json` is empty until `tools/publish_models.py` uploads the ONNX export to `KimChengSHEANG/khmerclip-trocr-khmer-onnx`; until then the app offers Tesseract only. Test a local export with `KHMERCLIP_TROCR_DIR=exported/khmer`.
 
 ```bash
 cd apps/desktop
@@ -575,7 +575,7 @@ See §5.3 for the full pipeline. For a quick smoke run, use `khmer-ocr-prepare -
 5. **Tesseract fine-tune blocked** (§3.3): the smoke BCER didn't improve, and the labels hit `Encoding of string failed` and contain ZWSP. Clean the labels before a full run.
 6. **Stale `apps/mac/Vendor/trocr/convert.py` / `export_tokenizer.py`** are still tracked even though `tools/trocr/` replaced them. Delete them along with their `.gitignore` exceptions.
 7. **Checkpoints before 2026-10 trained on the SoyVitou test set** (§4.3). The loader is fixed, but their printed CER, and v1's printed/mixed deltas vs init, are optimistic.
-8. **Desktop app is partial** (§10). There's no GUI or packaging yet.
+8. **Desktop app is unreleased** (§10). The CI workflow hasn't run on GitHub yet, the TrOCR model isn't published, and the Wayland flow is untested on real hardware.
 9. **`docs/superpowers/` is tracked again.** The `feat/trocr-finetune-data` merge removed its `.gitignore` line (added in `151bbd6`), so plans and specs are committed. Restore the line if they should stay local.
 10. **Sparkle.** `SUFeedURL` is a placeholder (`https://example.com/...`), and there is no `SUPublicEDKey`. To ship updates, host an appcast, generate EdDSA keys, and sign releases.
 11. **Distribution.** There is no Developer ID signing or notarization yet. See `apps/mac/README.md` for the archive → export → `notarytool` → `stapler` steps.
