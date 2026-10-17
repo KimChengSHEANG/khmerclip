@@ -1,6 +1,7 @@
 from collections.abc import Callable
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QUrl
+from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (QHBoxLayout, QListWidget, QListWidgetItem, QMessageBox, QPushButton,
                                QVBoxLayout, QWidget)
 
@@ -25,6 +26,14 @@ class HistoryWindow(QWidget):
             button = QPushButton(label)
             button.clicked.connect(slot)
             buttons.addWidget(button)
+        # Only meaningful for scans whose image was kept (Preferences > Keep capture images).
+        self.flag_button = QPushButton("Flag as Wrong")
+        self.flag_button.clicked.connect(self.flag_selected)
+        self.feedback_button = QPushButton("Feedback Folder")
+        self.feedback_button.clicked.connect(self.open_feedback)
+        buttons.addWidget(self.flag_button)
+        buttons.addWidget(self.feedback_button)
+        self.list.currentItemChanged.connect(lambda *_: self._update_flag_button())
         layout = QVBoxLayout(self)
         layout.addWidget(self.list)
         layout.addLayout(buttons)
@@ -37,6 +46,8 @@ class HistoryWindow(QWidget):
             item.setData(Qt.ItemDataRole.UserRole, record.id)
             item.setToolTip(record.date)
             self.list.addItem(item)
+        self._update_flag_button()
+        self.feedback_button.setVisible(self.store.feedback_dir.is_dir())
 
     def _selected(self) -> ScanRecord | None:
         item = self.list.currentItem()
@@ -48,6 +59,22 @@ class HistoryWindow(QWidget):
     def copy_selected(self) -> None:
         if record := self._selected():
             self._copy(record.text)
+
+    def _update_flag_button(self) -> None:
+        record = self._selected()
+        self.flag_button.setVisible(any(self.store.has_capture(r.id) for r in self.store.records))
+        flagged = record is not None and self.store.is_flagged(record.id)
+        self.flag_button.setText("Flagged" if flagged else "Flag as Wrong")
+        self.flag_button.setEnabled(record is not None and self.store.has_capture(record.id) and not flagged)
+
+    def flag_selected(self) -> None:
+        if record := self._selected():
+            self.store.flag(record.id)
+            self._update_flag_button()
+            self.feedback_button.setVisible(True)
+
+    def open_feedback(self) -> None:
+        QDesktopServices.openUrl(QUrl.fromLocalFile(str(self.store.feedback_dir)))
 
     def delete_selected(self) -> None:
         if record := self._selected():

@@ -107,6 +107,12 @@ Facebook, PDFs, Telegram, Word, menus, dark mode and different zoom levels.
    python scripts/draft_real_fixtures.py ~/Desktop/khmer-captures
    ```
 
+   Or point it at the app's flagged clips (turn on "Keep capture images for
+   accuracy feedback", then "Flag as Wrong" in History). Mac:
+   `~/Library/Application Support/KhmerClip/feedback`; desktop: History >
+   Feedback Folder. Those use the app's own OCR text as the draft, so no
+   OCRBench is needed.
+
    New images (deduplicated by content) land in `fixtures_real/real/`, with
    `"verified": false` rows in `fixtures_real/labels.jsonl`. Rerun it any time
    you add screenshots.

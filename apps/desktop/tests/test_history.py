@@ -45,3 +45,29 @@ def test_wrong_shape_is_quarantined(tmp_path):
     path.write_text(json.dumps({"text": "x"}), encoding="utf-8")
     assert HistoryStore(path).records == []
     assert (tmp_path / "history.json.bak").exists()
+
+
+def test_captures_are_kept_flagged_and_cleaned_up(tmp_path):
+    from PIL import Image
+
+    store = HistoryStore(tmp_path / "h.json")
+    plain, kept = ScanRecord("no image"), ScanRecord("ក")
+    store.add(plain)
+    store.add(kept, image=Image.new("RGB", (8, 4), "white"), meta={"ocr_text": "ក", "engine": "trocr"})
+    assert not store.has_capture(plain.id) and store.has_capture(kept.id)
+
+    store.flag(kept.id)
+    assert store.is_flagged(kept.id)
+    assert json.loads((tmp_path / "feedback" / f"{kept.id}.json").read_text(encoding="utf-8"))["ocr_text"] == "ក"
+
+    store.remove(kept.id)
+    assert not store.has_capture(kept.id)
+    assert store.is_flagged(kept.id)  # feedback survives the history
+
+    for i in range(HistoryStore.MAX_RECORDS + 1):  # the oldest capture falls off with its record
+        store.add(ScanRecord(str(i)), image=Image.new("RGB", (2, 2)) if i == 0 else None)
+    assert list((tmp_path / "captures").glob("*.png")) == []
+
+    store.add(ScanRecord("x"), image=Image.new("RGB", (2, 2)))
+    store.clear()
+    assert not (tmp_path / "captures").exists()

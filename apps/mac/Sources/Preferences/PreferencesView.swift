@@ -25,6 +25,7 @@ struct PreferencesView: View {
                 Toggle("Preserve linebreaks", isOn: $preferences.preserveLinebreaks)
                 Toggle("Show result popup", isOn: $preferences.showResultHUD)
                 Toggle("Play sound on capture", isOn: $preferences.playCaptureSound)
+                Toggle("Keep capture images for accuracy feedback", isOn: $preferences.keepCaptureImages)
                 Toggle("Launch at login", isOn: Binding(
                     get: { preferences.launchAtLogin },
                     set: { newValue in

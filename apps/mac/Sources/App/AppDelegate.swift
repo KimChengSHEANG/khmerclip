@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import SwiftUI
 import MASShortcut
 import Carbon.HIToolbox
@@ -13,6 +14,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var historyWindowController: NSWindowController?
     private var captureMenuItem: NSMenuItem!
     private var preserveLinebreaksMenuItem: NSMenuItem!
+    private var keepCapturesSubscription: AnyCancellable?
     /// "Check for Updates…" opens the GitHub release page; the app never updates itself.
     static let releasesURL = URL(string: "https://github.com/KimChengSHEANG/khmerclip/releases/latest")!
 
@@ -20,6 +22,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         coordinator = CaptureCoordinator(preferences: preferences, historyStore: historyStore)
         setUpStatusItem()
         registerHotKeys()
+        // Turning "Keep capture images" off deletes the images already kept.
+        keepCapturesSubscription = preferences.$keepCaptureImages.dropFirst().filter { !$0 }
+            .sink { [historyStore] _ in historyStore.purgeCaptures() }
 
         coordinator.onOCRProgress = { [weak self] info in
             OCRProgressController.update(info: info) { self?.coordinator.cancelCapture() }

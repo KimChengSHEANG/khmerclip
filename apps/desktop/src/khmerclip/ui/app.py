@@ -109,7 +109,7 @@ class Controller(QObject):
             return
         dialog = self._progress_dialog("Reading text…")
         self.submit(lambda progress, cancel: recognize(image, engine, progress, cancel),
-                    on_done=self.handle_text, dialog=dialog)
+                    on_done=lambda text: self.handle_text(text, image=image), dialog=dialog)
 
     def _trocr_ready(self, image) -> bool:
         """True if TrOCR can run now. Otherwise explains or offers the one-time download
@@ -130,16 +130,27 @@ class Controller(QObject):
                     on_done=lambda _dir: self.run_ocr(image), dialog=dialog)
         return False
 
-    def handle_text(self, text: str, kind: str = "text") -> None:
+    def handle_text(self, text: str, kind: str = "text", image=None) -> None:
         if not text.strip():
             self.popup.show_message("No text found")
             return
         formatted = apply(text, self.prefs.preserve_linebreaks)
         if self.prefs.auto_copy:
             self.copy(formatted)
-        self.history.add(ScanRecord(formatted, kind))
+        record = ScanRecord(formatted, kind)
+        if self.prefs.keep_captures and image is not None:
+            self.history.add(record, image=image, meta=self._capture_meta(text, record))
+        else:
+            self.history.add(record)
         if self.prefs.show_result:
             self.popup.show_text(formatted)
+
+    def _capture_meta(self, text: str, record: ScanRecord) -> dict:
+        meta = {"ocr_text": text, "engine": self.prefs.engine, "app_version": __version__,
+                "date": record.date, "preserve_linebreaks": self.prefs.preserve_linebreaks}
+        if self.prefs.engine == Engine.TROCR:
+            meta["model_version"] = trocr_models.load_manifest().version
+        return meta
 
     def handle_error(self, error: BaseException) -> None:
         if isinstance(error, Cancelled):
@@ -271,6 +282,10 @@ class TrayApp(QObject):
     def _pref_changed(self, name: str) -> None:
         if name == "hotkey" and not self.register_hotkey():
             self.c.popup.show_message("That shortcut couldn't be registered. Try another one.")
+        elif name == "keep_captures" and not self.c.prefs.keep_captures:
+            self.c.history.purge_captures()
+            if self.history_window is not None:
+                self.history_window.refresh()
         elif name == "launch_at_login":
             try:
                 autostart.set_enabled(self.c.prefs.launch_at_login)

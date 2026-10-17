@@ -15,6 +15,7 @@ CHECKS = (
     ("preserve_linebreaks", "Preserve line breaks"),
     ("launch_at_login", "Launch at login"),
     ("check_updates", "Check for updates daily"),
+    ("keep_captures", "Keep capture images for accuracy feedback"),
 )
 
 

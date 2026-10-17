@@ -1,3 +1,4 @@
+import json
 import threading
 
 import pytest
@@ -97,3 +98,18 @@ def test_tray_menu_and_commands(controller, monkeypatch):
     assert captures == [1]
     tray.on_command("show")
     assert tray.prefs_window is not None and tray.prefs_window.isVisible()
+
+
+def test_keep_captures_saves_image_with_ocr_details(controller):
+    image = Image.new("RGB", (20, 20), "white")
+    controller.handle_text("ក\nខ", image=image)
+    assert not controller.history.has_capture(controller.history.records[0].id)  # off by default
+
+    controller.prefs.keep_captures = True
+    controller.prefs.preserve_linebreaks = False
+    controller.handle_text("ក\nខ", image=image)
+    record = controller.history.records[0]
+    assert controller.history.has_capture(record.id)
+    meta = json.loads((controller.history.captures_dir / f"{record.id}.json").read_text(encoding="utf-8"))
+    assert meta["ocr_text"] == "ក\nខ" and record.text == "ក ខ"  # raw OCR kept, not the formatted text
+    assert meta["engine"] == "tesseract" and meta["preserve_linebreaks"] is False

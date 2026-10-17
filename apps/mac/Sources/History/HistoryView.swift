@@ -8,6 +8,9 @@ struct HistoryView: View {
             HStack {
                 Text("Scan History").font(.headline)
                 Spacer()
+                if FileManager.default.fileExists(atPath: ScanHistoryStore.feedbackDir.path) {
+                    Button("Feedback Folder") { NSWorkspace.shared.open(ScanHistoryStore.feedbackDir) }
+                }
                 Button("Clear") { store.clear() }
                     .disabled(store.records.isEmpty)
             }
@@ -39,6 +42,13 @@ struct HistoryView: View {
                             Button("Copy") { ClipboardManager.copy(record.text) }
                             Button("Speak") { TextToSpeechManager.shared.speak(record.text) }
                             Button("Translate") { TranslateWindowPresenter.show(text: record.text) }
+                            if store.hasCapture(record.id) {
+                                if store.isFlagged(record.id) {
+                                    Button("Flagged") {}.disabled(true)
+                                } else {
+                                    Button("Flag as Wrong") { store.flag(record.id) }
+                                }
+                            }
                             Divider()
                             Button("Delete", role: .destructive) { store.remove(record.id) }
                         }

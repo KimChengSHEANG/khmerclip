@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 import uuid
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
@@ -21,24 +22,61 @@ class ScanRecord:
 
 
 class HistoryStore:
+    """Scan history, plus (opt-in) each capture's image in ``captures/<id>.png`` with a
+    ``<id>.json`` of OCR details. "Flag as wrong" copies that pair into ``feedback/`` for the
+    eval set (training/eval/scripts/draft_real_fixtures.py). Same layout as the Mac app."""
+
     MAX_RECORDS = 200
 
     def __init__(self, path: Path | None = None):
         self.path = path or paths.data_dir() / "history.json"
+        self.captures_dir = self.path.parent / "captures"
+        self.feedback_dir = self.path.parent / "feedback"
         self.records: list[ScanRecord] = self._load()
 
-    def add(self, record: ScanRecord) -> None:
+    def add(self, record: ScanRecord, image=None, meta: dict | None = None) -> None:
+        """``image`` (PIL) is kept with ``meta`` only when given — the caller checks the pref."""
+        if image is not None:
+            self.captures_dir.mkdir(parents=True, exist_ok=True)
+            image.save(self.captures_dir / f"{record.id}.png")
+            paths.atomic_write_text(self.captures_dir / f"{record.id}.json",
+                                    json.dumps(meta or {}, ensure_ascii=False, indent=1))
         self.records.insert(0, record)
+        for dropped in self.records[self.MAX_RECORDS:]:
+            self._delete_capture(dropped.id)
         del self.records[self.MAX_RECORDS:]
         self._save()
 
     def remove(self, record_id: str) -> None:
         self.records = [r for r in self.records if r.id != record_id]
+        self._delete_capture(record_id)
         self._save()
 
     def clear(self) -> None:
         self.records = []
+        self.purge_captures()
         self._save()
+
+    def has_capture(self, record_id: str) -> bool:
+        return (self.captures_dir / f"{record_id}.png").is_file()
+
+    def is_flagged(self, record_id: str) -> bool:
+        return (self.feedback_dir / f"{record_id}.png").is_file()
+
+    def flag(self, record_id: str) -> None:
+        """Copy the capture pair into feedback/. Flagged clips outlive the history."""
+        self.feedback_dir.mkdir(parents=True, exist_ok=True)
+        for suffix in (".png", ".json"):
+            src = self.captures_dir / f"{record_id}{suffix}"
+            if src.is_file():
+                shutil.copy2(src, self.feedback_dir / src.name)
+
+    def purge_captures(self) -> None:
+        shutil.rmtree(self.captures_dir, ignore_errors=True)
+
+    def _delete_capture(self, record_id: str) -> None:
+        for suffix in (".png", ".json"):
+            (self.captures_dir / f"{record_id}{suffix}").unlink(missing_ok=True)
 
     def _load(self) -> list[ScanRecord]:
         try:

@@ -44,3 +44,19 @@ def test_add_images_prefills_dedupes_and_stays_unverified(tmp_path: Path):
     (out / "labels.jsonl").write_text("\n".join([json.dumps(first)] + lines[1:]) + "\n", encoding="utf-8")
     with pytest.warns(UserWarning, match="skipped 1"):
         assert [i.id for i in load_fixtures(out)] == ["real-001"]
+
+
+def test_flagged_app_capture_uses_its_own_ocr_text(tmp_path: Path):
+    src, out = tmp_path / "feedback", tmp_path / "out"
+    src.mkdir()
+    Image.new("RGB", (20, 10), "white").save(src / "abc.png")
+    (src / "abc.json").write_text(json.dumps({"ocr_text": "ក\nខ ", "engine": "trocr", "app_version": "1.2"}),
+                                  encoding="utf-8")
+    Image.new("RGB", (20, 10), "black").save(src / "plain.png")
+
+    rows = draft.add_images(src, out, lambda paths: [f"pred-{p.stem}" for p in paths])
+    by_source = {r["source"]: r for r in rows}
+    assert by_source["abc.png"]["text"] == "ក ខ"  # space-joined lines, like the labels
+    assert by_source["abc.png"]["app"] == {"engine": "trocr", "app_version": "1.2"}
+    assert by_source["plain.png"]["text"] == "pred-real-002"  # no sidecar -> recognizer
+    assert "app: trocr/1.2" in (out / "review.md").read_text(encoding="utf-8")

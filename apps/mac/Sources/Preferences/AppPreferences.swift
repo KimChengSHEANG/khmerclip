@@ -20,6 +20,10 @@ final class AppPreferences: ObservableObject {
     @Published var preserveLinebreaks: Bool {
         didSet { UserDefaults.standard.set(preserveLinebreaks, forKey: Keys.preserveLinebreaks) }
     }
+    /// Keep each capture's image with its history entry so wrong results can be flagged.
+    @Published var keepCaptureImages: Bool {
+        didSet { UserDefaults.standard.set(keepCaptureImages, forKey: Keys.keepCaptureImages) }
+    }
 
     /// Defaults keys MASShortcutView/MASShortcutBinder read and write shortcuts under.
     enum ShortcutKeys {
@@ -35,6 +39,7 @@ final class AppPreferences: ObservableObject {
         static let launchAtLogin = "launchAtLogin"
         static let ocrEngine = "ocrEngine"
         static let preserveLinebreaks = "preserveLinebreaks"
+        static let keepCaptureImages = "keepCaptureImages"
     }
 
     init() {
@@ -45,5 +50,6 @@ final class AppPreferences: ObservableObject {
         self.launchAtLogin = defaults.object(forKey: Keys.launchAtLogin) as? Bool ?? false
         self.ocrEngine = (defaults.string(forKey: Keys.ocrEngine)).flatMap(OCREngineKind.init) ?? .tesseract
         self.preserveLinebreaks = defaults.object(forKey: Keys.preserveLinebreaks) as? Bool ?? true
+        self.keepCaptureImages = defaults.object(forKey: Keys.keepCaptureImages) as? Bool ?? false
     }
 }

@@ -69,7 +69,7 @@ final class CaptureCoordinator {
                 if saveFixture {
                     let text = try await TesseractEngine.recognizeText(in: image)
                     try self.writeFixture(image: image, text: text)
-                    await self.handleResult(text: text, kind: .text)
+                    await self.handleResult(text: text, kind: .text, image: image, engine: .tesseract)
                 } else {
                     try await self.recognize(image: image, mode: mode)
                 }
@@ -93,7 +93,7 @@ final class CaptureCoordinator {
                 engine: preferences.ocrEngine,
                 progress: { [onOCRProgress] info in onOCRProgress?(info) }
             )
-            await handleResult(text: text, kind: .text)
+            await handleResult(text: text, kind: .text, image: image, engine: preferences.ocrEngine)
         case .barcode:
             let payloads = try await BarcodeEngine.detectPayloads(in: image)
             await handleResult(text: payloads.joined(separator: "\n"), kind: .barcode)
@@ -104,7 +104,10 @@ final class CaptureCoordinator {
         await handleFailure(error)
     }
 
-    private func handleResult(text: String, kind: ScanRecord.Kind) async {
+    /// `image`/`engine` are only given for text scans; the image is kept with the
+    /// history entry when "Keep capture images" is on.
+    private func handleResult(text: String, kind: ScanRecord.Kind,
+                              image: CGImage? = nil, engine: OCREngineKind? = nil) async {
         guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             hudWindowController = HUDWindowController.showMessage("No text found")
             return
@@ -113,7 +116,18 @@ final class CaptureCoordinator {
         if preferences.autoCopyToClipboard {
             ClipboardManager.copy(formatted)
         }
-        historyStore.add(ScanRecord(text: formatted, kind: kind))
+        let record = ScanRecord(text: formatted, kind: kind)
+        if preferences.keepCaptureImages, let image, let engine {
+            historyStore.add(record, image: image, meta: [
+                "ocr_text": text,
+                "engine": engine.rawValue,
+                "app_version": Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "",
+                "date": ISO8601DateFormatter().string(from: record.date),
+                "preserve_linebreaks": preferences.preserveLinebreaks,
+            ])
+        } else {
+            historyStore.add(record)
+        }
         if preferences.showResultHUD {
             hudWindowController = HUDWindowController.showResult(text: formatted)
         }
