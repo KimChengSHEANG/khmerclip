@@ -1,0 +1,324 @@
+"""Tray app wiring: capture -> OCR (worker thread) -> clipboard/history/popup."""
+
+import os
+import sys
+import time
+from collections.abc import Callable, Mapping
+from functools import partial
+
+from PySide6.QtCore import QObject, QThreadPool, QTimer, QUrl, Signal, Slot
+from PySide6.QtGui import QAction, QDesktopServices, QGuiApplication, QIcon
+from PySide6.QtWidgets import QApplication, QMenu, QMessageBox, QProgressDialog, QSystemTrayIcon
+
+from khmerclip import __version__, autostart, updater
+from khmerclip.capture import portal
+from khmerclip.capture.geometry import capture_backend
+from khmerclip.capture.overlay import RegionSelector
+from khmerclip.errors import Cancelled, KhmerClipError
+from khmerclip.formatter import apply
+from khmerclip.history import HistoryStore, ScanRecord
+from khmerclip.hotkey import HotkeyListener, pynput_to_qt
+from khmerclip.ocr import Engine, recognize, trocr_models
+from khmerclip.paths import APP_NAME, resource_dir
+from khmerclip.prefs import Prefs
+from khmerclip.single_instance import CommandServer, send_command
+from khmerclip.ui.history_window import HistoryWindow
+from khmerclip.ui.image_window import ImageOCRWindow
+from khmerclip.ui.popup import ResultPopup
+from khmerclip.ui.prefs_window import PrefsWindow
+from khmerclip.ui.worker import Task
+
+
+def _update_progress(dialog: QProgressDialog, value: object) -> None:
+    if isinstance(value, tuple):  # (bytes_done, bytes_total) from a download
+        done, total = value
+        dialog.setValue(int(done * 1000 / max(1, total)))
+    else:
+        dialog.setLabelText(str(value))
+
+
+def _present(window) -> None:
+    window.show()
+    window.raise_()
+    window.activateWindow()
+
+
+def preferred_qpa(platform: str, env: Mapping[str, str]) -> str | None:
+    """Run Qt under XWayland when available: a native-Wayland background app can't reliably
+    set the clipboard (no focused surface) or position its popup. Capture still goes through
+    the portal because capture_backend() reads XDG_SESSION_TYPE, not the Qt platform."""
+    if platform.startswith("linux") and not env.get("QT_QPA_PLATFORM") and env.get("DISPLAY"):
+        return "xcb"
+    return None
+
+
+class _Relay(QObject):
+    """Receives one Task's signals on the GUI thread. Bound @Slot methods of a QObject that
+    lives on the GUI thread are guaranteed queued delivery; bare closures are not."""
+
+    def __init__(self, on_progress, on_done, on_failed):
+        super().__init__()
+        self._on_progress, self._on_done, self._on_failed = on_progress, on_done, on_failed
+
+    @Slot(object)
+    def progress(self, value) -> None:
+        self._on_progress(value)
+
+    @Slot(object)
+    def done(self, result) -> None:
+        self._on_done(result)
+
+    @Slot(object)
+    def failed(self, error) -> None:
+        self._on_failed(error)
+
+
+class Controller(QObject):
+    capture_requested = Signal()  # emitted from the hotkey thread / IPC; delivered on the GUI thread
+
+    def __init__(self, prefs: Prefs, history: HistoryStore, set_clipboard: Callable[[str], None] | None = None):
+        super().__init__()
+        self.prefs, self.history = prefs, history
+        self._set_clipboard = set_clipboard or (lambda text: QGuiApplication.clipboard().setText(text))
+        self.popup = ResultPopup()
+        self.popup.copy_requested.connect(self.copy)
+        self.selector = RegionSelector()
+        self.selector.selected.connect(self.run_ocr)
+        self._tasks: dict[Task, _Relay] = {}
+        self.capture_requested.connect(self.start_capture)
+
+    # --- capture -------------------------------------------------------------
+    def start_capture(self) -> None:
+        if self.prefs.engine == Engine.TROCR:
+            from khmerclip.ocr import trocr
+
+            self.submit(lambda progress, cancel: trocr.preload())  # warm up while the user selects
+        if capture_backend() == "portal":
+            self.submit(lambda progress, cancel: portal.screenshot(), on_done=self._portal_done)
+        else:
+            self.selector.start()
+
+    def _portal_done(self, image) -> None:
+        if image is not None:  # None = user cancelled the portal dialog
+            self.run_ocr(image)
+
+    # --- OCR -----------------------------------------------------------------
+    def run_ocr(self, image) -> None:
+        engine = Engine(self.prefs.engine)
+        if engine is Engine.TROCR and not self._trocr_ready(image):
+            return
+        dialog = self._progress_dialog("Reading text…")
+        self.submit(lambda progress, cancel: recognize(image, engine, progress, cancel),
+                    on_done=self.handle_text, dialog=dialog)
+
+    def _trocr_ready(self, image) -> bool:
+        """True if TrOCR can run now. Otherwise explains or offers the one-time download
+        (which re-runs this OCR when finished) and returns False."""
+        manifest = trocr_models.load_manifest()
+        if os.environ.get("KHMERCLIP_TROCR_DIR") or trocr_models.is_installed(manifest):
+            return True
+        if not manifest.available:
+            self.popup.show_message("The TrOCR model isn't published yet. Switch to Tesseract in Preferences.")
+            return False
+        size_mb = max(1, manifest.total_size // 1_000_000)
+        answer = QMessageBox.question(None, APP_NAME, f"TrOCR needs a one-time {size_mb} MB download. Download now?")
+        if answer != QMessageBox.StandardButton.Yes:
+            return False
+        dialog = self._progress_dialog("Downloading TrOCR model…", maximum=1000)
+        self.submit(lambda progress, cancel: trocr_models.install(
+                        manifest, progress=lambda done, total: progress((done, total)), cancel=cancel),
+                    on_done=lambda _dir: self.run_ocr(image), dialog=dialog)
+        return False
+
+    def handle_text(self, text: str, kind: str = "text") -> None:
+        if not text.strip():
+            self.popup.show_message("No text found")
+            return
+        formatted = apply(text, self.prefs.preserve_linebreaks)
+        if self.prefs.auto_copy:
+            self.copy(formatted)
+        self.history.add(ScanRecord(formatted, kind))
+        if self.prefs.show_result:
+            self.popup.show_text(formatted)
+
+    def handle_error(self, error: BaseException) -> None:
+        if isinstance(error, Cancelled):
+            return
+        message = str(error) if isinstance(error, KhmerClipError) else f"Unexpected error: {error!r}"
+        self.popup.show_message(f"Capture failed: {message}")
+
+    def copy(self, text: str) -> None:
+        self._set_clipboard(text)
+
+    # --- background work -----------------------------------------------------
+    def _progress_dialog(self, label: str, maximum: int = 0) -> QProgressDialog:
+        dialog = QProgressDialog(label, "Cancel", 0, maximum)
+        dialog.setWindowTitle(APP_NAME)
+        dialog.setMinimumDuration(400)  # quick Tesseract runs never flash a dialog
+        dialog.setAutoClose(False)
+        dialog.setAutoReset(False)
+        dialog.setValue(0)
+        return dialog
+
+    def submit(self, fn, on_done: Callable[[object], None] | None = None,
+               dialog: QProgressDialog | None = None) -> Task:
+        task = Task(fn)
+
+        def finish() -> None:
+            self._tasks.pop(task, None)
+            if dialog is not None:
+                dialog.close()
+                dialog.deleteLater()
+
+        def progress(value) -> None:
+            if dialog is not None:
+                _update_progress(dialog, value)
+
+        def done(result) -> None:
+            finish()
+            if on_done is not None:
+                on_done(result)
+
+        def failed(error) -> None:
+            finish()
+            self.handle_error(error)
+
+        relay = _Relay(progress, done, failed)
+        self._tasks[task] = relay  # keep runnable, signals and relay alive until it reports back
+        task.signals.progress.connect(relay.progress)
+        task.signals.done.connect(relay.done)
+        task.signals.failed.connect(relay.failed)
+        if dialog is not None:
+            dialog.canceled.connect(task.cancel.set)
+        QThreadPool.globalInstance().start(task)  # start only after every connection exists
+        return task
+
+
+class TrayApp(QObject):
+    def __init__(self, controller: Controller):
+        super().__init__()
+        self.c = controller
+        prefs = controller.prefs
+        self.hotkeys = HotkeyListener()
+        self.history_window: HistoryWindow | None = None
+        self.prefs_window: PrefsWindow | None = None
+        self.image_window: ImageOCRWindow | None = None
+
+        self.menu = QMenu()
+        for text, slot in (("Capture Text", controller.start_capture),
+                           ("OCR Image File…", self.show_image_window),
+                           ("History…", self.show_history),
+                           ("Preferences…", self.show_prefs),
+                           ("Check for Updates…", partial(self.check_updates, True))):
+            action = QAction(text, self.menu)
+            action.triggered.connect(lambda _checked=False, s=slot: s())
+            self.menu.addAction(action)
+        self.menu.addSeparator()
+        quit_action = QAction("Quit KhmerClip", self.menu)
+        quit_action.triggered.connect(QApplication.quit)
+        self.menu.addAction(quit_action)
+
+        self.tray = QSystemTrayIcon(QIcon(str(resource_dir() / "icon.png")))
+        self.tray.setToolTip(APP_NAME)
+        self.tray.setContextMenu(self.menu)
+        self.tray.activated.connect(self._on_activated)
+        self.tray.show()
+
+        self.hotkey_ok = self.register_hotkey()
+        if not QSystemTrayIcon.isSystemTrayAvailable():
+            self.show_prefs()  # e.g. GNOME without the AppIndicator extension: keep the app reachable
+        if not prefs.welcomed:
+            how = (f"Press {pynput_to_qt(prefs.hotkey)}" if self.hotkey_ok
+                   else "Bind “khmerclip --capture” to a keyboard shortcut")
+            self.tray.showMessage(f"{APP_NAME} is running", f"{how} or use the tray icon to capture text.")
+            prefs.welcomed = True
+            prefs.save()
+        if prefs.check_updates and updater.due(prefs.last_update_check, time.time()):
+            self.check_updates(False)
+
+    def register_hotkey(self) -> bool:
+        return self.hotkeys.start(self.c.prefs.hotkey, self.c.capture_requested.emit)
+
+    def on_command(self, command: str) -> None:
+        if command == "capture":
+            self.c.start_capture()
+        elif command == "show":
+            self.show_prefs()
+
+    def _on_activated(self, reason) -> None:
+        if reason == QSystemTrayIcon.ActivationReason.Trigger:
+            self.c.start_capture()
+
+    def show_history(self) -> None:
+        if self.history_window is None:
+            self.history_window = HistoryWindow(self.c.history, self.c.copy)
+        _present(self.history_window)
+
+    def show_prefs(self) -> None:
+        if self.prefs_window is None:
+            self.prefs_window = PrefsWindow(self.c.prefs, trocr_available=trocr_models.load_manifest().available,
+                                            hotkey_supported=capture_backend() == "qt")
+            self.prefs_window.changed.connect(self._pref_changed)
+        _present(self.prefs_window)
+
+    def show_image_window(self) -> None:
+        if self.image_window is None:
+            self.image_window = ImageOCRWindow()
+            self.image_window.image_chosen.connect(self.c.run_ocr)
+            self.image_window.failed.connect(self.c.popup.show_message)
+        _present(self.image_window)
+
+    def _pref_changed(self, name: str) -> None:
+        if name == "hotkey" and not self.register_hotkey():
+            self.c.popup.show_message("That shortcut couldn't be registered. Try another one.")
+        elif name == "launch_at_login":
+            try:
+                autostart.set_enabled(self.c.prefs.launch_at_login)
+            except (OSError, NotImplementedError) as e:
+                self.c.popup.show_message(f"Couldn't change launch at login: {e}")
+
+    def check_updates(self, manual: bool) -> None:
+        def fetch(progress, cancel):
+            payload = updater.fetch_latest()
+            return payload is not None, updater.newer_release(payload, __version__)
+
+        def done(result) -> None:
+            reachable, release = result
+            if reachable:
+                self.c.prefs.last_update_check = time.time()
+                self.c.prefs.save()
+            if release is None:
+                if manual:
+                    self.c.popup.show_message(f"{APP_NAME} {__version__} is up to date." if reachable
+                                              else "Couldn't reach the update server. Try again later.")
+                return
+            answer = QMessageBox.question(None, f"{APP_NAME} update",
+                                          f"{APP_NAME} {release.version} is available (you have {__version__}). "
+                                          "Open the download page?")
+            if answer == QMessageBox.StandardButton.Yes:
+                QDesktopServices.openUrl(QUrl(release.page_url))
+
+        self.c.submit(fetch, on_done=done)
+
+
+def run_gui(capture: bool = False) -> int:
+    if qpa := preferred_qpa(sys.platform, os.environ):
+        os.environ["QT_QPA_PLATFORM"] = qpa  # must precede QApplication
+    qapp = QApplication.instance() or QApplication(sys.argv[:1])
+    qapp.setApplicationName(APP_NAME)
+    qapp.setQuitOnLastWindowClosed(False)  # tray app: closing a window must not quit
+    qapp.setWindowIcon(QIcon(str(resource_dir() / "icon.png")))
+
+    if send_command("capture" if capture else "show"):
+        return 0  # another instance is running and took the command
+    server = CommandServer(parent=qapp)
+    server.listen()
+
+    controller = Controller(Prefs.load(), HistoryStore())
+    tray = TrayApp(controller)
+    server.command.connect(tray.on_command)
+    qapp.aboutToQuit.connect(tray.hotkeys.stop)
+    qapp.aboutToQuit.connect(server.close)  # drop client sockets before Qt tears the server down
+    if capture:
+        QTimer.singleShot(0, controller.start_capture)
+    return qapp.exec()
