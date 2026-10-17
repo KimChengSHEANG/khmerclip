@@ -264,45 +264,46 @@ enum TrOCREngine {
     }
 
     /// Splits a clip into horizontal text-line strips by row ink projection:
-    /// runs of inked rows separated by blank rows. Runs much shorter than the
-    /// tallest (a detached Khmer vowel/subscript mark, a stray dot) are merged
-    /// into the nearer neighbour rather than read as their own line. Strips
-    /// extend halfway into the surrounding gaps so marks above/below the line
-    /// stay attached. Returns [image] when there is 0 or 1 line.
+    /// runs of inked rows separated by blank rows. At normal Khmer line
+    /// heights the subscripts of one line touch the above-marks of the next,
+    /// so a run can hold several lines; those runs are first cut at the line
+    /// pitch (`touchingCuts`). Runs much shorter than the tallest (a detached
+    /// Khmer vowel/subscript mark, a stray dot) are then merged into the
+    /// nearer neighbour rather than read as their own line -- splitting first
+    /// matters, or a merged double line makes real lines look like marks.
+    /// Strips extend halfway into the surrounding gaps so marks above/below
+    /// the line stay attached. Returns [image] when there is 0 or 1 line.
+    /// Mirrors training/eval/src/khmerclip_eval/pipeline.py line_strips
+    /// (split_touching=True), which measured multi-line screen-clip CER
+    /// 0.314 -> 0.046 (training/eval/results/accuracy_v3.md).
     static func lineStrips(_ image: CGImage) -> [CGImage] {
-        guard let mask = inkMask(image) else { return [image] }
+        // Full resolution: line pitch on small screen text is only ~20 rows.
+        guard let mask = inkMask(image, scanMax: max(image.width, image.height)) else { return [image] }
+        var counts = [Double](repeating: 0, count: mask.height)
         var runs: [(lo: Int, hi: Int)] = []
         for y in 0..<mask.height {
-            let inked = (0..<mask.width).contains { mask[$0, y] }
-            if !inked { continue }
+            let n = (0..<mask.width).reduce(0) { $0 + (mask[$1, y] ? 1 : 0) }
+            counts[y] = Double(n)
+            if n == 0 { continue }
             if let last = runs.last, last.hi == y - 1 {
                 runs[runs.count - 1].hi = y
             } else {
                 runs.append((y, y))
             }
         }
-        // ponytail: fixed cutoffs. Merge a run < 35% of the tallest, or < 50%
-        // when it sits within 25% of the tallest's height of a neighbour --
-        // Khmer above-base marks form runs up to ~46% of the base line 1-3px
-        // above it (measured: the old 35%-only rule split 17/200 single-line
-        // eval fixtures), while real line gaps are far larger. Tune if
-        // headings next to small body text get merged.
-        while runs.count > 1 {
-            let tallest = runs.map { $0.hi - $0.lo + 1 }.max()!
-            func nearestGap(_ k: Int) -> Int {
-                min(k > 0 ? runs[k].lo - runs[k - 1].hi : Int.max,
-                    k < runs.count - 1 ? runs[k + 1].lo - runs[k].hi : Int.max)
-            }
-            guard let i = runs.indices.first(where: { k in
-                let h = (runs[k].hi - runs[k].lo + 1) * 100
-                return h < tallest * 35 || (h < tallest * 50 && nearestGap(k) * 4 < tallest)
-            }) else { break }
-            let gapAbove = i > 0 ? runs[i].lo - runs[i - 1].hi : Int.max
-            let gapBelow = i < runs.count - 1 ? runs[i + 1].lo - runs[i].hi : Int.max
-            let j = gapAbove <= gapBelow ? i - 1 : i + 1
-            runs[min(i, j)] = (min(runs[i].lo, runs[j].lo), max(runs[i].hi, runs[j].hi))
-            runs.remove(at: max(i, j))
+        // 3-row box smoothing, zero-padded at the ends (numpy convolve "same").
+        let profile = counts.indices.map { y in
+            ((y > 0 ? counts[y - 1] : 0) + counts[y] + (y + 1 < counts.count ? counts[y + 1] : 0)) / 3
         }
+        if !runs.isEmpty, let pitch = linePitch(profile) {
+            runs = runs.flatMap { run -> [(lo: Int, hi: Int)] in
+                let h = run.hi - run.lo + 1
+                guard Double(h) >= 1.5 * Double(pitch) else { return [run] }
+                let edges = [run.lo] + touchingCuts(Array(profile[run.lo...run.hi]), pitch: pitch).map { run.lo + $0 } + [run.hi + 1]
+                return (0..<(edges.count - 1)).map { (edges[$0], edges[$0 + 1] - 1) }
+            }
+        }
+        runs = mergeMarks(runs)
         guard runs.count > 1 else { return [image] }
 
         return runs.indices.compactMap { k in
@@ -312,6 +313,80 @@ enum TrOCREngine {
                               height: min(image.height, bottom * mask.scale) - top * mask.scale)
             return image.cropping(to: rect)
         }
+    }
+
+    /// Autocorrelation peak a line pitch needs, and how sparse (vs the run's
+    /// densest row) a cut between touching lines must be.
+    static let pitchStrength = 0.1
+    static let touchingValley = 0.2
+
+    /// Line pitch in rows: the first autocorrelation peak of the row-ink
+    /// profile above `pitchStrength`, searched between n/12 and n/1.5 rows.
+    /// nil when the clip shows no repeating line structure (one line).
+    static func linePitch(_ profile: [Double]) -> Int? {
+        let n = profile.count
+        guard n >= 8 else { return nil }
+        let mean = profile.reduce(0, +) / Double(n)
+        let x = profile.map { $0 - mean }
+        func ac(_ k: Int) -> Double { (0..<(n - k)).reduce(0) { $0 + x[$1 + k] * x[$1] } }
+        let ac0 = ac(0)
+        guard ac0 > 0 else { return nil }
+        let lo = max(4, n / 12), hi = min(n - 1, Int(Double(n) / 1.5) + 1)
+        guard lo < hi else { return nil }
+        var prev = ac(lo - 1) / ac0, cur = ac(lo) / ac0
+        for k in lo..<hi {
+            let next = ac(k + 1) / ac0
+            if cur >= prev && cur >= next && cur > pitchStrength { return k }
+            (prev, cur) = (cur, next)
+        }
+        return nil
+    }
+
+    /// Rows (relative to the run) at which to cut a run holding several
+    /// touching lines: the sparsest row near each expected boundary, kept
+    /// only when it is <= `touchingValley` x the run's densest row.
+    static func touchingCuts(_ profile: [Double], pitch: Int) -> [Int] {
+        let h = profile.count, p = Double(pitch)
+        let n = Int(((Double(h) - 0.5 * p) / p).rounded(.down)) + 1
+        guard n >= 2, let peak = profile.max() else { return [] }
+        let lineH = Double(h - (n - 1) * pitch)
+        var cuts: [Int] = []
+        for i in 1..<n {
+            let centre = Double(i - 1) * p + (p + lineH) / 2
+            let a = Int(max(1, centre - p / 3)), b = Int(min(Double(h - 1), centre + p / 3 + 1))
+            guard a < b else { continue }
+            var c = a
+            for y in a..<b where profile[y] < profile[c] { c = y }
+            if profile[c] <= touchingValley * peak { cuts.append(c) }
+        }
+        return cuts
+    }
+
+    /// ponytail: fixed cutoffs. Merge a run < 35% of the tallest, or < 50%
+    /// when it sits within 25% of the tallest's height of a neighbour --
+    /// Khmer above-base marks form runs up to ~46% of the base line 1-3px
+    /// above it (measured: the old 35%-only rule split 17/200 single-line
+    /// eval fixtures), while real line gaps are far larger. Tune if
+    /// headings next to small body text get merged.
+    static func mergeMarks(_ input: [(lo: Int, hi: Int)]) -> [(lo: Int, hi: Int)] {
+        var runs = input
+        while runs.count > 1 {
+            let tallest = runs.map { $0.hi - $0.lo + 1 }.max()!
+            func nearestGap(_ k: Int) -> Int {
+                min(k > 0 ? runs[k].lo - runs[k - 1].hi : Int.max,
+                    k < runs.count - 1 ? runs[k + 1].lo - runs[k].hi : Int.max)
+            }
+            guard let i = runs.indices.first(where: { k in
+                let h = (runs[k].hi - runs[k].lo + 1) * 100
+                return h < tallest * 35 || (h < tallest * 50 && nearestGap(k) < Int.max && nearestGap(k) * 4 < tallest)
+            }) else { break }
+            let gapAbove = i > 0 ? runs[i].lo - runs[i - 1].hi : Int.max
+            let gapBelow = i < runs.count - 1 ? runs[i + 1].lo - runs[i].hi : Int.max
+            let j = gapAbove <= gapBelow ? i - 1 : i + 1
+            runs[min(i, j)] = (min(runs[i].lo, runs[j].lo), max(runs[i].hi, runs[j].hi))
+            runs.remove(at: max(i, j))
+        }
+        return runs
     }
 
     /// RGB bytes resized exactly like PIL's `Image.resize(size, BILINEAR)` --

@@ -131,6 +131,36 @@ final class TrOCRLineSplitTests: XCTestCase {
 
         XCTAssertEqual(TrOCREngine.lineStrips(image).count, 3)
     }
+
+    /// At normal Khmer line heights the subscripts of one line touch the
+    /// above-marks of the next, so no blank row separates them. Four such
+    /// lines (mirrors training/eval/tests/test_pipeline.py touching_lines)
+    /// must still come out as four strips covering the whole image.
+    func testLineStripsSplitsTouchingLinesAtThePitch() throws {
+        let width = 260, pitch = 22, n = 4, height = n * pitch + 4
+        let ctx = try XCTUnwrap(CGContext(data: nil, width: width, height: height, bitsPerComponent: 8,
+                                          bytesPerRow: 0, space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                                          bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue))
+        ctx.setFillColor(.white)
+        ctx.fill(CGRect(x: 0, y: 0, width: width, height: height))
+        ctx.setFillColor(.black)
+        // PIL-style inclusive (x0, y0, x1, y1) boxes, y down from the top.
+        func box(_ x0: Int, _ y0: Int, _ x1: Int, _ y1: Int) {
+            ctx.fill(CGRect(x: x0, y: height - 1 - y1, width: x1 - x0 + 1, height: y1 - y0 + 1))
+        }
+        for i in 0..<n {
+            let top = 2 + i * pitch
+            box(10, top + 7, width - 10, top + 15)          // dense core band
+            box(30, top, 60, top + 6)                       // above marks
+            box(90, top + 15, 120, top + pitch + 1)         // subscripts
+            box(150, top + 15, 151, top + pitch + 8)        // bridge into the next line
+        }
+        let image = try XCTUnwrap(ctx.makeImage())
+
+        let strips = TrOCREngine.lineStrips(image)
+        XCTAssertEqual(strips.count, 4)
+        XCTAssertEqual(strips.map(\.height).reduce(0, +), height)
+    }
 }
 
 final class TrOCRPreprocessTests: XCTestCase {
