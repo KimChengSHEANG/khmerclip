@@ -20,6 +20,15 @@ DEFAULT_FIXTURES = ROOT / "fixtures"
 DEFAULT_TESS = REPO / "apps/mac/Vendor/tesseract"
 
 
+def parse_variant(spec: str) -> dict:
+    """"split_wide_at=10,crop=1" -> {"split_wide_at": 10.0, "crop": True}."""
+    out: dict = {}
+    for part in filter(None, spec.split(",")):
+        key, value = part.split("=")
+        out[key] = bool(int(value)) if key in ("crop", "normalize") else float(value)
+    return out
+
+
 def main() -> None:
     p = argparse.ArgumentParser()
     p.add_argument("--fixtures", type=Path, default=DEFAULT_FIXTURES)
@@ -27,7 +36,7 @@ def main() -> None:
         "--engine",
         action="append",
         required=True,
-        choices=["tesseract", "tesseract-ft", "trocr-hf", "trocr-coreml"],
+        choices=["tesseract", "tesseract-ft", "trocr-hf", "trocr-coreml", "trocr-pipeline"],
     )
     p.add_argument("--limit", type=int, default=None)
     p.add_argument("--out", type=Path, default=Path("bench_results.csv"))
@@ -36,6 +45,11 @@ def main() -> None:
     p.add_argument("--tesseract-ft-lang", default="khm+eng")
     p.add_argument("--trocr-model-dir", type=Path, default=None)
     p.add_argument("--trocr-coreml-bin", type=Path, default=None)
+    p.add_argument(
+        "--variant",
+        default="",
+        help="trocr-pipeline flags, e.g. split_wide_at=10,beam_gate=0.5,crop=1,normalize=1",
+    )
     p.add_argument("--compare-to", default="tesseract")
     p.add_argument("--candidate", default=None)
     args = p.parse_args()
@@ -80,6 +94,16 @@ def main() -> None:
                     raise SystemExit("--tesseract-ft-root required")
                 pred = tess_runner.recognize(
                     item.image_path, args.tesseract_ft_root, args.tesseract_ft_lang
+                )
+            elif engine == "trocr-pipeline":
+                from PIL import Image
+
+                from khmerclip_eval import pipeline
+
+                if not args.trocr_model_dir:
+                    raise SystemExit("--trocr-model-dir required")
+                pred = pipeline.recognize(
+                    Image.open(item.image_path), args.trocr_model_dir, **parse_variant(args.variant)
                 )
             elif engine == "trocr-hf":
                 from khmerclip_eval.runners import trocr_hf

@@ -1,2 +1,4 @@
 results/*.csv
 fixtures_real/
+fixtures_screen/
+screen_text.jsonl

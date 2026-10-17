@@ -6,9 +6,10 @@ import warnings
 from dataclasses import dataclass
 from pathlib import Path
 
-# "real" = app captures of real screens, kept in a separate root (fixtures_real/)
+# "real" = app captures of real screens (fixtures_real/), "screen"/"screen_long" =
+# Chrome-rendered clips (fixtures_screen/), each kept in a separate root
 # so the frozen 200-image set stays comparable across runs.
-ALLOWED_SUBSETS = frozenset({"printed", "ui", "mixed", "real"})
+ALLOWED_SUBSETS = frozenset({"printed", "ui", "mixed", "real", "screen", "screen_long"})
 
 
 @dataclass(frozen=True)
