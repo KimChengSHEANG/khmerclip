@@ -36,32 +36,94 @@ def ink_mask(image: Image.Image, scan_max: int = SCAN_MAX) -> InkMask | None:
     return InkMask((np.abs(px - bg) > THRESHOLD).any(axis=2), scale)
 
 
+PITCH_STRENGTH = 0.1   # autocorrelation peak a line pitch needs
+TOUCHING_VALLEY = 0.2  # a cut between touching lines: this sparse vs the run's densest row
+
+
+def line_pitch(profile: np.ndarray) -> int | None:
+    """Line pitch in rows: first autocorrelation peak of the row-ink profile above
+    PITCH_STRENGTH, searched between n/12 and n/1.5 rows; None for a single line."""
+    n = len(profile)
+    x = profile - profile.mean()
+    ac = np.correlate(x, x, "full")[n - 1:]
+    if n < 8 or ac[0] <= 0:
+        return None
+    ac = ac / ac[0]
+    for k in range(max(4, n // 12), min(n - 1, int(n / 1.5) + 1)):
+        if ac[k] >= ac[k - 1] and ac[k] >= ac[k + 1] and ac[k] > PITCH_STRENGTH:
+            return k
+    return None
+
+
+def touching_cuts(profile: np.ndarray, pitch: int) -> list[int]:
+    """Rows to cut a run holding several touching lines: the sparsest row near each expected
+    boundary, kept only when <= TOUCHING_VALLEY x the run's densest row."""
+    h = len(profile)
+    n = int((h - 0.5 * pitch) // pitch) + 1
+    if n < 2:
+        return []
+    line_h = h - (n - 1) * pitch
+    cuts = []
+    for i in range(1, n):
+        centre = (i - 1) * pitch + (pitch + line_h) / 2
+        a, b = int(max(1, centre - pitch / 3)), int(min(h - 1, centre + pitch / 3 + 1))
+        if a < b:
+            c = a + int(np.argmin(profile[a:b]))
+            if profile[c] <= TOUCHING_VALLEY * profile.max():
+                cuts.append(c)
+    return cuts
+
+
+def merge_marks(runs: list[list[int]]) -> list[list[int]]:
+    """A run < 35% of the tallest, or < 50% within a quarter of the tallest's height of a
+    neighbour, is a detached Khmer mark: merge it into the nearer neighbour.
+    ponytail: fixed cutoffs (same as mac); tune if headings next to small body text merge."""
+    while len(runs) > 1:
+        tallest = max(hi - lo + 1 for lo, hi in runs)
+
+        def gap(k: int) -> float:
+            return min(runs[k][0] - runs[k - 1][1] if k > 0 else math.inf,
+                       runs[k + 1][0] - runs[k][1] if k < len(runs) - 1 else math.inf)
+
+        i = next((k for k, (lo, hi) in enumerate(runs)
+                  if (hi - lo + 1) * 100 < tallest * MERGE_PERCENT
+                  or ((hi - lo + 1) * 100 < tallest * 50 and gap(k) * 4 < tallest)), None)
+        if i is None:
+            break
+        above = runs[i][0] - runs[i - 1][1] if i > 0 else math.inf
+        below = runs[i + 1][0] - runs[i][1] if i < len(runs) - 1 else math.inf
+        j = i - 1 if above <= below else i + 1
+        runs[min(i, j)] = [min(runs[i][0], runs[j][0]), max(runs[i][1], runs[j][1])]
+        del runs[max(i, j)]
+    return runs
+
+
 def line_strips(image: Image.Image) -> list[Image.Image]:
-    """Split a clip into horizontal text-line strips by row ink projection."""
-    mask = ink_mask(image)
+    """Split a clip into horizontal text-line strips by row ink projection (mac lineStrips).
+
+    Khmer subscripts often touch the next line's marks, leaving no blank row, so runs are first
+    cut at the line pitch on a full-resolution mask, then detached marks are merged in."""
+    mask = ink_mask(image, scan_max=max(image.size))
     if mask is None:
         return [image]
+    counts = mask.ink.sum(axis=1)
     runs: list[list[int]] = []
-    for y, inked in enumerate(mask.ink.any(axis=1)):
-        if not inked:
+    for y, n in enumerate(counts):
+        if not n:
             continue
         if runs and runs[-1][1] == y - 1:
             runs[-1][1] = y
         else:
             runs.append([y, y])
-    # ponytail: fixed 35%-of-tallest merge cutoff (same as mac); tune if headings next to
-    # small body text get merged.
-    while len(runs) > 1:
-        heights = [hi - lo + 1 for lo, hi in runs]
-        tallest = max(heights)
-        i = next((k for k, hgt in enumerate(heights) if hgt * 100 < tallest * MERGE_PERCENT), None)
-        if i is None:
-            break
-        gap_above = runs[i][0] - runs[i - 1][1] if i > 0 else math.inf
-        gap_below = runs[i + 1][0] - runs[i][1] if i < len(runs) - 1 else math.inf
-        j = i - 1 if gap_above <= gap_below else i + 1
-        runs[min(i, j)] = [min(runs[i][0], runs[j][0]), max(runs[i][1], runs[j][1])]
-        del runs[max(i, j)]
+    profile = np.convolve(counts.astype(float), np.ones(3) / 3, "same")
+    if runs and (pitch := line_pitch(profile)):
+        split = []
+        for lo, hi in runs:
+            cuts = touching_cuts(profile[lo:hi + 1], pitch) if hi - lo + 1 >= 1.5 * pitch else []
+            edges = [lo] + [lo + c for c in cuts] + [hi + 1]
+            split += [[edges[k], edges[k + 1] - 1] for k in range(len(edges) - 1)]
+        runs = split
+    runs = merge_marks(runs)
     if len(runs) <= 1:
         return [image]
 

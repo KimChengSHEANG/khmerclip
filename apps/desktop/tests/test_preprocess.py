@@ -76,3 +76,20 @@ def test_pixel_values_shape_and_normalization():
     assert np.allclose(arr, 1.0)
     rgba = Image.new("RGBA", (50, 20), (0, 0, 0, 255))
     assert np.allclose(pixel_values(rgba), -1.0)
+
+
+def test_line_strips_splits_touching_lines_at_the_pitch():
+    # Mirrors apps/mac TrOCRLineSplitTests.testLineStripsSplitsTouchingLinesAtThePitch: four lines
+    # whose subscripts touch the next line's marks (no blank row between them).
+    width, pitch, n = 260, 22, 4
+    img = Image.new("RGB", (width, n * pitch + 4), "white")
+    draw = ImageDraw.Draw(img)
+    for i in range(n):
+        top = 2 + i * pitch
+        draw.rectangle((10, top + 7, width - 10, top + 15), fill="black")
+        draw.rectangle((30, top, 60, top + 6), fill="black")
+        draw.rectangle((90, top + 15, 120, top + pitch + 1), fill="black")
+        draw.rectangle((150, top + 15, 151, top + pitch + 8), fill="black")
+    strips = line_strips(img)
+    assert len(strips) == 4
+    assert sum(s.height for s in strips) == img.height
