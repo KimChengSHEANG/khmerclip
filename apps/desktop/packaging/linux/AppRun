@@ -1,0 +1,5 @@
+#!/bin/sh
+# Bundled tesseract (deployed by linuxdeploy into usr/bin) wins over any system copy.
+HERE="$(dirname "$(readlink -f "$0")")"
+export PATH="$HERE/usr/bin:$PATH"
+exec "$HERE/usr/lib/khmerclip/KhmerClip" "$@"

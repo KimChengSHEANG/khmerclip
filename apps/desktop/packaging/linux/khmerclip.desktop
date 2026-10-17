@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=KhmerClip
+Comment=Khmer OCR screen capture
+Exec=KhmerClip
+Icon=khmerclip
+Categories=Utility;
+Terminal=false
