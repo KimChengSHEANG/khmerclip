@@ -1,6 +1,5 @@
 import AppKit
 import SwiftUI
-import Sparkle
 import MASShortcut
 import Carbon.HIToolbox
 
@@ -14,9 +13,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var historyWindowController: NSWindowController?
     private var captureMenuItem: NSMenuItem!
     private var preserveLinebreaksMenuItem: NSMenuItem!
-    /// Auto-update via Sparkle. SUFeedURL in Info.plist is a placeholder until
-    /// this app has a real hosted appcast — see README "Auto-update" section.
-    private let updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
+    /// "Check for Updates…" opens the GitHub release page; the app never updates itself.
+    static let releasesURL = URL(string: "https://github.com/KimChengSHEANG/khmerclip/releases/latest")!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         coordinator = CaptureCoordinator(preferences: preferences, historyStore: historyStore)
@@ -50,8 +48,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(withTitle: "Preferences…", action: #selector(showPreferences), keyEquivalent: ",")
         menu.addItem(withTitle: "Welcome / Permissions…", action: #selector(showOnboarding), keyEquivalent: "")
         menu.addItem(.separator())
-        let updateItem = menu.addItem(withTitle: "Check for Updates…", action: #selector(SPUStandardUpdaterController.checkForUpdates(_:)), keyEquivalent: "")
-        updateItem.target = updaterController
+        menu.addItem(withTitle: "Check for Updates…", action: #selector(openReleases), keyEquivalent: "")
         menu.addItem(.separator())
         let quitItem = menu.addItem(withTitle: "Quit KhmerClip", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         quitItem.target = NSApp
@@ -129,5 +126,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // its windows (including the hidden Settings-opener window) must never quit it.
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         false
+    }
+
+    @objc private func openReleases() {
+        NSWorkspace.shared.open(Self.releasesURL)
     }
 }

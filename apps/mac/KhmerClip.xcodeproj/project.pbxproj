@@ -44,7 +44,7 @@
 		8240A87A75BA64758C709283 /* OnboardingWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5404D40E839772F5E2E80BF /* OnboardingWindowController.swift */; };
 		87D1802D7FDAEA9661EE8D05 /* WindowPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84240B22CF5DC4369019FF7E /* WindowPicker.swift */; };
 		8874B577DDA552DF46293020 /* trocr in Resources */ = {isa = PBXBuildFile; fileRef = E6DEA5E0117C84B3F7FFA1D3 /* trocr */; };
-		89D02709813E8971EAEF8E6C /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 2D4CC7CBC3DC92C4FB442285 /* Sparkle */; };
+		89D02709813E8971EAEF8E6C /* MASShortcut in Frameworks */ = {isa = PBXBuildFile; productRef = 6CEB1675C9A8701A851B22C4 /* MASShortcut */; };
 		8AC42638CB9C219520CC4FEB /* ScanHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E4C8B0E890E4D78CB98AC0A /* ScanHistoryStore.swift */; };
 		8C7D5AC8D1C094DB4E95CA70 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C9B5F1471EF5A2C9F892644 /* AppDelegate.swift */; };
 		8E7C178EAC77905846106190 /* OCREngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A839A38973DE12649A2B49AE /* OCREngine.swift */; };
@@ -63,7 +63,6 @@
 		C6AF9F5EADE093C539977639 /* BarcodeEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AF42B15030FAE26DAE414CD /* BarcodeEngine.swift */; };
 		CEFB376100563168C0BEB4B7 /* OCREngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A839A38973DE12649A2B49AE /* OCREngine.swift */; };
 		D257C17027A8D9C9057E1E38 /* TesseractEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30AD7270593AC4C9DC7B6CB8 /* TesseractEngine.swift */; };
-		D7F9751E5E6C8F49FD2B2506 /* MASShortcut in Frameworks */ = {isa = PBXBuildFile; productRef = 6CEB1675C9A8701A851B22C4 /* MASShortcut */; };
 		E73DC34EC0FE9E533FA1FB64 /* CaptureCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42BBCFF88E9D2502006D7E0B /* CaptureCoordinator.swift */; };
 		EA0A88332A2E9405E693BAB9 /* 2.txt in Resources */ = {isa = PBXBuildFile; fileRef = 8D5C38E0BB5A699A763A1D0A /* 2.txt */; };
 		F35C1034EFAE67AD22785090 /* OCRTextFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6902F6D94FB487C6EE888A7 /* OCRTextFormatter.swift */; };
@@ -130,8 +129,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				89D02709813E8971EAEF8E6C /* Sparkle in Frameworks */,
-				D7F9751E5E6C8F49FD2B2506 /* MASShortcut in Frameworks */,
+				89D02709813E8971EAEF8E6C /* MASShortcut in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -385,7 +383,6 @@
 			);
 			name = KhmerClip;
 			packageProductDependencies = (
-				2D4CC7CBC3DC92C4FB442285 /* Sparkle */,
 				6CEB1675C9A8701A851B22C4 /* MASShortcut */,
 			);
 			productName = KhmerClip;
@@ -417,7 +414,6 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				ED841BCABAF34FD9257FEE53 /* XCRemoteSwiftPackageReference "MASShortcut" */,
-				9D8E65EFE998A9BC7CF7ADCE /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 01A00D27D49F79819520624D /* Products */;
@@ -795,14 +791,6 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		9D8E65EFE998A9BC7CF7ADCE /* XCRemoteSwiftPackageReference "Sparkle" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/sparkle-project/Sparkle";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 2.6.4;
-			};
-		};
 		ED841BCABAF34FD9257FEE53 /* XCRemoteSwiftPackageReference "MASShortcut" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/cocoabits/MASShortcut";
@@ -814,11 +802,6 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		2D4CC7CBC3DC92C4FB442285 /* Sparkle */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 9D8E65EFE998A9BC7CF7ADCE /* XCRemoteSwiftPackageReference "Sparkle" */;
-			productName = Sparkle;
-		};
 		6CEB1675C9A8701A851B22C4 /* MASShortcut */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = ED841BCABAF34FD9257FEE53 /* XCRemoteSwiftPackageReference "MASShortcut" */;

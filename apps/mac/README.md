@@ -23,7 +23,7 @@ Khmer OCR menu bar app for macOS — grab-select any text on screen, get instant
 - **Launch at login** — `SMAppService`.
 - **Preferences window** — hotkey recorder, behavior toggles.
 - **Onboarding window** — shown once on first launch (menu bar → "Welcome / Permissions…" to re-open): explains the app, live-checks Screen Recording access via `CGPreflightScreenCaptureAccess()`, and links straight to the System Settings pane.
-- **Auto-update** — [Sparkle](https://sparkle-project.org) wired in via SPM ("Check for Updates…" in the menu). `SUFeedURL` is currently a placeholder (see "Auto-update" below).
+- **Check for Updates…** — opens the latest [GitHub release](https://github.com/KimChengSHEANG/khmerclip/releases/latest).
 - **Menu bar only app** (`LSUIElement`), no dock icon, custom app icon.
 
 ## OCR engines
@@ -109,43 +109,30 @@ This environment has no window manager by default for the sandboxed shell tool, 
 - Compiled the app icon through `actool` with zero warnings and confirmed the resulting `.icns` renders correctly (rounded-square masking applied by the OS, as expected for a full-bleed source image).
 - (Historical) Verified a Vision `fr-FR` path when the app still had a non-Khmer engine option — exact match on `"Bonjour le monde! KhmerClip 2026"`. Vision is not used for Khmer; the current app routes text capture through Tesseract / TrOCR per Preferences.
 - Launched the onboarding window for real and confirmed `CGPreflightScreenCaptureAccess()` reflects live state (screenshot-verified: warning icon + explanatory text render correctly).
-- Triggered "Check for Updates…" for real: confirmed in the unified log that Sparkle made an actual HTTPS request to the placeholder `SUFeedURL`, got a 404, and handled it gracefully (logged error, no crash) — the wiring is live, only the appcast hosting is a placeholder.
 
 What's still unconfirmed: the *exact string* a live capture returns landing in the clipboard/HUD/history in one continuous human-driven run (UI-automation timing made this fiddly to script reliably — clicks and drags each independently proved to work, but chaining all of them through AppleScript in one shot raced against SwiftUI's async accessibility tree). Functionally this is very low risk: it's the same `recognize(image:mode:)` method already proven correct, called from wiring that's each been independently proven to fire.
 
 ## Not yet implemented
 
 - Code signing with a real Developer ID, notarization, and distribution — see below, this needs credentials only you have.
-- A real hosted appcast for Sparkle (`SUFeedURL` is a placeholder `https://example.com/...` — see "Auto-update" below).
 
 ## Code signing, notarization & distribution
 
-`CODE_SIGN_STYLE: Automatic` is set, so Xcode will ad-hoc sign local builds with whatever team you have selected. Actually distributing the app (so it launches on someone else's Mac without a Gatekeeper block) needs your own paid Apple Developer Program membership — this isn't something that can be scripted without your credentials:
+`make release-mac` (repo root) runs `tools/release.sh`: a Release build, every Mach-O inside the app (the vendored `tesseract` and its dylibs, then the app) signed with the hardened runtime, a drag-to-Applications `dist/KhmerClip-<version>.dmg`, then notarization and stapling.
 
-```
-# 1. Archive with your real Developer ID team (set DEVELOPMENT_TEAM in project.yml
-#    or select your team in Xcode's Signing & Capabilities tab first).
-xcodebuild -project KhmerClip.xcodeproj -scheme KhmerClip -configuration Release archive \
-  -archivePath build/KhmerClip.xcarchive
+```bash
+# once: a Developer ID Application certificate in the keychain (Xcode → Settings → Accounts → Manage Certificates),
+# and notarytool credentials (prompts for an app-specific password from appleid.apple.com)
+xcrun notarytool store-credentials khmerclip --apple-id <apple-id> --team-id <TEAMID>
 
-# 2. Export a signed .app (needs an ExportOptions.plist with method: developer-id).
-xcodebuild -exportArchive -archivePath build/KhmerClip.xcarchive \
-  -exportPath build/export -exportOptionsPlist ExportOptions.plist
-
-# 3. Notarize (needs an app-specific password or API key set up via `xcrun notarytool store-credentials`).
-xcrun notarytool submit build/export/KhmerClip.app.zip --keychain-profile "khmerclip-notary" --wait
-
-# 4. Staple the ticket so it works offline.
-xcrun stapler staple build/export/KhmerClip.app
+SIGN_ID="Developer ID Application: <Name> (<TEAMID>)" NOTARY_PROFILE=khmerclip make release-mac
 ```
 
-## Auto-update
+Without `SIGN_ID` the dmg is ad-hoc signed and Gatekeeper blocks it on other Macs.
 
-Sparkle is fully wired (menu item, `SPUStandardUpdaterController`, Info.plist keys), verified making real network requests — but it points at a placeholder feed. To make it real:
+## Updates
 
-1. Host an `appcast.xml` somewhere (GitHub Pages / Releases works fine) and point `SUFeedURL` in `project.yml` at it.
-2. Generate an EdDSA signing key with Sparkle's `generate_keys` tool and set `SUPublicEDKey` in `project.yml` — without this, Sparkle will refuse to install (unsigned) updates rather than silently trusting anything.
-3. Sign each release archive with `sign_update` (from the same Sparkle tool package) and reference it in the appcast entry.
+There is no auto-update. **Check for Updates…** in the menu opens the latest GitHub release page.
 
 ## Project layout
 
@@ -255,7 +242,7 @@ Runs Tesseract fixture tests against `Tests/Fixtures/ocr/*.png`. Does not requir
 
 ### Troubleshooting
 
-**Sparkle / `xcodebuild` package resolve fails** with `safe.bareRepository is 'explicit'` — global git config issue, not this repo. Fix: build from Xcode GUI, or prefix:
+**`xcodebuild` package resolve fails** with `safe.bareRepository is 'explicit'` — global git config issue, not this repo. Fix: build from Xcode GUI, or prefix:
 ```bash
 GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.bareRepository GIT_CONFIG_VALUE_0=all make build
 ```

@@ -18,17 +18,11 @@ build: build-mac
 build-mac:
 	$(MAKE) -C apps/mac build
 
-# Unsigned (ad-hoc) Release KhmerClip.app, zipped -> apps/mac/dist/KhmerClip-<ver>-macos.zip.
-# ponytail: ad-hoc signed, not notarized; add Developer ID signing + notarytool when there's a cert.
+# Signed + notarized apps/mac/dist/KhmerClip-<ver>.dmg (Tesseract + TrOCR). Needs SIGN_ID
+# ("Developer ID Application: ...") and NOTARY_PROFILE; without them it's ad-hoc signed.
+# See apps/mac/tools/release.sh.
 release-mac:
-	$(MAKE) -C apps/mac gen
-	cd apps/mac && xcodebuild -project KhmerClip.xcodeproj -scheme KhmerClip -configuration Release \
-		-derivedDataPath build CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO build
-	codesign --force --deep --sign - apps/mac/build/Build/Products/Release/KhmerClip.app
-	ver=$$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' apps/mac/build/Build/Products/Release/KhmerClip.app/Contents/Info.plist) && \
-		mkdir -p apps/mac/dist && rm -f apps/mac/dist/KhmerClip-$$ver-macos.zip && \
-		ditto -c -k --keepParent apps/mac/build/Build/Products/Release/KhmerClip.app apps/mac/dist/KhmerClip-$$ver-macos.zip && \
-		ls -lh apps/mac/dist/KhmerClip-$$ver-macos.zip
+	apps/mac/tools/release.sh
 
 # Frozen app for THIS OS -> apps/desktop/dist/KhmerClip/. PyInstaller can't cross-compile:
 # the Windows installer and Linux AppImage come from .github/workflows/desktop.yml
