@@ -85,16 +85,16 @@ v1 and v2 rows use greedy decoding with the repeat-run cap, which is what the ap
 
 ### Samples
 
-These six lines are illustrative only; see the table above for measured accuracy. Each fixture image went through the macOS app's engines (`OCRBench`), and differences from the ground truth are in **bold**.
+These six lines are illustrative only; see the table above for measured accuracy. Each fixture image went through the macOS `OCRBench` tool, run with stock Tesseract and with TrOCR v2.
 
-| Image | Tesseract | TrOCR v2 |
-|---|---|---|
-| <img src="training/eval/fixtures/printed/printed-001.png" height="28"> | ទៅ វិញ **ទៅមក** រវាង មតិ ស្រប និង មតិ **a** ។ តើ **និមិគ្គ** | ទៅ វិញ ទៅ មក រវាង មតិ ស្រប និង មតិ ផ្ទុយ ។ តើ និមិត្ត ✅ |
-| <img src="training/eval/fixtures/printed/printed-019.png" height="28"> | **PS BHD LS** | បាន ខ្លាំងក្លា ។ ក្នុង ✅ |
-| <img src="training/eval/fixtures/ui/ui-017.png" height="28"> | អំពីកម្មវិធី ✅ | អំពីកម្មវិធី ✅ |
-| <img src="training/eval/fixtures/ui/ui-033.png" height="28"> | រកមិនឃើញ**ទិន្នន៍យ** | រកមិនឃើញទិន្នន័យ ✅ |
-| <img src="training/eval/fixtures/printed/printed-063.png" height="28"> | Dragon, what then? **(missing "I")** will try to | Dragon, what then? I will try to ✅ |
-| <img src="training/eval/fixtures/ui/ui-094.png" height="28"> | Bluetooth បានបិទ ✅ | Bluetooth បានបិទ ✅ |
+| Image | Meaning | Tesseract | TrOCR v2 |
+|---|---|---|---|
+| <img src="training/eval/fixtures/printed/printed-001.png" height="28"> | "…back and forth between agreeing and opposing opinions. Is…" | ❌ 3 errors: two words merged, one word read as "a", one word misspelled | ✅ exact |
+| <img src="training/eval/fixtures/printed/printed-019.png" height="28"> | "…strongly. In…" | ❌ unreadable: Latin junk ("PS BHD LS") | ✅ exact |
+| <img src="training/eval/fixtures/ui/ui-017.png" height="28"> | "About the app" | ✅ exact | ✅ exact |
+| <img src="training/eval/fixtures/ui/ui-033.png" height="28"> | "No data found" | ❌ 1 error: wrong vowel sign | ✅ exact |
+| <img src="training/eval/fixtures/printed/printed-063.png" height="28"> | (English line) | ❌ dropped the word "I" | ✅ exact |
+| <img src="training/eval/fixtures/ui/ui-094.png" height="28"> | "Bluetooth is off" (mixed Khmer/English) | ✅ exact | ✅ exact |
 
 Full write-ups: [`finetune_v1.md`](training/eval/results/finetune_v1.md), [`trocr_speed_accuracy.md`](training/eval/results/trocr_speed_accuracy.md), [`mac_gate.md`](training/eval/results/mac_gate.md), [`baseline.md`](training/eval/results/baseline.md).
 
@@ -102,7 +102,7 @@ Full write-ups: [`finetune_v1.md`](training/eval/results/finetune_v1.md), [`troc
 
 - **Base:** [`microsoft/trocr-base-printed`](https://huggingface.co/microsoft/trocr-base-printed), a ViT encoder with a RoBERTa-style decoder.
 - **Tokenizer:** the byte-level BPE tokenizer, plus one added token per Khmer character (U+1780–17FF, U+19E0–19FF and the zero-width separators). Each Khmer character becomes one token instead of three bytes. Labels are capped at 128 tokens.
-- **Training:** HF `Seq2SeqTrainer`, bf16, on one RTX 3090. Each fine-tune continues from the last one at a lower learning rate (v1: 2e-5, 3 epochs; v2: 1e-5, 1 epoch), with weighted mixing across sources. Each source gets its own 3% holdout, taken before resampling.
+- **Training:** HF `Seq2SeqTrainer`, bf16, on a single NVIDIA RTX 3090 (24 GB). Fine-tuning took about a month of GPU time in total. Each fine-tune continues from the last one at a lower learning rate (v1: 2e-5, 3 epochs; v2: 1e-5, 1 epoch), with weighted mixing across sources. Each source gets its own 3% holdout, taken before resampling.
 - **Augmentation:** half the samples pass through clean. The rest get a random mix of blur, contrast jitter, JPEG recompression and ±3° rotation.
 - **Export:** CoreML for macOS ([`apps/mac/tools/trocr`](apps/mac/tools/trocr)) and ONNX for Windows/Linux ([`apps/desktop/tools/export_onnx.py`](apps/desktop/tools/export_onnx.py)). Both are checked against PyTorch output.
 
@@ -123,7 +123,15 @@ All public line-image datasets from Hugging Face. Thanks to their authors.
 | [Darayut/khmer-document-synthetic-low-res](https://huggingface.co/datasets/Darayut/khmer-document-synthetic-low-res) | 100k | not stated | Low-res synthetic document lines | 100k |
 | [KimkosalYon/khmer-ocr-200k-siemreap-arial](https://huggingface.co/datasets/KimkosalYon/khmer-ocr-200k-siemreap-arial) | 200k | not stated | Siemreap / Arial font lines | 100k |
 | `synth` (rendered here) | 400k | own render, OFL fonts | Multi-font Khmer + mixed lines | 400k |
-| `synth_en` (rendered here, v2) | 150k | own render, OFL fonts | Clean English: Wikipedia + English labels, case-augmented, wide UI strips | v2: 150k |
+| `synth_en` (rendered here, v2) | 150k | own render, OFL fonts; text from [English Wikipedia](https://huggingface.co/datasets/wikimedia/wikipedia) (`20231101.en`, CC BY-SA 4.0) | Clean English: Wikipedia paragraphs + English labels from SoyVitou/mrrtmob, case-augmented, wide UI strips | v2: 150k |
+
+Which stages used what:
+
+- **v0** (`checkpoint-3`): SoyVitou, Sokheng, Hanuman, mrrtmob and KiteAether, starting from `microsoft/trocr-base-printed`.
+- **v1:** every row above except `synth_en` (nine sources), starting from v0.
+- **v2:** adds `synth_en`, starting from v1.
+
+The `synth` text comes from the labels of the datasets above. Handwriting's test split is held out for evaluation only.
 
 Small datasets are repeated to reach their row count. The v1 mix totals about 1.1M rows per epoch, and v2 adds 150k `synth_en` on top of a smaller replay of the others. Exact commands are in [docs/PROJECT.md §4.3](docs/PROJECT.md).
 
