@@ -46,7 +46,7 @@ Releases are published to this repo's GitHub Releases with the workflow's own `G
 1. Bump `__version__` in `src/khmerclip/__init__.py` and commit.
 2. Run `git tag desktop-v<version>` and push the tag (`git push origin desktop-v<version>`).
 3. CI tests, builds both installers, smoke-tests the frozen apps, and publishes release `v<version>`. Installed apps see it within a day.
-4. From the repo root on a Mac, run `make release-mac` and `gh release upload v<version> apps/mac/dist/KhmerClip-<version>-macos.zip`.
+4. CI leaves the release as a **draft** with notes from `docs/releases/v<version>.md`. On a Mac, run `make release-mac` (signed + notarized, see `apps/mac/README.md`), `gh release upload v<version> apps/mac/dist/KhmerClip-<version>.dmg`, then publish the draft.
 
 Manual checklist before announcing a release:
 
