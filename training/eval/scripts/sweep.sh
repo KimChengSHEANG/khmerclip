@@ -5,7 +5,7 @@ set -euo pipefail
 MODEL=$1; TAG=$2; shift 2
 for spec in "$@"; do
   name=${spec%%=*}; variant=${spec#*=}
-  for f in fixtures fixtures_screen; do
+  for f in ${FIXSETS:-fixtures fixtures_screen}; do
     out=../eval/results/${TAG}_${name}_${f}.csv
     [ -s "$out" ] && continue
     python ../eval/scripts/bench.py --engine trocr-pipeline --trocr-model-dir "$MODEL" --fixtures ../eval/$f \
