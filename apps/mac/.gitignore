@@ -13,13 +13,6 @@ Vendor/*
 Vendor/trocr/*
 !Vendor/trocr/convert.py
 !Vendor/trocr/export_tokenizer.py
-!Vendor/easyocr/
-Vendor/easyocr/*
-!Vendor/easyocr/install_khmer_model.py
-!Vendor/easyocr/recognize.py
-!Vendor/easyocr/requirements.txt
-!Vendor/easyocr/khmer/
-Vendor/easyocr/khmer/*.pth
 __pycache__/
 
 .devswarm-temp/

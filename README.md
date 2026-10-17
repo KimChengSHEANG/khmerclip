@@ -16,11 +16,10 @@ Builds for macOS, Windows and Linux are on the [Releases](https://github.com/Kim
 |------|------------|
 | [`apps/mac`](apps/mac) | KhmerClip macOS app (Swift / Xcode) |
 | [`apps/desktop`](apps/desktop) | KhmerClip for Windows + Linux (Python / PySide6) |
-| [`training/easyocr`](training/easyocr) | EasyOCR-compatible Khmer recognition training |
 | [`training/trocr`](training/trocr) | TrOCR Khmer fine-tuning |
 | [`training/tesseract`](training/tesseract) | Tesseract `khm` LSTM fine-tune (CPU, Docker) |
 
-Training outputs feed the app’s EasyOCR and TrOCR engines. Large build products and model weights are **not** in git — follow each subproject README / `Makefile` to generate them locally.
+Training outputs feed the app’s TrOCR and Tesseract engines. Large build products and model weights are **not** in git — follow each subproject README / `Makefile` to generate them locally.
 
 ## Quick start (app)
 
@@ -30,7 +29,6 @@ Windows/Linux: see [`apps/desktop/README.md`](apps/desktop/README.md) (`pip inst
 
 ## Training
 
-- EasyOCR: [`training/easyocr/README.md`](training/easyocr/README.md)
 - TrOCR: [`training/trocr/README.md`](training/trocr/README.md)
 - Tesseract: [`training/tesseract/README.md`](training/tesseract/README.md)
 

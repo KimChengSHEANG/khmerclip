@@ -33,11 +33,11 @@ khmerclip/
 ├── .python-version              pyenv env name: "khmerclip"
 ├── apps/mac/                    macOS app (Swift 5, SwiftUI/AppKit, XcodeGen)
 │   ├── project.yml              XcodeGen spec: targets KhmerClip, OCRBench, KhmerClipTests
-│   ├── Makefile                 gen / build / run / test / trocr-* / easyocr-*
+│   ├── Makefile                 gen / build / run / test / trocr-*
 │   ├── Sources/
 │   │   ├── App/                 entry point, AppDelegate (status item + wiring)
 │   │   ├── Capture/             selection overlay, window picker, ScreenCaptureKit, HUD, clipboard
-│   │   ├── OCR/                 OCREngine, TesseractEngine, TrOCREngine (+ tokenizer), EasyOCREngine, OCRTextFormatter
+│   │   ├── OCR/                 OCREngine, TesseractEngine, TrOCREngine (+ tokenizer), OCRTextFormatter
 │   │   ├── Barcode/             Vision QR/barcode
 │   │   ├── History/  Speech/  Translate/  Preferences/  Onboarding/  LaunchAtLogin/
 │   │   └── Tools/OCRBenchMain.swift   CLI used by the eval harness (OCRBench target)
@@ -49,7 +49,6 @@ khmerclip/
 ├── training/
 │   ├── trocr/                   TrOCR fine-tuning (HF Transformers, CUDA) + synthetic renderer
 │   ├── tesseract/               Tesseract khm fine-tune (tesstrain in Docker, CPU)
-│   ├── easyocr/                 EasyOCR-compatible recognizer training (PyTorch, CUDA)
 │   └── eval/                    frozen 200-image benchmark + CER/latency harness
 └── docs/
     ├── PROJECT.md               this file
@@ -64,7 +63,6 @@ khmerclip/
 |---|---|---|---|---|
 | **Tesseract** | Vendored `tesseract` 5.x binary, `-l khm+eng --psm 6` | Pipeline exists in `training/tesseract`; smoke run didn't improve on stock (§3.3). Ships stock `tessdata_fast` | Vendored binary + tessdata | **App default.** Stable baseline (~75–110 ms median) |
 | **TrOCR** | CoreML FP16 encoder + stateful KV-cache decoder, converted from a Hugging Face fine-tune | Yes, in `training/trocr` | Checkpoint → `make trocr-khmer` → rebuild | Optional. Mac gate **FAIL** on mixed CER only (§8); fine-tune v1 not yet re-gated with the KV decoder |
-| **EasyOCR** | Python subprocess: CRAFT detector + custom Khmer CRNN | Yes, in `training/easyocr` | `make easyocr-venv easyocr-models` + `khmer.pth` | Optional |
 
 Pick the engine in **Preferences → OCR Engine**. Since the 2026-10-03 Mac gate the default is `.tesseract` (`AppPreferences.swift`), so a fresh build works with no model setup.
 
@@ -256,85 +254,25 @@ Fine-tune v1 was gated on the Mac on 2026-10-04 with the *old* stateless decoder
 
 ---
 
-## 5. Model 3: EasyOCR custom Khmer recognizer
+## 5. EasyOCR (removed)
 
-Code: `training/easyocr/` (package `khmer_ocr`). It vendors a port of the EasyOCR / clovaai *deep-text-recognition-benchmark* trainer.
-
-### 5.1 Architecture
-
-- **Recognizer.** `None-VGG-BiLSTM-CTC`, EasyOCR's "generation 2" network, with grayscale input `imgH=64`, `imgW=600`, padded rather than stretched. `batch_max_length=120`.
-- **Charset.** 201 characters plus the CTC blank, for 202 output classes. `data/charset.txt` is generated from the dataset labels, includes the space character, and is the source of truth. The `character_list` in `khmer.yaml` must match it exactly.
-- **Detection.** At inference, EasyOCR's stock CRAFT detector (`craft_mlt_25k.pth`) finds text regions before the recognizer runs.
-
-### 5.2 Training recipe
-
-| Parameter | `configs/khmer.yaml` | `configs/khmer_all.yaml` |
-|---|---|---|
-| Data | `soyvitou` | `soyvitou, sokheng, hanuman, km_en_line, gemma` |
-| Batch ratio | `1` | `0.2` per source (equal sampling) |
-| Iterations | 30,000 (~60 epochs of 62k at bs 128) | 100,000 |
-| Val interval | 1000 | 2000 |
-
-Shared settings:
-- **Initialization.** Fine-tunes from `pretrained/english_g2.pth` with `FT: true` and `new_prediction: true`, so the CTC head is re-initialized for the Khmer charset. Training from scratch collapses to blank outputs.
-- **Optimizer.** Adadelta (`adam: false`), `lr=1.0`, `rho=0.95`, `eps=1e-8`, grad clip 5.
-- **Batch and seed.** Batch size 128, `manualSeed=1111`, 6 workers.
-- **Decoding.** Greedy CTC.
-
-Optional stronger variants: `FeatureExtraction: ResNet` and/or `Transformation: TPS`.
-
-Outputs go to `experiments/model-N/`, which holds `best_accuracy.pth`, `best_norm_ED.pth`, `iter_*.pth` and the logs.
-
-### 5.3 Pipeline
-
-```bash
-cd training/easyocr
-pip install -e .
-khmer-ocr-prepare                       # HF parquet -> LMDB + data/charset.txt (soyvitou)
-khmer-ocr-prepare --datasets all        # or every source
-mkdir -p pretrained && wget -O pretrained/english_g2.zip \
-  https://github.com/JaidedAI/EasyOCR/releases/download/v1.3/english_g2.zip && unzip -o pretrained/english_g2.zip -d pretrained
-khmer-ocr-train --config configs/khmer.yaml
-khmer-ocr-eval --config configs/khmer.yaml --saved_model experiments/model-1/best_norm_ED.pth \
-  --eval_data data/lmdb/test/soyvitou --save_preds preds_test.csv     # accuracy, CER, WER, norm-ED
-khmer-ocr-package --config configs/khmer.yaml --saved_model experiments/model-1/best_norm_ED.pth --name khmer_g2
-```
-
-### 5.4 Shipping to the app
-
-```bash
-cd apps/mac
-make easyocr-venv            # Vendor/easyocr/venv with PyTorch + EasyOCR (~1–2 GB)
-make easyocr-models          # CRAFT weights -> Vendor/easyocr/models/
-python3 Vendor/easyocr/install_khmer_model.py Vendor/easyocr/khmer   # khmer.pth -> models/, syncs yaml/py, rebuilds character_list
-make build
-```
-
-Command-line check:
-
-```bash
-Vendor/easyocr/venv/bin/python3 Vendor/easyocr/recognize.py --resource-root Vendor/easyocr --model khmer path/to/image.png
-```
-
-The app uses `Vendor/easyocr/venv/bin/python3` when it is bundled, and otherwise falls back to `python3` on `PATH`.
-
----
+The EasyOCR engine, its Python runtime and the `training/easyocr` trainer were removed on 2026-10-17. Tesseract and TrOCR cover Khmer; the code is in git history before that date.
 
 ## 6. Datasets
 
-All training data comes from Hugging Face line-image datasets with `image` and `text` columns. The two training projects use **different aliases for the same repos**:
+All training data comes from Hugging Face line-image datasets with `image` and `text` columns. TrOCR registers these aliases:
 
-| HF repo | TrOCR alias | EasyOCR alias | Size | License | Content |
-|---|---|---|---|---|---|
-| [SoyVitou/62k-images-khmer-printed-dataset](https://huggingface.co/datasets/SoyVitou/62k-images-khmer-printed-dataset) | `soyvitou` (default) | `soyvitou` (default) | ~62.7k, with train/valid/test parquets | MIT | Printed Khmer + English lines |
-| [Sokheng/khmer-synthetic-ocr-v1-100k](https://huggingface.co/datasets/Sokheng/khmer-synthetic-ocr-v1-100k) | `sokheng` | `sokheng` | 95k train / 5k test | CC-BY-4.0 | Synthetic receipts, menus, prices, signage. 70% single-line, **30% multi-line blocks with `\n` in labels** |
-| [seanghay/khmer-hanuman-100k](https://huggingface.co/datasets/seanghay/khmer-hanuman-100k) | `hanuman` | `hanuman` | 100,001 train | not stated | Khmer lines |
-| [mrrtmob/khmer_english_ocr_image_line](https://huggingface.co/datasets/mrrtmob/khmer_english_ocr_image_line) | `mrrtmob` | `km_en_line` | 12,138,214 (~40 GB). **Gated:** accept the terms and run `huggingface-cli login` | CC-BY-4.0 | Synthetic Khmer, English and mixed lines, 5–100 chars |
-| [KiteAether/c_khmer_gemma_ocr_train](https://huggingface.co/datasets/KiteAether/c_khmer_gemma_ocr_train) | `kiteaether` | `gemma` | 7,468 train | not stated | Khmer OCR lines with Gemma-generated labels |
-| [SoyVitou/khmer-handwritten-dataset-4.2k](https://huggingface.co/datasets/SoyVitou/khmer-handwritten-dataset-4.2k) | `handwriting` (train+val), `handwriting_test` (test) | — | ~3.8k / ~0.4k | not checked | Real handwritten Khmer lines and words |
-| [Darayut/khmer-document-synthetic-low-res](https://huggingface.co/datasets/Darayut/khmer-document-synthetic-low-res) | `darayut` | — | 100k | not checked | Low-res synthetic document lines (`label` column) |
-| [KimkosalYon/khmer-ocr-200k-siemreap-arial](https://huggingface.co/datasets/KimkosalYon/khmer-ocr-200k-siemreap-arial) | `siemreap` | — | 200k | not checked | Siemreap/Arial font lines |
-| local `cache/synth/{train,val}` | `synth`, `synth_val` | — | 400k / 3k | own render, OFL fonts | Multi-font synthetic from `render_synth.py` (§4.3) |
+| HF repo | TrOCR alias | Size | License | Content |
+|---|---|---|---|---|
+| [SoyVitou/62k-images-khmer-printed-dataset](https://huggingface.co/datasets/SoyVitou/62k-images-khmer-printed-dataset) | `soyvitou` (default) | ~62.7k, with train/valid/test parquets | MIT | Printed Khmer + English lines |
+| [Sokheng/khmer-synthetic-ocr-v1-100k](https://huggingface.co/datasets/Sokheng/khmer-synthetic-ocr-v1-100k) | `sokheng` | 95k train / 5k test | CC-BY-4.0 | Synthetic receipts, menus, prices, signage. 70% single-line, **30% multi-line blocks with `\n` in labels** |
+| [seanghay/khmer-hanuman-100k](https://huggingface.co/datasets/seanghay/khmer-hanuman-100k) | `hanuman` | 100,001 train | not stated | Khmer lines |
+| [mrrtmob/khmer_english_ocr_image_line](https://huggingface.co/datasets/mrrtmob/khmer_english_ocr_image_line) | `mrrtmob` | 12,138,214 (~40 GB). **Gated:** accept the terms and run `huggingface-cli login` | CC-BY-4.0 | Synthetic Khmer, English and mixed lines, 5–100 chars |
+| [KiteAether/c_khmer_gemma_ocr_train](https://huggingface.co/datasets/KiteAether/c_khmer_gemma_ocr_train) | `kiteaether` | 7,468 train | not stated | Khmer OCR lines with Gemma-generated labels |
+| [SoyVitou/khmer-handwritten-dataset-4.2k](https://huggingface.co/datasets/SoyVitou/khmer-handwritten-dataset-4.2k) | `handwriting` (train+val), `handwriting_test` (test) | ~3.8k / ~0.4k | not checked | Real handwritten Khmer lines and words |
+| [Darayut/khmer-document-synthetic-low-res](https://huggingface.co/datasets/Darayut/khmer-document-synthetic-low-res) | `darayut` | 100k | not checked | Low-res synthetic document lines (`label` column) |
+| [KimkosalYon/khmer-ocr-200k-siemreap-arial](https://huggingface.co/datasets/KimkosalYon/khmer-ocr-200k-siemreap-arial) | `siemreap` | 200k | not checked | Siemreap/Arial font lines |
+| local `cache/synth/{train,val}` | `synth`, `synth_val` | 400k / 3k | own render, OFL fonts | Multi-font synthetic from `render_synth.py` (§4.3) |
 
 The Tesseract fine-tune (§3.3) reads the same HF cache by parquet file name, with its own aliases (`soyvitou-train`, `soyvitou-valid`, `darayut`, `siemreap`, `mrrtmob`, …).
 
@@ -344,8 +282,8 @@ Candidates listed in `training/trocr/docs/datasets.txt` but **not registered** y
 - `sopheakvoatei/khmer-post-surya-skipped-blocks-ocr`
 
 ### Data handling notes
-- **Validation splits.** TrOCR carves a seeded 3% holdout per source before resampling (§4.2). EasyOCR uses each dataset's own splits where they exist, writing LMDBs under `data/lmdb/{train,val,test}/<name>/`.
-- **Multi-line labels.** Sokheng's multi-line labels conflict with line-level recognizers. The Tesseract plan drops lines containing `\n`. TrOCR and EasyOCR currently keep them.
+- **Validation splits.** TrOCR carves a seeded 3% holdout per source before resampling (§4.2).
+- **Multi-line labels.** Sokheng's multi-line labels conflict with line-level recognizers. The Tesseract plan drops lines containing `\n`. TrOCR currently keeps them.
 - **Normalization.** Don't apply Unicode normalization to labels. CER is computed on raw text.
 
 ---
@@ -383,7 +321,6 @@ Metrics: per-fixture **CER** (via `jiwer`), averaged per subset, plus wall-clock
 - `tesseract-ft`: runs a candidate fine-tuned `traineddata` (`--tesseract-ft-root`, `--tesseract-ft-lang`, default `khm+eng`).
 - `trocr-hf`: runs a PyTorch checkpoint with beam 4 and the same generation settings as `infer.py`.
 - `trocr-coreml`: runs the `OCRBench` Swift tool. The model is preloaded and per-image time comes from `recognizeText`.
-- `easyocr`: runs the EasyOCR pipeline.
 
 **Tesseract baseline (2026-08-27)**
 
@@ -444,15 +381,13 @@ python scripts/write_manifest.py
 - macOS 15+ (the deployment target) on Apple Silicon
 - Xcode 16+ and the Command Line Tools (`xcode-select --install`)
 - `brew install xcodegen`
-- Python 3.12 only if you convert TrOCR models or use EasyOCR
+- Python 3.12 only if you convert TrOCR models
 
 ### 9.2 What's in git under `Vendor/`
 
 `apps/mac/.gitignore` tracks only the scripts and small config files in `Vendor/`:
 
 - `Vendor/trocr/convert.py` and `export_tokenizer.py`. These are **stale copies**: the Makefile now uses `tools/trocr/` (§12)
-- `Vendor/easyocr/recognize.py`, `install_khmer_model.py` and `requirements.txt`
-- `Vendor/easyocr/khmer/`: `charset.txt`, `khmer.yaml` and `user_network/`
 
 Everything else under `Vendor/` must be generated locally:
 
@@ -460,7 +395,6 @@ Everything else under `Vendor/` must be generated locally:
 |---|---|
 | Tesseract binary, libs and tessdata | §3.4 |
 | TrOCR CoreML models (`Vendor/trocr/<size>/`) | `make trocr-khmer` (§4.4) |
-| EasyOCR venv and CRAFT weights | `make easyocr-venv easyocr-models` |
 | `khmer.pth` weights | Training (§5), then `install_khmer_model.py` |
 
 Before 2026-10-10 the whole `Vendor/` directory was ignored by mistake, so older clones are missing these scripts.
@@ -487,7 +421,6 @@ make run          # xcodegen generate + xcodebuild Debug + lsregister + open
 | `make trocr-test` | Converter unit tests (`tools/trocr/tests`), no checkpoint or network needed |
 | `make ocrbench` | Release `OCRBench` CLI for the eval harness |
 | `make trocr-models` | Convert small, base, large and khmer (large download, ~3.7 GB+) |
-| `make easyocr-venv` / `make easyocr-models` | Set up the EasyOCR runtime and download CRAFT weights |
 
 To build and run in Xcode instead: run `make gen && open KhmerClip.xcodeproj`, select the **KhmerClip** scheme, and press ⌘R. Set `SIGN_ID` in the Makefile to a stable signing identity so the Screen Recording/Accessibility grant survives rebuilds.
 
@@ -497,10 +430,9 @@ After any change to models or the venv, **rebuild**. `Vendor/` is copied into th
 
 | Env | Where | Used for |
 |---|---|---|
-| pyenv `khmerclip` (Python 3.12) | repo root, via `.python-version` | EasyOCR training, eval harness |
+| pyenv `khmerclip` (Python 3.12) | repo root, via `.python-version` | eval harness |
 | `training/trocr/venv` | Ubuntu + CUDA box | TrOCR training: `pip install uv && uv pip install torch torchvision -r requirements.txt -e .` |
 | `apps/mac/.trocr-venv` | Mac, created automatically by the Makefile | CoreML conversion only (torch 2.7.0, transformers 4.57.*, coremltools) |
-| `apps/mac/Vendor/easyocr/venv` | Mac, bundled into the app | EasyOCR runtime |
 | `~/khm-tesstrain/.venv` | training server, via `UV_PROJECT_ENVIRONMENT` in `training/tesseract/Makefile` | Tesseract ground-truth export |
 | throwaway uv envs (Python 3.12, uv-managed) | created by `make check` | Running each Python test suite in isolation |
 
@@ -529,7 +461,7 @@ Spec: `docs/superpowers/specs/2026-10-03-khmerclip-desktop-windows-linux-design.
 
 **Stack.** Python 3.12 (`<3.13`), PySide6-Essentials 6.8, onnxruntime (CPU), `platformdirs`, `pynput` (hotkeys on Windows/X11), `jeepney` (Wayland portal). One codebase for both OSes.
 
-**v1 features:** tray app, region capture, OCR, auto-copy, result popup, history, preferences, image-file OCR, launch at login, TrOCR (ONNX, downloaded on first use), daily update check against this repo's GitHub Releases. Out of v1: QR/barcode, EasyOCR, TTS, translate, window picker.
+**v1 features:** tray app, region capture, OCR, auto-copy, result popup, history, preferences, image-file OCR, launch at login, TrOCR (ONNX, downloaded on first use), daily update check against this repo's GitHub Releases. Out of v1: QR/barcode, TTS, translate, window picker.
 
 | Area | Modules |
 |---|---|
@@ -587,10 +519,6 @@ make evaluate             # BCER per checkpoint on SoyVitou-valid
 
 Use `CPUS=6` while a TrOCR run shares the box, and `MODEL=` for a separate run such as a smoke test.
 
-### EasyOCR
-
-See §5.3 for the full pipeline. For a quick smoke run, use `khmer-ocr-prepare --max-samples 2000` and then `khmer-ocr-train --num_iter 300 --batch_size 32 --valInterval 100`.
-
 ---
 
 ## 12. Known issues and technical debt
@@ -617,7 +545,6 @@ See §5.3 for the full pipeline. For a quick smoke run, use `khmer-ocr-prepare -
 |---|---|
 | App details, features, troubleshooting | `apps/mac/README.md` |
 | TrOCR training details | `training/trocr/README.md` |
-| EasyOCR training details | `training/easyocr/README.md` |
 | Eval harness and fixtures | `training/eval/README.md` |
 | Mac gate checklist | `training/eval/results/mac_gate.md` |
 | Accuracy/speed spec | `docs/superpowers/specs/2026-08-27-khmer-ocr-accuracy-speed-design.md` |

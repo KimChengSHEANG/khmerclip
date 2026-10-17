@@ -2,7 +2,7 @@
 SIGN_ID = 
 APP      = build/Build/Products/Debug/KhmerClip.app
 
-.PHONY: gen build test run clean trocr-models trocr-khmer trocr-test easyocr-venv easyocr-models ocrbench
+.PHONY: gen build test run clean trocr-models trocr-khmer trocr-test ocrbench
 
 # Local Khmer checkpoint to (re)build from. Drop a new fine-tune here and
 # `make trocr-khmer` reconverts it into Vendor/trocr/khmer. Override the dir
@@ -55,22 +55,6 @@ Vendor/trocr/khmer/tokenizer.json: $(KHMER_SRC) $(if $(KHMER_SRC),$(wildcard too
 	mkdir -p Vendor/trocr/khmer
 	$(TROCR_PY) tools/trocr/convert.py khmer Vendor/trocr/khmer $(KHMER_CKPT)
 	$(TROCR_PY) tools/trocr/export_tokenizer.py khmer $@ $(KHMER_CKPT)
-
-# Creates Vendor/easyocr/venv with EasyOCR + PyTorch. Re-run after upgrading
-# requirements.txt. The app prefers venv/bin/python3 when present.
-easyocr-venv:
-	python3 -m venv Vendor/easyocr/venv
-	Vendor/easyocr/venv/bin/pip install -r Vendor/easyocr/requirements.txt
-
-# Downloads CRAFT detection weights into Vendor/easyocr/models/. Khmer
-# recognition weights (khmer.pth) are installed separately via
-# Vendor/easyocr/install_khmer_model.py when you have a fine-tuned model.
-easyocr-models: easyocr-venv
-	Vendor/easyocr/venv/bin/python3 -c "\
-import easyocr; \
-easyocr.Reader(['en'], gpu=False, \
-model_storage_directory='Vendor/easyocr/models', \
-download_enabled=True, verbose=True)"
 
 # Release OCRBench CLI for the eval harness (training/eval/scripts/bench.py
 # --trocr-coreml-bin build/Build/Products/Release/OCRBench). Tool targets

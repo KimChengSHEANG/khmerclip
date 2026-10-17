@@ -12,14 +12,12 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from khmerclip_eval.cer import character_error_rate
 from khmerclip_eval.fixtures import load_fixtures
-from khmerclip_eval.runners import easyocr as easyocr_runner
 from khmerclip_eval.runners import tesseract as tess_runner
 from khmerclip_eval.summary import aggregate, passes_gate
 
 REPO = ROOT.parents[1]
 DEFAULT_FIXTURES = ROOT / "fixtures"
 DEFAULT_TESS = REPO / "apps/mac/Vendor/tesseract"
-DEFAULT_EASYOCR = REPO / "apps/mac/Vendor/easyocr"
 
 
 def main() -> None:
@@ -29,19 +27,13 @@ def main() -> None:
         "--engine",
         action="append",
         required=True,
-        choices=["tesseract", "tesseract-ft", "easyocr", "trocr-hf", "trocr-coreml"],
+        choices=["tesseract", "tesseract-ft", "trocr-hf", "trocr-coreml"],
     )
     p.add_argument("--limit", type=int, default=None)
     p.add_argument("--out", type=Path, default=Path("bench_results.csv"))
     p.add_argument("--tesseract-root", type=Path, default=DEFAULT_TESS)
     p.add_argument("--tesseract-ft-root", type=Path, default=None)
     p.add_argument("--tesseract-ft-lang", default="khm+eng")
-    p.add_argument("--easyocr-root", type=Path, default=DEFAULT_EASYOCR)
-    p.add_argument(
-        "--easyocr-python",
-        type=Path,
-        default=DEFAULT_EASYOCR / "venv/bin/python3",
-    )
     p.add_argument("--trocr-model-dir", type=Path, default=None)
     p.add_argument("--trocr-coreml-bin", type=Path, default=None)
     p.add_argument("--compare-to", default="tesseract")
@@ -88,10 +80,6 @@ def main() -> None:
                     raise SystemExit("--tesseract-ft-root required")
                 pred = tess_runner.recognize(
                     item.image_path, args.tesseract_ft_root, args.tesseract_ft_lang
-                )
-            elif engine == "easyocr":
-                pred = easyocr_runner.recognize(
-                    item.image_path, args.easyocr_root, args.easyocr_python
                 )
             elif engine == "trocr-hf":
                 from khmerclip_eval.runners import trocr_hf

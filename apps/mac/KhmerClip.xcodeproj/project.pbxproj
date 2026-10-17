@@ -13,10 +13,8 @@
 		05F97A238434B520C7D4C0F4 /* TrOCREngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F28AC5556DD4873DAE816548 /* TrOCREngine.swift */; };
 		07BDE15F0DD21B40B1B12CA5 /* OCRTextFormatterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B17DFE7B3AB478CF3969F370 /* OCRTextFormatterTests.swift */; };
 		0BBBCFBB36E86714BBC36B4D /* OCRBenchMain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57E581094120BFEFFD8E2C66 /* OCRBenchMain.swift */; };
-		0F3BC0BDD17D93BCF8C7145F /* EasyOCREngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7609E4DBCB72B234A485B231 /* EasyOCREngine.swift */; };
 		0F9EAD00BE67E31178E23F78 /* ScanRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51E97609987FE3C2F208125C /* ScanRecord.swift */; };
 		10DD34983E9839B89058D803 /* OCRProgressController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A4782CA77594238BAC91FB7 /* OCRProgressController.swift */; };
-		13FF6BAA1F6ECB133289BB4A /* EasyOCREngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7609E4DBCB72B234A485B231 /* EasyOCREngine.swift */; };
 		15D5F59B1F49A5147C614D91 /* TrOCRTokenizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E539C8C16E8B740DA8C6FB3 /* TrOCRTokenizer.swift */; };
 		1792A170B854F64D61D2C946 /* 4.txt in Resources */ = {isa = PBXBuildFile; fileRef = B857AA947B65E1CD8CDB1287 /* 4.txt */; };
 		2870C79499EDFDD1E53E4C90 /* AppPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 274781FEA2AE0B22692F817A /* AppPreferences.swift */; };
@@ -29,7 +27,6 @@
 		4127D7D28758F5D87E8BBEA3 /* ClipboardManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0366075B3BF602C8EEF72939 /* ClipboardManager.swift */; };
 		41B6E16B8A68760DCC969C98 /* TextToSpeechManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 590632F017F79C6EF7B86A1E /* TextToSpeechManager.swift */; };
 		47C85E4C6E588F111DD8E015 /* TrOCRTokenizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E539C8C16E8B740DA8C6FB3 /* TrOCRTokenizer.swift */; };
-		49A9128EAC7228E965DA88FC /* EasyOCREngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7609E4DBCB72B234A485B231 /* EasyOCREngine.swift */; };
 		4A8FFF96FE052EA269EFC7DF /* TesseractEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30AD7270593AC4C9DC7B6CB8 /* TesseractEngine.swift */; };
 		4AE75FA35E53A70E10549043 /* 3.png in Resources */ = {isa = PBXBuildFile; fileRef = A33272AD306F1947AEE7F335 /* 3.png */; };
 		4EF98F2F0094EE8AC67E709E /* ScanRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51E97609987FE3C2F208125C /* ScanRecord.swift */; };
@@ -56,7 +53,6 @@
 		A34CA6CC51CD3567396C60DA /* 5.txt in Resources */ = {isa = PBXBuildFile; fileRef = 275733D8BA12749124D5457B /* 5.txt */; };
 		A52326F246C6EB2B43DC952B /* OCRTextFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6902F6D94FB487C6EE888A7 /* OCRTextFormatter.swift */; };
 		A7A05BF6217CF3900EB4E324 /* HUDWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40237F6FFDC497014AC65F64 /* HUDWindowController.swift */; };
-		AEAAB56B9161EA7562767256 /* easyocr in Resources */ = {isa = PBXBuildFile; fileRef = 0C424B6ED8576643FDCC5B65 /* easyocr */; };
 		B2C94F79D7ADDBAD2ACD8396 /* HotKeyRecorderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96954E97899DE9E5DD7BFAC6 /* HotKeyRecorderView.swift */; };
 		B33ACA7CE1674E2331B6C030 /* 3.txt in Resources */ = {isa = PBXBuildFile; fileRef = F09B9657E5EE2EF73F7FB56F /* 3.txt */; };
 		BA47AF7E456BCF6A7EB62FF4 /* OCRTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF2FB2F7640462994F6BD3B5 /* OCRTests.swift */; };
@@ -76,7 +72,6 @@
 
 /* Begin PBXFileReference section */
 		0366075B3BF602C8EEF72939 /* ClipboardManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardManager.swift; sourceTree = "<group>"; };
-		0C424B6ED8576643FDCC5B65 /* easyocr */ = {isa = PBXFileReference; lastKnownFileType = folder; name = easyocr; path = Vendor/easyocr; sourceTree = SOURCE_ROOT; };
 		1AF42B15030FAE26DAE414CD /* BarcodeEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarcodeEngine.swift; sourceTree = "<group>"; };
 		274781FEA2AE0B22692F817A /* AppPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPreferences.swift; sourceTree = "<group>"; };
 		275733D8BA12749124D5457B /* 5.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = 5.txt; sourceTree = "<group>"; };
@@ -99,7 +94,6 @@
 		6E4C8B0E890E4D78CB98AC0A /* ScanHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanHistoryStore.swift; sourceTree = "<group>"; };
 		705A93999820618E034AB26E /* KhmerClipTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KhmerClipTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		71067B571A8F652733E03BA6 /* printed-001.pil384.rgb */ = {isa = PBXFileReference; path = "printed-001.pil384.rgb"; sourceTree = "<group>"; };
-		7609E4DBCB72B234A485B231 /* EasyOCREngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EasyOCREngine.swift; sourceTree = "<group>"; };
 		83EFA75EF7390F3761F3C80B /* ScreenCaptureManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenCaptureManager.swift; sourceTree = "<group>"; };
 		84240B22CF5DC4369019FF7E /* WindowPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowPicker.swift; sourceTree = "<group>"; };
 		8C115C9430DAD2CC6BB91EBF /* TrOCRTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrOCRTests.swift; sourceTree = "<group>"; };
@@ -186,7 +180,6 @@
 		5C32345BA6FDD477C859E9EE /* OCR */ = {
 			isa = PBXGroup;
 			children = (
-				7609E4DBCB72B234A485B231 /* EasyOCREngine.swift */,
 				A839A38973DE12649A2B49AE /* OCREngine.swift */,
 				D6902F6D94FB487C6EE888A7 /* OCRTextFormatter.swift */,
 				30AD7270593AC4C9DC7B6CB8 /* TesseractEngine.swift */,
@@ -222,7 +215,6 @@
 		76A5D1AF64A38ADF6FE9CB7F = {
 			isa = PBXGroup;
 			children = (
-				0C424B6ED8576643FDCC5B65 /* easyocr */,
 				430E4883CB7E3AD3F9DB5182 /* tesseract */,
 				E6DEA5E0117C84B3F7FFA1D3 /* trocr */,
 				F0962859F34C26F03D219AAA /* Resources */,
@@ -445,7 +437,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				33FE2451B4FF2F18577E8CBE /* Assets.xcassets in Resources */,
-				AEAAB56B9161EA7562767256 /* easyocr in Resources */,
 				992C1FB1D87ED2116FD96615 /* tesseract in Resources */,
 				8874B577DDA552DF46293020 /* trocr in Resources */,
 			);
@@ -478,7 +469,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0F3BC0BDD17D93BCF8C7145F /* EasyOCREngine.swift in Sources */,
 				0BBBCFBB36E86714BBC36B4D /* OCRBenchMain.swift in Sources */,
 				8E7C178EAC77905846106190 /* OCREngine.swift in Sources */,
 				A52326F246C6EB2B43DC952B /* OCRTextFormatter.swift in Sources */,
@@ -497,7 +487,6 @@
 				C6AF9F5EADE093C539977639 /* BarcodeEngine.swift in Sources */,
 				E73DC34EC0FE9E533FA1FB64 /* CaptureCoordinator.swift in Sources */,
 				4127D7D28758F5D87E8BBEA3 /* ClipboardManager.swift in Sources */,
-				49A9128EAC7228E965DA88FC /* EasyOCREngine.swift in Sources */,
 				A7A05BF6217CF3900EB4E324 /* HUDWindowController.swift in Sources */,
 				8075B37A149AB14884F7AA5A /* HistoryView.swift in Sources */,
 				B2C94F79D7ADDBAD2ACD8396 /* HotKeyRecorderView.swift in Sources */,
@@ -526,7 +515,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				13FF6BAA1F6ECB133289BB4A /* EasyOCREngine.swift in Sources */,
 				7E6089D818FE50C494A037C3 /* GeometryAndRecordTests.swift in Sources */,
 				7A09CCD0C906E6110CE4C3EF /* OCREngine.swift in Sources */,
 				BA47AF7E456BCF6A7EB62FF4 /* OCRTests.swift in Sources */,

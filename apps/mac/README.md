@@ -2,17 +2,16 @@
 
 Khmer OCR menu bar app for macOS — grab-select any text on screen, get instant Khmer (and mixed Khmer/English) text extraction. A TextSniper clone with Khmer support as the primary focus.
 
-**Quick start:** clone → `brew install xcodegen` → `make run`. Tesseract OCR works immediately (default engine after the 2026-10-03 Mac CoreML gate). TrOCR and EasyOCR need extra setup — see [Build and run](#build-and-run) and [OCR engines](#ocr-engines).
+**Quick start:** clone → `brew install xcodegen` → `make run`. Tesseract OCR works immediately (default engine after the 2026-10-03 Mac CoreML gate). TrOCR needs extra setup — see [Build and run](#build-and-run) and [OCR engines](#ocr-engines).
 
 ## Features
 
 - **Screen selection capture** — drag-select any screen region (`SelectionOverlayWindow`), like macOS's built-in screenshot tool.
 - **Capture-from-window** — press Space while the selection overlay is up to switch to "click a window" mode (same toggle macOS's own screenshot tool uses); hovering highlights whichever window is under the cursor (`WindowPicker`, via `CGWindowListCopyWindowInfo`) and a click captures that window's full bounds.
 - **OCR Image File…** — a dedicated drop-zone window (menu bar → "OCR Image File…") for running OCR against an existing image file instead of the live screen: drag a file in, or use "Choose File…".
-- **OCR, three engines** — Preferences → OCR Engine picks the backend:
+- **OCR, two engines** — Preferences → OCR Engine picks the backend:
   - **Tesseract** (vendored binary, `khm+eng`) — works out of the box, no extra setup.
   - **TrOCR** (CoreML Khmer fine-tune) — on-device neural OCR; needs `make trocr-khmer` first.
-  - **EasyOCR** (Python + custom Khmer recognition model) — needs `make easyocr-venv easyocr-models` and a trained `khmer.pth`.
   Vision (`VNRecognizeTextRequest`) does not support Khmer at all (verified on macOS 26 / Xcode 26.6 — not in `supportedRecognitionLanguages`), so none of the engines use Vision for text.
 - **QR / barcode scanning** — `VNDetectBarcodesRequest`, separate hotkey from text capture.
 - **Auto-copy to clipboard** on every successful capture.
@@ -35,7 +34,6 @@ All three backends handle Khmer text mixed with English words/numerals (e.g. `"�
 |--------|---------|-------|-------|
 | Tesseract | Vendored C++ binary | None (bundled) | Fastest cold start; good baseline accuracy |
 | TrOCR | CoreML (encoder + decoder) | `make trocr-khmer` | On-device; shows progress HUD while loading/decoding |
-| EasyOCR | Python subprocess (PyTorch) | `make easyocr-venv easyocr-models` + Khmer weights | CRAFT detection + custom Khmer recognizer; first run downloads CRAFT weights |
 
 ### Tesseract (bundled)
 
@@ -96,45 +94,6 @@ Operator checklist:
 | FAIL (CER after small fallback) | `.tesseract` | TrOCR stays in Preferences |
 
 
-### EasyOCR (Python + custom Khmer recognizer)
-
-`EasyOCREngine` shells out to `Vendor/easyocr/recognize.py`, which runs EasyOCR with a **custom Khmer recognition network** (EasyOCR has no built-in Khmer). Needs three components:
-
-| File | Location | Purpose |
-|------|----------|---------|
-| `khmer.pth` | `Vendor/easyocr/models/` | Trained recognition weights |
-| `khmer.yaml` | `Vendor/easyocr/khmer/user_network/` | Model config + character set |
-| `khmer.py` | `Vendor/easyocr/khmer/user_network/` | Network architecture (VGG-BiLSTM-CTC) |
-| `charset.txt` | `Vendor/easyocr/khmer/` | One character per line; must match `khmer.pth` training charset |
-
-CRAFT text-detection weights live in `Vendor/easyocr/models/` (downloaded separately).
-
-**One-time setup:**
-```bash
-# 1. Python venv with EasyOCR + PyTorch (~1–2 GB)
-make easyocr-venv
-
-# 2. Download CRAFT detection weights
-make easyocr-models
-
-# 3. Install Khmer recognition weights (if not already in place)
-#    Drop khmer.pth under Vendor/easyocr/khmer/ (legacy) or pass explicit paths:
-python3 Vendor/easyocr/install_khmer_model.py Vendor/easyocr/khmer
-```
-
-`install_khmer_model.py` copies `khmer.pth` → `models/`, syncs `khmer.yaml` + `khmer.py` → `khmer/user_network/`, and regenerates `character_list` in the yaml from `charset.txt`.
-
-**Test from the command line** (no app needed):
-```bash
-Vendor/easyocr/venv/bin/python3 Vendor/easyocr/recognize.py \
-  --resource-root Vendor/easyocr --model khmer \
-  path/to/image.png
-```
-
-**Run in the app:** rebuild after setup (`make build && make run`). The app prefers `Vendor/easyocr/venv/bin/python3` when bundled; falls back to system `python3` on `PATH` if the venv is missing. Rebuild after `make easyocr-venv` so the venv is copied into the app bundle.
-
-**Train your own Khmer model:** use the [EasyOCR trainer](https://github.com/JaidedAI/EasyOCR/tree/master/trainer) / [deep-text-recognition-benchmark](https://github.com/clovaai/deep-text-recognition-benchmark). The `character_list` in `khmer.yaml` must exactly match the training charset (201 chars + CTC blank = 202 output classes). `charset.txt` is the source of truth.
-
 ### Accuracy note (Tesseract, historical)
 
 Rendered `"សួស្តី​ពិភពលោក! KhmerClip ២០២៦"` through CoreText (proper Khmer shaping), compiled the Tesseract OCR call chain into a standalone test binary, and got an exact match. A naive PIL-rendered image (no Khmer glyph reordering) produced garbage — not representative of real on-screen text.
@@ -148,7 +107,7 @@ This environment has no window manager by default for the sandboxed shell tool, 
 - Opened "OCR Image File…" and confirmed the drop-zone window renders correctly (screenshot-verified). Clicking "Choose File…" spawned the real `com.apple.appkit.xpc.openAndSavePanelService` (visible in `lsappinfo`), confirming `NSOpenPanel` wiring is live, not dead code.
 - Verified the Tesseract OCR call chain against a real CoreText-rendered Khmer+English+numeral string via a standalone compile — see "Accuracy note" above.
 - Compiled the app icon through `actool` with zero warnings and confirmed the resulting `.icns` renders correctly (rounded-square masking applied by the OS, as expected for a full-bleed source image).
-- (Historical) Verified a Vision `fr-FR` path when the app still had a non-Khmer engine option — exact match on `"Bonjour le monde! KhmerClip 2026"`. Vision is not used for Khmer; the current app routes text capture through Tesseract / TrOCR / EasyOCR per Preferences.
+- (Historical) Verified a Vision `fr-FR` path when the app still had a non-Khmer engine option — exact match on `"Bonjour le monde! KhmerClip 2026"`. Vision is not used for Khmer; the current app routes text capture through Tesseract / TrOCR per Preferences.
 - Launched the onboarding window for real and confirmed `CGPreflightScreenCaptureAccess()` reflects live state (screenshot-verified: warning icon + explanatory text render correctly).
 - Triggered "Check for Updates…" for real: confirmed in the unified log that Sparkle made an actual HTTPS request to the placeholder `SUFeedURL`, got a 404, and handled it gracefully (logged error, no crash) — the wiring is live, only the appcast hosting is a placeholder.
 
@@ -192,17 +151,16 @@ Sparkle is fully wired (menu item, `SPUStandardUpdaterController`, Info.plist ke
 
 ```
 project.yml              # xcodegen spec — run `xcodegen generate` (or `make gen`) after editing
-Makefile                 # build, test, run, trocr-*, easyocr-* targets
+Makefile                 # build, test, run, trocr-* targets
 Vendor/
   tesseract/             # vendored Tesseract 5 + khm/eng traineddata (bundled, works OOTB)
   trocr/                 # TrOCR convert scripts + khmer/ CoreML models (models gitignored)
-  easyocr/               # recognize.py, khmer network files, venv/ + models/ (gitignored)
 Resources/
   Assets.xcassets/       # AppIcon.appiconset
 Sources/
   App/                   # KhmerClipApp entry point + AppDelegate (status item, wiring)
   Capture/               # selection overlay, window-picker, ScreenCaptureKit, clipboard, HUD
-  OCR/                   # TesseractEngine, TrOCREngine, EasyOCREngine, OCRDispatcher
+  OCR/                   # TesseractEngine, TrOCREngine, OCRDispatcher
   Barcode/               # Vision barcode/QR detection
   Hotkey/                # Carbon global hotkey registration
   History/               # scan history model, JSON-backed store
@@ -230,7 +188,7 @@ raw_models/              # local HF checkpoints (gitignored), e.g. TrOCR-khmer/
   brew install xcodegen
   ```
 
-No Python needed unless you set up TrOCR or EasyOCR models.
+No Python needed unless you set up TrOCR models.
 
 ### Clone and build
 
@@ -254,8 +212,6 @@ make run    # gen + build + open Debug .app
 | `make clean` | Remove `build/` and `KhmerClip.xcodeproj` |
 | `make trocr-khmer` | Convert `raw_models/TrOCR-khmer` → CoreML in `Vendor/trocr/khmer/` |
 | `make trocr-models` | Convert all TrOCR size tiers (large download) |
-| `make easyocr-venv` | Create `Vendor/easyocr/venv` with PyTorch + EasyOCR |
-| `make easyocr-models` | Download CRAFT detection weights into `Vendor/easyocr/models/` |
 
 ### Run from Xcode (alternative)
 
@@ -278,7 +234,6 @@ Default engine is **TrOCR** — needs converted models or capture will fail. For
 |--------|----------------------------------|
 | Tesseract | None |
 | TrOCR (default) | `pip install torch transformers coremltools` then `make trocr-khmer`, then `make build` |
-| EasyOCR | `make easyocr-venv easyocr-models`, install Khmer weights, then `make build` — see [EasyOCR](#easyocr-python--custom-khmer-recognizer) |
 
 After any vendor model or venv change, **rebuild** (`make build` or `make run`) so resources are copied into the app bundle.
 
@@ -296,7 +251,7 @@ Or double-click in Finder. `make run` is preferred — it re-registers the app w
 make test
 ```
 
-Runs Tesseract fixture tests against `Tests/Fixtures/ocr/*.png`. Does not require TrOCR/EasyOCR models.
+Runs Tesseract fixture tests against `Tests/Fixtures/ocr/*.png`. Does not require TrOCR models.
 
 ### Troubleshooting
 
@@ -307,14 +262,6 @@ GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=safe.bareRepository GIT_CONFIG_VALUE_0=all m
 
 **TrOCR capture fails** — `Vendor/trocr/khmer/` missing or empty. Run `make trocr-khmer` (needs checkpoint in `raw_models/TrOCR-khmer/`).
 
-**EasyOCR capture fails** — run `make easyocr-venv easyocr-models`, install weights, rebuild. Test CLI:
-```bash
-Vendor/easyocr/venv/bin/python3 Vendor/easyocr/recognize.py \
-  --resource-root Vendor/easyocr --model khmer --warmup
-```
-
 **Gitignored artifacts** (not in repo; regenerate locally):
 - `Vendor/trocr/*/` — CoreML models
-- `Vendor/easyocr/venv/` — Python env
-- `Vendor/easyocr/models/` — CRAFT + `khmer.pth`
 - `raw_models/` — Hugging Face checkpoints for conversion

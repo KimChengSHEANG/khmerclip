@@ -16,7 +16,7 @@ final class CaptureCoordinator {
     private var recognitionTask: Task<Void, Never>?
 
     /// Drives the bottom-of-screen progress box; nil means idle (tear down).
-    /// Only TrOCR and EasyOCR report phases -- Tesseract runs fast enough not to need it.
+    /// Only TrOCR reports phases -- Tesseract runs fast enough not to need it.
     var onOCRProgress: (@MainActor (OCRProgress?) -> Void)?
 
     /// Cancels an in-flight recognition (from the progress box's Cancel button).
@@ -35,9 +35,6 @@ final class CaptureCoordinator {
         // first-time compile/load doesn't stall after they release the mouse.
         if mode == .text, preferences.ocrEngine == .trocr {
             Task.detached { await TrOCREngine.preload(model: .khmer) }
-        }
-        if mode == .text, preferences.ocrEngine == .easyocr {
-            Task.detached { await EasyOCREngine.preload(model: .khmer) }
         }
         for screen in NSScreen.screens {
             let window = SelectionOverlayWindow(screen: screen)
