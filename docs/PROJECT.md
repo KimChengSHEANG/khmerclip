@@ -543,7 +543,7 @@ Spec: `docs/superpowers/specs/2026-10-03-khmerclip-desktop-windows-linux-design.
 
 **Builds.** `make build-desktop` freezes for the current OS. Windows/Linux installers come from `.github/workflows/desktop.yml`: `test` and `build` run on PRs and `workflow_dispatch`; pushing a `desktop-v<version>` tag also publishes `v<version>` to `KimChengSHEANG/khmerclip-releases` (needs the `RELEASES_TOKEN` secret). Full details in `apps/desktop/README.md`.
 
-**TrOCR model.** `trocr_manifest.json` is empty until `tools/publish_models.py` uploads the ONNX export to `KimChengSHEANG/khmerclip-trocr-khmer-onnx`; until then the app offers Tesseract only. Test a local export with `KHMERCLIP_TROCR_DIR=exported/khmer`.
+**TrOCR model.** `trocr_manifest.json` pins fine-tune v2 (`khmer-v2`) on the public HF repo `kcsheang/khmerclip-trocr-khmer-onnx` by commit revision + SHA-256; the app downloads it on first TrOCR use. Republish with `tools/publish_models.py exported/khmer --version khmer-vN` (needs a write token for `kcsheang`). Test a local export with `KHMERCLIP_TROCR_DIR=exported/khmer`.
 
 ```bash
 cd apps/desktop
@@ -602,7 +602,7 @@ See §5.3 for the full pipeline. For a quick smoke run, use `khmer-ocr-prepare -
 5. **Tesseract fine-tune blocked** (§3.3): the smoke BCER didn't improve, and the labels hit `Encoding of string failed` and contain ZWSP. Clean the labels before a full run.
 6. **Stale `apps/mac/Vendor/trocr/convert.py` / `export_tokenizer.py`** are still tracked even though `tools/trocr/` replaced them. Delete them along with their `.gitignore` exceptions.
 7. **Checkpoints before 2026-10 trained on the SoyVitou test set** (§4.3). The loader is fixed, but their printed CER, and v1's printed/mixed deltas vs init, are optimistic.
-8. **Desktop app is unreleased** (§10). The CI workflow hasn't run on GitHub yet, the TrOCR model isn't published, and the Wayland flow is untested on real hardware.
+8. **Desktop app is unreleased** (§10). The CI workflow hasn't run on GitHub yet, and the Wayland flow is untested on real hardware.
 9. **`docs/superpowers/` is tracked again.** The `feat/trocr-finetune-data` merge removed its `.gitignore` line (added in `151bbd6`), so plans and specs are committed. Restore the line if they should stay local.
 10. **Sparkle.** `SUFeedURL` is a placeholder (`https://example.com/...`), and there is no `SUPublicEDKey`. To ship updates, host an appcast, generate EdDSA keys, and sign releases.
 11. **Distribution.** There is no Developer ID signing or notarization yet. See `apps/mac/README.md` for the archive → export → `notarytool` → `stapler` steps.

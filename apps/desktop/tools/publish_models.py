@@ -12,7 +12,7 @@ from huggingface_hub import HfApi
 
 from khmerclip.ocr.trocr_models import MANIFEST_PATH, MODEL_FILES, build_manifest
 
-REPO = "KimChengSHEANG/khmerclip-trocr-khmer-onnx"
+REPO = "kcsheang/khmerclip-trocr-khmer-onnx"
 
 
 def main() -> None:
