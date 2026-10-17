@@ -7,6 +7,7 @@ Candidate improvements are opt-in keyword flags on `recognize` so each can be ga
   crop=True        desktop's content_crop before resizing
   beam_gate=T      re-decode a line with beam 4 when its least likely greedy token has p < T
   normalize=True   post-decode cleanup (see normalize_text)
+  split_touching=True  cut runs of touching lines at the line pitch (line_strips)
 """
 from __future__ import annotations
 
@@ -45,19 +46,47 @@ def ink_mask(image: Image.Image, scan_max: int | None = 512) -> tuple[np.ndarray
     return (np.abs(px - bg) > THRESHOLD).any(axis=2), scale
 
 
-def line_strips(image: Image.Image) -> list[Image.Image]:
-    """Port of Swift `TrOCREngine.lineStrips` (35% / 50%-when-close merge rule)."""
-    m = ink_mask(image)
-    if m is None:
-        return [image]
-    mask, s = m
-    runs: list[list[int]] = []
-    for y, inked in enumerate(mask.any(axis=1)):
-        if inked:
-            if runs and runs[-1][1] == y - 1:
-                runs[-1][1] = y
-            else:
-                runs.append([y, y])
+PITCH_STRENGTH = 0.1  # autocorrelation peak a line pitch needs
+VALLEY = 0.2          # a cut between touching lines must be this sparse vs the run's densest row
+
+
+def line_pitch(profile: np.ndarray) -> int | None:
+    """Line pitch in rows: first autocorrelation peak of the row-ink profile above PITCH_STRENGTH,
+    searched between n/12 and n/1.5 rows. None when the clip shows no repeating line structure."""
+    x = profile - profile.mean()
+    n = len(x)
+    ac = np.correlate(x, x, "full")[n - 1:]
+    if n < 8 or ac[0] <= 0:
+        return None
+    ac = ac / ac[0]
+    for k in range(max(4, n // 12), min(n - 1, int(n / 1.5) + 1)):
+        if ac[k] >= ac[k - 1] and ac[k] >= ac[k + 1] and ac[k] > PITCH_STRENGTH:
+            return k
+    return None
+
+
+def touching_cuts(profile: np.ndarray, pitch: int) -> list[int]:
+    """Rows to cut a run holding several touching lines: one valley per expected line boundary,
+    kept only when it is sparse (<= VALLEY x the run's densest row)."""
+    h = len(profile)
+    n = int((h - 0.5 * pitch) // pitch) + 1
+    if n < 2:
+        return []
+    line_h = h - (n - 1) * pitch
+    cuts = []
+    for i in range(1, n):
+        centre = (i - 1) * pitch + (pitch + line_h) / 2
+        a, b = int(max(1, centre - pitch / 3)), int(min(h - 1, centre + pitch / 3 + 1))
+        if a < b:
+            c = a + int(np.argmin(profile[a:b]))
+            if profile[c] <= VALLEY * profile.max():
+                cuts.append(c)
+    return cuts
+
+
+def merge_marks(runs: list[list[int]]) -> list[list[int]]:
+    """Swift lineStrips merge rule: a run < 35% of the tallest, or < 50% within a quarter of the
+    tallest's height of a neighbour, is a detached mark and joins its nearer neighbour."""
     while len(runs) > 1:
         tallest = max(hi - lo + 1 for lo, hi in runs)
 
@@ -75,6 +104,38 @@ def line_strips(image: Image.Image) -> list[Image.Image]:
         j = i - 1 if above <= below else i + 1
         runs[min(i, j)] = [min(runs[i][0], runs[j][0]), max(runs[i][1], runs[j][1])]
         del runs[max(i, j)]
+    return runs
+
+
+def line_strips(image: Image.Image, split_touching: bool = False) -> list[Image.Image]:
+    """Port of Swift `TrOCREngine.lineStrips`: runs of inked rows, detached marks merged in,
+    strips extended halfway into the gaps.
+
+    split_touching: first cut runs holding several lines whose marks touch (no blank row between
+    them, common at Khmer line heights) at the line pitch, on a full-resolution mask. Splitting
+    before the mark merge matters: a merged double line otherwise makes real lines look small."""
+    m = ink_mask(image, scan_max=None if split_touching else 512)
+    if m is None:
+        return [image]
+    mask, s = m
+    runs: list[list[int]] = []
+    for y, inked in enumerate(mask.any(axis=1)):
+        if inked:
+            if runs and runs[-1][1] == y - 1:
+                runs[-1][1] = y
+            else:
+                runs.append([y, y])
+    if split_touching and runs:
+        profile = np.convolve(mask.sum(axis=1).astype(float), np.ones(3) / 3, "same")
+        pitch = line_pitch(profile)
+        if pitch:
+            split = []
+            for lo, hi in runs:
+                cuts = touching_cuts(profile[lo:hi + 1], pitch) if hi - lo + 1 >= 1.5 * pitch else []
+                edges = [lo] + [lo + c for c in cuts] + [hi + 1]
+                split += [[edges[k], edges[k + 1] - 1] for k in range(len(edges) - 1)]
+            runs = split
+    runs = merge_marks(runs)
     if len(runs) <= 1:
         return [image]
     mh = mask.shape[0]
@@ -212,10 +273,11 @@ def decode(images: list[Image.Image], model_dir: Path, device: str, beams: int =
 
 
 def recognize(image: Image.Image, model_dir: Path, device: str | None = None, *, split_wide_at: float | None = None,
-              crop: bool = False, beam_gate: float | None = None, normalize: bool = False) -> str:
+              crop: bool = False, beam_gate: float | None = None, normalize: bool = False,
+              split_touching: bool = False) -> str:
     device = device or default_device()
     units: list[tuple[str, Image.Image]] = []  # (separator before, image to decode)
-    for k, strip in enumerate(line_strips(image)):
+    for k, strip in enumerate(line_strips(image, split_touching)):
         pieces = split_wide(strip, split_wide_at) if split_wide_at else [("", strip)]
         units += [((" " if k else "") if i == 0 else sep, p) for i, (sep, p) in enumerate(pieces)]
     images = [content_crop(p) if crop else p for _, p in units]

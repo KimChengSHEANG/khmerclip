@@ -25,7 +25,7 @@ def parse_variant(spec: str) -> dict:
     out: dict = {}
     for part in filter(None, spec.split(",")):
         key, value = part.split("=")
-        out[key] = bool(int(value)) if key in ("crop", "normalize") else float(value)
+        out[key] = bool(int(value)) if key in ("crop", "normalize", "split_touching") else float(value)
     return out
 
 
