@@ -1,0 +1,127 @@
+from PySide6.QtCore import Qt, QThreadPool
+from PySide6.QtGui import QKeySequence
+from PySide6.QtWidgets import QLabel, QMessageBox
+
+from helpers import FIXTURES
+from khmerclip.history import HistoryStore, ScanRecord
+from khmerclip.prefs import Prefs
+from khmerclip.ui.fonts import khmer_font
+from khmerclip.ui.history_window import HistoryWindow
+from khmerclip.ui.image_window import ImageOCRWindow
+from khmerclip.ui.popup import ResultPopup
+from khmerclip.ui.prefs_window import WAYLAND_HINT, PrefsWindow
+from khmerclip.ui.worker import Task
+
+
+def test_khmer_font_is_bundled_noto(qapp):
+    assert khmer_font().families()[0] == "Noto Sans Khmer"
+
+
+def test_worker_reports_progress_and_result(qtbot):
+    # Connect before starting: a queued cross-thread signal emitted with no receiver is lost.
+    seen = []
+    task = Task(lambda progress, cancel: (progress("step"), 42)[1])
+    task.signals.progress.connect(seen.append)
+    with qtbot.waitSignal(task.signals.done, timeout=3000) as blocker:
+        QThreadPool.globalInstance().start(task)
+    assert blocker.args == [42]
+    assert seen == ["step"]
+
+
+def test_worker_reports_failure(qtbot):
+    def boom(progress, cancel):
+        raise ValueError("bad")
+    task = Task(boom)
+    with qtbot.waitSignal(task.signals.failed, timeout=3000) as blocker:
+        QThreadPool.globalInstance().start(task)
+    assert isinstance(blocker.args[0], ValueError)
+
+
+def test_popup_shows_plain_text_and_copies_full_text(qtbot):
+    popup = ResultPopup()
+    qtbot.addWidget(popup)
+    popup.show_text("<b>ក</b>")
+    assert popup.label.text() == "<b>ក</b>"
+    assert popup.label.textFormat() == Qt.TextFormat.PlainText   # OCR text is never rendered as HTML
+    long_text = "ក" * 2000
+    popup.show_text(long_text)
+    with qtbot.waitSignal(popup.copy_requested) as blocker:
+        popup.copy_button.click()
+    assert blocker.args == [long_text]
+
+
+def test_popup_message_hides_copy(qtbot):
+    popup = ResultPopup()
+    qtbot.addWidget(popup)
+    popup.show_message("No text found")
+    assert popup.copy_button.isHidden()
+    assert popup.isVisible()
+
+
+def test_history_window_copy_delete_clear(qtbot, tmp_path, monkeypatch):
+    store = HistoryStore(tmp_path / "h.json")
+    store.add(ScanRecord("old"))
+    store.add(ScanRecord("ថ្មី"))
+    copied = []
+    window = HistoryWindow(store, copied.append)
+    qtbot.addWidget(window)
+    window.refresh()
+    assert window.list.count() == 2
+    window.list.setCurrentRow(0)
+    window.copy_selected()
+    assert copied == ["ថ្មី"]
+    window.delete_selected()
+    assert [r.text for r in store.records] == ["old"]
+    monkeypatch.setattr(QMessageBox, "question", lambda *a, **k: QMessageBox.StandardButton.No)
+    window.clear_all()
+    assert len(store.records) == 1
+    monkeypatch.setattr(QMessageBox, "question", lambda *a, **k: QMessageBox.StandardButton.Yes)
+    window.clear_all()
+    assert store.records == [] and window.list.count() == 0
+
+
+def test_prefs_window_saves_changes(qtbot, tmp_path):
+    prefs = Prefs.load(tmp_path / "prefs.json")
+    window = PrefsWindow(prefs, trocr_available=True, hotkey_supported=True)
+    qtbot.addWidget(window)
+    with qtbot.waitSignal(window.changed) as blocker:
+        window.checks["auto_copy"].setChecked(False)
+    assert blocker.args == ["auto_copy"]
+    assert Prefs.load(tmp_path / "prefs.json").auto_copy is False
+    window.engine.setCurrentIndex(window.engine.findData("trocr"))
+    assert Prefs.load(tmp_path / "prefs.json").engine == "trocr"
+
+
+def test_prefs_window_disables_unpublished_trocr_and_wayland_hotkey(qtbot, tmp_path):
+    window = PrefsWindow(Prefs.load(tmp_path / "p.json"), trocr_available=False, hotkey_supported=False)
+    qtbot.addWidget(window)
+    assert not window.engine.model().item(window.engine.findData("trocr")).isEnabled()
+    assert not window.hotkey.isEnabled()
+    assert any(label.text() == WAYLAND_HINT for label in window.findChildren(QLabel))
+
+
+def test_prefs_window_hotkey_validation(qtbot, tmp_path, monkeypatch):
+    prefs = Prefs.load(tmp_path / "p.json")
+    window = PrefsWindow(prefs, trocr_available=True, hotkey_supported=True)
+    qtbot.addWidget(window)
+    window.hotkey.setKeySequence(QKeySequence("Ctrl+Alt+K"))
+    window._hotkey_edited()
+    assert prefs.hotkey == "<ctrl>+<alt>+k"
+    warned = []
+    monkeypatch.setattr(QMessageBox, "warning", lambda *a, **k: warned.append(a))
+    window.hotkey.setKeySequence(QKeySequence("K"))
+    window._hotkey_edited()
+    assert prefs.hotkey == "<ctrl>+<alt>+k" and warned
+
+
+def test_image_window_open_path(qtbot, tmp_path):
+    window = ImageOCRWindow()
+    qtbot.addWidget(window)
+    with qtbot.waitSignal(window.image_chosen) as blocker:
+        window.open_path(str(FIXTURES / "1.png"))
+    assert blocker.args[0].mode == "RGB"
+    bad = tmp_path / "notes.txt"
+    bad.write_text("hello", encoding="utf-8")
+    with qtbot.waitSignal(window.failed) as blocker:
+        window.open_path(str(bad))
+    assert "notes.txt" in blocker.args[0]
