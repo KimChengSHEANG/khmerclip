@@ -4,7 +4,11 @@
 # packages in. Python 3.12 is what apps/desktop requires (<3.13).
 UVT = uv run --isolated --no-project --managed-python --python 3.12 --with pytest --with-editable
 
-.PHONY: build build-mac build-desktop check check-eval check-tesseract check-trocr check-desktop check-mac-tools check-mac
+.PHONY: run build build-mac build-desktop check check-eval check-tesseract check-trocr check-desktop check-mac-tools check-mac
+
+# `make run` builds and launches the Mac app.
+run:
+	$(MAKE) -C apps/mac run
 
 # `make build` builds every app that can be built on this machine.
 build: build-mac
