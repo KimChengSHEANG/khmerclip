@@ -36,7 +36,7 @@ def load_fixtures(root: Path) -> list[FixtureItem]:
             for key in ("id", "image", "text", "subset"):
                 if key not in row:
                     raise ValueError(f"labels.jsonl:{line_no} missing {key}")
-            if row["subset"] not in ALLOWED_SUBSETS:
+            if row["subset"] not in ALLOWED_SUBSETS and not row["subset"].startswith("slice_"):
                 raise ValueError(f"labels.jsonl:{line_no} bad subset {row['subset']!r}")
             # Draft rows hold the model's own prefill; scoring them would report a fake 0 CER.
             if row.get("verified") is False:

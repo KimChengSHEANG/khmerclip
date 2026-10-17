@@ -6,6 +6,8 @@ macOS / Khmer OS system fonts (never used in training), 1x and 2x, light and dar
     python scripts/build_screen_fixtures.py text --out screen_text.jsonl [--dedup]
     # 2. render on a Mac with Chrome and the fonts installed
     python scripts/build_screen_fixtures.py render --text screen_text.jsonl --out fixtures_screen
+    # 3. style slices (single lines: small, bold, low contrast, coloured, display font, numbers, mixed)
+    python scripts/build_screen_fixtures.py slices --text screen_text.jsonl --out fixtures_slices
 
 Subsets: `screen` = clips of 1-5 wrapped lines (20-90 chars), `screen_long` = one 60-120 char
 line. Label = lines joined by one space (OCRBench and the pipeline runner space-join lines).
@@ -29,6 +31,11 @@ FONTS = ["Khmer Sangam MN", "Khmer MN", "Khmer OS System", "Khmer OS Battambang"
 LATIN = ["Facebook", "Telegram", "iPhone 15", "USB-C", "COVID-19", "2024", "ABA Bank", "Wi-Fi",
          "PDF", "Google Maps", "10%", "$25", "Email", "YouTube", "Windows 11", "Bluetooth", "OK",
          "Download", "Settings", "5G", "TikTok", "08:30", "Zoom", "Excel"]
+# Task 3b slices: single lines in the styles a plain 12-20 px render doesn't cover.
+SLICES = ["plain", "small", "bold", "lowcontrast", "colored", "display", "numbers", "mixed"]
+DISPLAY_FONTS = ["Khmer OS Muol Light", "Khmer OS Muol Pali", "Khmer OS Bokor", "Khmer OS Metal Chrieng"]
+NUMBERS = ["១៥/០៨/២០២៤", "$12.50", "012 345 678", "២៥%", "10:45", "៛50,000", "2024-03-01", "៣០០០", "+855 12 345",
+           "1,250", "ឆ្នាំ២០២៣", "No. 47", "៧៨៩", "3.14"]
 
 
 def tokens(text: str) -> list[tuple[str, str]]:
@@ -161,7 +168,7 @@ def crop_to_ink(png: Path, bg: tuple[int, int, int], pad: int) -> None:
               min(img.width, xs.max() + 1 + pad), min(img.height, ys.max() + 1 + pad))).save(png)
 
 
-def check_fonts() -> None:
+def check_fonts(fonts: list[str] = FONTS) -> None:
     """Chrome silently falls back for a missing font; refuse to label fallback renders as that font."""
     import hashlib
 
@@ -172,9 +179,54 @@ def check_fonts() -> None:
             return hashlib.sha256(png.read_bytes()).hexdigest()
 
     fallback = digest("No Such Font 123")
-    missing = [f for f in FONTS if digest(f) == fallback]
+    missing = [f for f in fonts if digest(f) == fallback]
     if missing:
         raise SystemExit(f"fonts not installed for Chrome: {missing}")
+
+
+def insert_tokens(line: str, tokens: list[str], rng: random.Random, k: int) -> str:
+    words = line.split(" ")
+    for t in rng.sample(tokens, k):
+        words.insert(rng.randint(0, len(words)), t)
+    return " ".join(words)
+
+
+def slice_jobs(pool: list[str], rng: random.Random, per_slice: int = 40) -> list[dict]:
+    """Single-line clips, `per_slice` per style in SLICES; subset = "slice_<style>"."""
+    pool = [l for l in pool if 20 <= len(l) <= 70]
+    jobs = []
+    for name in SLICES:
+        for k in range(1, per_slice + 1):
+            line = rng.choice(pool)
+            font, size, scale = rng.choice(FONTS), rng.randint(12, 20), rng.choice([1, 2])
+            g_bg, g_fg = rng.randint(238, 255), rng.randint(0, 60)
+            bg, fg, bold = [g_bg] * 3, f"rgb({g_fg},{g_fg},{g_fg})", False
+            if name == "small":
+                size, scale = rng.randint(10, 13), 1
+            elif name == "bold":
+                bold = True
+            elif name == "lowcontrast":
+                bg = [rng.randint(200, 235), rng.randint(215, 245), rng.randint(185, 240)]
+                g = rng.randint(95, 130)
+                fg = f"rgb({g},{g},{g + rng.randint(0, 20)})"
+            elif name == "colored":
+                if rng.random() < 0.5:
+                    fg = rng.choice(["rgb(26,115,232)", "rgb(217,48,37)", "rgb(24,128,56)", "rgb(142,36,170)"])
+                else:
+                    g = rng.randint(20, 40)
+                    bg, fg = [g, g, g + 6], rng.choice(["rgb(138,180,248)", "rgb(242,139,130)", "rgb(129,201,149)"])
+            elif name == "display":
+                font, size = rng.choice(DISPLAY_FONTS), rng.randint(16, 24)
+                line = "".join(c for c in line if not ("A" <= c <= "z")).strip() or line
+            elif name == "numbers":
+                line = insert_tokens(line, NUMBERS, rng, 2)
+            elif name == "mixed":
+                line = insert_tokens(line, LATIN, rng, 2)
+            fid = f"slice-{name}-{k:03d}"
+            jobs.append({"id": fid, "image": f"slices/{fid}.png", "subset": f"slice_{name}", "lines": [line],
+                         "font": font, "size": size, "scale": scale, "dark": bg[0] < 128, "bg": bg, "fg": fg,
+                         "line_height": 1.6, "bold": bold, "pad": rng.randint(3, 16) * scale})
+    return jobs
 
 
 def render_one(out: Path, job: dict) -> None:
@@ -207,6 +259,14 @@ def render(text: Path, out: Path, seed: int, workers: int = 4) -> None:
                      "fg": f"rgb({g_fg},{g_fg},{g_fg})", "line_height": rng.choice([1.4, 1.6, 1.8]),
                      "bold": rng.random() < 0.15, "pad": rng.randint(3, 16) * scale})
         (out / subset).mkdir(parents=True, exist_ok=True)
+    render_jobs(jobs, out, workers)
+
+
+def render_jobs(jobs: list[dict], out: Path, workers: int = 4) -> None:
+    from concurrent.futures import ThreadPoolExecutor
+
+    for j in jobs:
+        (out / j["image"]).parent.mkdir(parents=True, exist_ok=True)
     with ThreadPoolExecutor(workers) as pool:
         for job, _ in zip(jobs, pool.map(lambda j: render_one(out, j), jobs)):
             print(job["id"], job["font"], job["size"], f"{job['scale']}x", flush=True)
@@ -214,6 +274,12 @@ def render(text: Path, out: Path, seed: int, workers: int = 4) -> None:
     (out / "labels.jsonl").write_text(
         "".join(json.dumps({**{k: j[k] for k in keys}, "text": label(j["lines"]), "lines": len(j["lines"])},
                            ensure_ascii=False) + "\n" for j in jobs), encoding="utf-8")
+
+
+def render_slices(text: Path, out: Path, seed: int, per_slice: int) -> None:
+    check_fonts(FONTS + DISPLAY_FONTS)
+    pool = [l for row in text.read_text(encoding="utf-8").splitlines() if row for l in json.loads(row)["lines"]]
+    render_jobs(slice_jobs(pool, random.Random(seed), per_slice), out)
 
 
 def main() -> None:
@@ -228,9 +294,15 @@ def main() -> None:
     r = sub.add_parser("render")
     r.add_argument("--text", type=Path, required=True)
     r.add_argument("--out", type=Path, required=True)
+    sl = sub.add_parser("slices", help="Task 3b: single-line style slices (subset slice_<style>)")
+    sl.add_argument("--text", type=Path, required=True)
+    sl.add_argument("--out", type=Path, required=True)
+    sl.add_argument("--per_slice", type=int, default=40)
     args = p.parse_args()
     if args.cmd == "text":
         make_text(args.out, args.seed, args.screen, args.long, args.dedup)
+    elif args.cmd == "slices":
+        render_slices(args.text, args.out, args.seed, args.per_slice)
     else:
         render(args.text, args.out, args.seed)
 
