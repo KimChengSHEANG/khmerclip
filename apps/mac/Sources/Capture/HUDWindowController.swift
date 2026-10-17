@@ -27,7 +27,7 @@ final class HUDWindowController: NSWindowController {
 
     private init(text: String, isError: Bool) {
         let hosting = NSHostingController(rootView: StatusIconHUDView(isError: isError))
-        let window = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 64, height: 64),
+        let window = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 84, height: 84),
                               styleMask: [.nonactivatingPanel, .titled, .fullSizeContentView],
                               backing: .buffered, defer: false)
         window.titleVisibility = .hidden
@@ -41,7 +41,7 @@ final class HUDWindowController: NSWindowController {
         window.contentViewController = hosting
         if let screen = NSScreen.main {
             let frame = window.frame
-            window.setFrameOrigin(NSPoint(x: screen.frame.midX - frame.width / 2, y: screen.frame.minY + 80))
+            window.setFrameOrigin(NSPoint(x: screen.frame.midX - frame.width / 2, y: screen.frame.midY - frame.height / 2))
         }
         super.init(window: window)
     }
@@ -58,13 +58,25 @@ final class HUDWindowController: NSWindowController {
 
 private struct StatusIconHUDView: View {
     let isError: Bool
+    @State private var shown = false
 
     var body: some View {
-        Image(systemName: isError ? "xmark.circle.fill" : "checkmark.circle.fill")
-            .resizable()
-            .frame(width: 44, height: 44)
-            .foregroundStyle(isError ? .red : .green)
-            .padding(10)
+        Image(systemName: isError ? "xmark" : "checkmark")
+            .font(.system(size: 30, weight: .bold))
+            .foregroundStyle(.white)
+            .symbolEffect(.bounce, value: shown)
+            .frame(width: 60, height: 60)
+            .background(
+                Circle().fill((isError ? Color.red : Color.green).gradient)
+                    .shadow(color: (isError ? Color.red : Color.green).opacity(0.45), radius: 10, y: 3)
+            )
+            .overlay(Circle().strokeBorder(.white.opacity(0.35), lineWidth: 1))
+            .scaleEffect(shown ? 1 : 0.6)
+            .opacity(shown ? 1 : 0)
+            .padding(12)
+            .onAppear {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.6)) { shown = true }
+            }
     }
 }
 

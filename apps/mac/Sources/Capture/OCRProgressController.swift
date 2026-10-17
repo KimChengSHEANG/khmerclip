@@ -58,31 +58,74 @@ private struct OCRProgressView: View {
     let onCancel: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text(model.info.label).font(.title3).fontWeight(.medium)
-                Spacer()
-                if let fraction = model.info.fraction {
-                    Text("\(Int(fraction * 100))%")
-                        .font(.title3.monospacedDigit())
+        VStack(spacing: 14) {
+            HStack(spacing: 14) {
+                Image(systemName: model.info.symbol)
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(.tint)
+                    .symbolEffect(.pulse, options: .repeating)
+                    .contentTransition(.symbolEffect(.replace))
+                    .frame(width: 44, height: 44)
+                    .background(.tint.opacity(0.15), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(model.info.label)
+                        .font(.headline)
+                        .contentTransition(.opacity)
+                    Text("KhmerClip OCR")
+                        .font(.caption)
                         .foregroundStyle(.secondary)
                 }
+
+                Spacer(minLength: 12)
+
+                if let fraction = model.info.fraction {
+                    badge("\(Int(fraction * 100))%")
+                } else if let detail = model.info.detail {
+                    badge(detail, symbol: "character.cursor.ibeam")
+                }
+
+                Button(action: onCancel) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 11, weight: .bold))
+                        .frame(width: 24, height: 24)
+                        .background(.quaternary, in: Circle())
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+                .keyboardShortcut(.cancelAction)
+                .help("Cancel")
             }
-            // nil fraction -> indeterminate spinner bar; otherwise a filled bar.
-            if let fraction = model.info.fraction {
-                ProgressView(value: fraction)
-            } else {
-                ProgressView().progressViewStyle(.linear)
+
+            // nil fraction -> indeterminate bar; otherwise a filled bar.
+            Group {
+                if let fraction = model.info.fraction {
+                    ProgressView(value: fraction)
+                } else {
+                    ProgressView().progressViewStyle(.linear)
+                }
             }
-            HStack {
-                Spacer()
-                Button("Cancel", action: onCancel)
-                    .keyboardShortcut(.cancelAction)
-            }
+            .controlSize(.small)
+            .tint(.accentColor)
         }
-        .frame(minWidth: 360)
-        .padding(24)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
+        .frame(width: 340)
+        .padding(18)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(.white.opacity(0.12)))
+        .animation(.snappy, value: model.info.label)
         .padding(10)
+    }
+
+    private func badge(_ text: String, symbol: String? = nil) -> some View {
+        HStack(spacing: 4) {
+            if let symbol { Image(systemName: symbol) }
+            Text(text).contentTransition(.numericText())
+        }
+        .font(.callout.monospacedDigit().weight(.medium))
+        .foregroundStyle(.secondary)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(.quaternary.opacity(0.6), in: Capsule())
+        .animation(.snappy, value: text)
     }
 }

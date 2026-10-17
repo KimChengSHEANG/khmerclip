@@ -59,6 +59,9 @@ extension TesseractEngine: OCREngine {}
 struct OCRProgress {
     var label: String
     var fraction: Double?
+    var symbol: String = "text.viewfinder"
+    /// Secondary live value (e.g. token count) shown as a badge beside the label.
+    var detail: String? = nil
 }
 
 enum OCRDispatcher {
@@ -79,13 +82,13 @@ enum OCRDispatcher {
 }
 
 extension OCRProgress {
-    static let preparing = OCRProgress(label: "Preparing…", fraction: nil)
-    static let loadingModel = OCRProgress(label: "Loading model…", fraction: nil)
-    static let encoding = OCRProgress(label: "Encoding image…", fraction: nil)
+    static let preparing = OCRProgress(label: "Preparing…", fraction: nil, symbol: "hourglass")
+    static let loadingModel = OCRProgress(label: "Loading model…", fraction: nil, symbol: "cpu")
+    static let encoding = OCRProgress(label: "Encoding image…", fraction: nil, symbol: "photo")
     // Decode length is unknown until EOS, so a completion fraction would be a lie
     // (it caps at maxLength and jumps to done). Show token count as live evidence
     // of work instead, with an indeterminate bar.
     static func reading(tokens: Int) -> OCRProgress {
-        OCRProgress(label: "Reading text… (\(tokens))", fraction: nil)
+        OCRProgress(label: "Reading text…", fraction: nil, symbol: "text.viewfinder", detail: "\(tokens)")
     }
 }
