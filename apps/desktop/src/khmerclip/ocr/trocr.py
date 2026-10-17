@@ -1,5 +1,5 @@
-"""TrOCR via onnxruntime: greedy, no-KV-cache decode per text line (same loop as
-apps/mac/Sources/OCR/TrOCREngine.swift)."""
+"""TrOCR via onnxruntime: greedy, no-KV-cache decode per text line (same loop, caps and
+Latin-line Tesseract fallback as apps/mac/Sources/OCR/TrOCREngine.swift)."""
 
 import os
 import threading
@@ -16,7 +16,17 @@ from khmerclip.ocr import trocr_models
 from khmerclip.ocr.preprocess import line_strips, pixel_values
 from khmerclip.ocr.tokenizer import TrOCRTokenizer
 
-MAX_LENGTH = 64
+# Total decoded ids incl. the start token; matches training MAX_LABEL_LEN and the mac
+# TrOCREngine.maxLength (64 cut off long Khmer lines).
+MAX_LENGTH = 128
+# Greedy decode can lock onto one token; forbid extending a run past MAX_RUN identical ids
+# (mac TrOCREngine.maxRun: greedy CER 0.172 -> 0.056). Labels never repeat a token > 3x.
+MAX_RUN = 4
+
+
+def blocked_token(ids: list[int], max_run: int = MAX_RUN) -> int | None:
+    tail = ids[-max_run:]
+    return tail[-1] if len(ids) > max_run and len(set(tail)) == 1 else None
 
 # Lowest Tesseract word confidence for it to replace a Latin-only TrOCR line.
 # Measured (apps/mac TrOCREngine.tesseractMinConfidence): clean UI strips >= 75.9,
@@ -110,7 +120,10 @@ def recognize_with_session(session, image: Image.Image, progress: Callable[[str]
                 raise Cancelled()
             logits = session.decoder.run(
                 ["logits"], {"input_ids": np.array([ids], dtype=np.int64), "encoder_hidden_states": hidden})[0]
-            ids.append(int(np.argmax(logits[0, -1])))
+            step = logits[0, -1].copy()
+            if (blocked := blocked_token(ids)) is not None:
+                step[blocked] = -np.inf
+            ids.append(int(np.argmax(step)))
             if progress:
                 progress(f"Reading text… ({done + len(ids)})")
             if ids[-1] == tok.eos_id:

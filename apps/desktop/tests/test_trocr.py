@@ -60,9 +60,23 @@ def test_each_line_decoded_and_joined_with_newline():
 
 
 def test_decode_stops_at_max_length_without_eos():
-    s = session([4])
-    assert trocr.recognize_with_session(s, lines_image(1)) == "ក" * (trocr.MAX_LENGTH - 1)
+    s = session([4, 5] * trocr.MAX_LENGTH)
+    assert trocr.recognize_with_session(s, lines_image(1)) == ("កខ" * trocr.MAX_LENGTH)[:trocr.MAX_LENGTH - 1]
     assert s.decoder.calls == trocr.MAX_LENGTH - 1
+
+
+def test_blocked_token_caps_runs():
+    # mirrors mac TrOCRDecodeGuardTests.testBlockedTokenCapsRuns
+    assert trocr.blocked_token([0, 5, 5, 5]) is None
+    assert trocr.blocked_token([0, 5, 5, 5, 5]) == 5
+    assert trocr.blocked_token([0, 5, 6, 5, 6]) is None
+    assert trocr.blocked_token([0]) is None
+
+
+def test_run_cap_breaks_a_stuck_token():
+    # decoder wants ក forever; every 5th step the cap forces the runner-up (<s>, decodes to "")
+    out = trocr.recognize_with_session(session([4]), lines_image(1))
+    assert out.count("ក") < trocr.MAX_LENGTH - 1 - 20
 
 
 def test_cancel_raises():
