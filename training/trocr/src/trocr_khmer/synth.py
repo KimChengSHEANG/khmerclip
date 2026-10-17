@@ -58,7 +58,42 @@ GOOGLE_KHMER_FONTS = {
     "ofl/taprom/Taprom-Regular.ttf": "display",
 }
 
-KIND_WEIGHTS = {"text": 0.55, "handwriting": 0.2, "display": 0.15, "italic": 0.1}
+# Latin-only OFL fonts for clean English UI/document lines. The Khmer fine-tune misread
+# plain English ("Warrantly", "Batter", lowercased "condition") because English in its data is
+# mostly scanned Gutenberg text. Khmer text never picks these (no Khmer glyphs). Eval renders
+# English in macOS system fonts (Georgia, Arial, Verdana, New York, SF, Tahoma), all held out.
+GOOGLE_LATIN_FONTS = {
+    "ofl/notosans/NotoSans[wdth,wght].ttf": "latin",
+    "ofl/notosans/NotoSans-Italic[wdth,wght].ttf": "latin",
+    "ofl/notoserif/NotoSerif[wdth,wght].ttf": "latin",
+    "ofl/notoserif/NotoSerif-Italic[wdth,wght].ttf": "latin",
+    "ofl/notoserifdisplay/NotoSerifDisplay[wdth,wght].ttf": "latin",
+    "ofl/opensans/OpenSans[wdth,wght].ttf": "latin",
+    "ofl/lato/Lato-Regular.ttf": "latin",
+    "ofl/lato/Lato-Bold.ttf": "latin",
+    "ofl/sourcesans3/SourceSans3[wght].ttf": "latin",
+    "ofl/sourceserif4/SourceSerif4[opsz,wght].ttf": "latin",
+    "ofl/ptserif/PT_Serif-Web-Regular.ttf": "latin",
+    "ofl/ptserif/PT_Serif-Web-Bold.ttf": "latin",
+    "ofl/inter/Inter[opsz,wght].ttf": "latin",
+    "ofl/montserrat/Montserrat[wght].ttf": "latin",
+    "ofl/roboto/Roboto[wdth,wght].ttf": "latin",
+    "ofl/robotomono/RobotoMono[wght].ttf": "latin",
+    "ofl/nunito/Nunito[wght].ttf": "latin",
+    "ofl/poppins/Poppins-Regular.ttf": "latin",
+    "ofl/poppins/Poppins-Bold.ttf": "latin",
+    "ofl/firasans/FiraSans-Regular.ttf": "latin",
+    "ofl/firasans/FiraSans-Bold.ttf": "latin",
+    "ofl/crimsontext/CrimsonText-Regular.ttf": "latin",
+    "ofl/ebgaramond/EBGaramond[wght].ttf": "latin",
+    "ofl/merriweather/Merriweather[opsz,wdth,wght].ttf": "latin",
+    "ofl/worksans/WorkSans[wght].ttf": "latin",
+    "ofl/raleway/Raleway[wght].ttf": "latin",
+}
+ALL_FONTS = {**GOOGLE_KHMER_FONTS, **GOOGLE_LATIN_FONTS}
+
+KIND_WEIGHTS = {"text": 0.55, "handwriting": 0.2, "display": 0.15, "italic": 0.1, "latin": 1.0}
+WIDE_STRIP_P = 0.5  # UI renders: app line strips span the whole clip width
 SYNTHETIC_ITALIC_P = 0.25  # extra shear on non-italic fonts
 COENG = "្"
 _IGNORABLE = {0x20, 0x200B, 0x200C, 0x200D}  # spaces / zero-width: need no glyph
@@ -79,7 +114,7 @@ def font_info(path: Path, kind: str) -> FontInfo:
 
 def load_fonts(font_dir: Path) -> list[FontInfo]:
     fonts = []
-    for repo_path, kind in GOOGLE_KHMER_FONTS.items():
+    for repo_path, kind in ALL_FONTS.items():
         path = Path(font_dir) / Path(repo_path).name
         if not path.is_file():
             raise FileNotFoundError(f"{path} missing; run scripts/fetch_fonts.py")
@@ -168,6 +203,10 @@ def render_sample(text: str, fonts: list[FontInfo], rng: random.Random):
     if not italic and rng.random() < SYNTHETIC_ITALIC_P:
         image = shear(image, rng.uniform(0.12, 0.3), bg)
         italic = True
+    if style.startswith("ui") and rng.random() < WIDE_STRIP_P:
+        wide = Image.new("RGB", (image.width + int(image.width * rng.uniform(0.1, 1.5)), image.height), bg)
+        wide.paste(image, (0, 0))
+        image = wide
     if style == "document":
         image = degrade_document(image, rng)
     return image, {"font": font.path.name, "kind": kind, "style": style, "italic": italic}
@@ -246,3 +285,21 @@ def corpus_part(text: str) -> str:
     """Stable ~2% val / 98% train assignment by content hash, so train and val renders never
     share a line across runs or seeds."""
     return "val" if zlib.crc32(text.encode("utf-8")) % 100 < 2 else "train"
+
+
+def is_latin_only(text: str) -> bool:
+    """Printable ASCII (plus a few common typographic marks) with at least one letter."""
+    return any(c.isalpha() for c in text) and all(" " <= c <= "~" or c in "’‘“”–—…°€£•" for c in text)
+
+
+def augment_case(text: str, rng: random.Random) -> str:
+    """Chunked prose mostly starts lowercase mid-sentence; UI labels start with a capital.
+    Mix in capitalised / title / upper case so the decoder doesn't learn lowercase starts."""
+    r = rng.random()
+    if r < 0.5:
+        return text[:1].upper() + text[1:]
+    if r < 0.65:
+        return " ".join(w[:1].upper() + w[1:] for w in text.split(" "))
+    if r < 0.7:
+        return text.upper()
+    return text
