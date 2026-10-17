@@ -38,3 +38,11 @@ def test_missing_image_raises(fixture_root: Path):
     )
     with pytest.raises(FileNotFoundError):
         load_fixtures(fixture_root)
+
+
+def test_unverified_rows_are_skipped(fixture_root: Path):
+    with (fixture_root / "labels.jsonl").open("a", encoding="utf-8") as f:
+        f.write('{"id":"b","image":"printed/a.png","text":"x","subset":"real","verified":false}\n')
+    with pytest.warns(UserWarning, match="skipped 1 unverified"):
+        items = load_fixtures(fixture_root)
+    assert [i.id for i in items] == ["a"]

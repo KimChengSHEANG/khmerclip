@@ -93,3 +93,37 @@ The gate uses `OCRBench` (Task 7) and `passes_gate()` from
 `khmerclip_eval.summary`: TrOCR must beat Tesseract on mean CER, stay within
 2× median latency, and not regress on mixed-script CER. Outcome controls whether
 the macOS app keeps TrOCR as the default engine or falls back to Tesseract.
+
+## Real-screen fixtures (`fixtures_real/`)
+
+The frozen set above is clean, rendered text. To see how a model handles what
+users actually capture, build a second set from real screenshots: news sites,
+Facebook, PDFs, Telegram, Word, menus, dark mode and different zoom levels.
+
+1. Capture regions with KhmerClip (or ⌘⇧4) into a folder.
+2. Prefill labels with TrOCR v2 (needs the Release `OCRBench`, `make -C apps/mac ocrbench`):
+
+   ```bash
+   python scripts/draft_real_fixtures.py ~/Desktop/khmer-captures
+   ```
+
+   New images (deduplicated by content) land in `fixtures_real/real/`, with
+   `"verified": false` rows in `fixtures_real/labels.jsonl`. Rerun it any time
+   you add screenshots.
+3. Open `fixtures_real/review.md` in a Markdown preview next to `labels.jsonl`.
+   Correct each `text` (join multiple lines with single spaces), then set
+   `"verified": true`. The loader skips unverified rows, because the prefill is
+   the model's own output and would score a fake 0 CER.
+4. Benchmark:
+
+   ```bash
+   KHMERCLIP_VENDOR=$PWD/../../apps/mac/Vendor python scripts/bench.py \
+     --fixtures fixtures_real --engine trocr-coreml \
+     --trocr-coreml-bin ../../apps/mac/build/Build/Products/Release/OCRBench \
+     --out results/real_trocr.csv
+   ```
+
+   Then sort `results/real_trocr.csv` by `cer` to see the failures.
+
+`fixtures_real/` is gitignored, because screenshots of third-party content
+shouldn't go in a public repo.
