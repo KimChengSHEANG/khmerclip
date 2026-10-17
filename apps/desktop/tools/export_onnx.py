@@ -89,6 +89,11 @@ def main() -> None:
         hidden = enc(pixel)
     start = decoder_start_id(model)
     ids = torch.tensor([[start, 100]], dtype=torch.int64)
+    # Torch reference before export: tracing leaves the in-memory model producing different
+    # logits afterwards, so a post-export reference reports a bogus divergence.
+    ids3 = torch.tensor([[start, 100, 200]], dtype=torch.int64)
+    with torch.no_grad():
+        ref = dec(ids3, hidden).numpy()
 
     torch.onnx.export(enc, (pixel,), out / "encoder.onnx", input_names=["pixel_values"],
                       output_names=["encoder_hidden_states"], opset_version=17, dynamo=False)
@@ -99,9 +104,6 @@ def main() -> None:
     export_tokenizer(processor, model, out / "tokenizer.json")
 
     # Parity: onnxruntime vs torch, with a longer sequence than traced to prove the dynamic axis.
-    ids3 = torch.tensor([[start, 100, 200]], dtype=torch.int64)
-    with torch.no_grad():
-        ref = dec(ids3, hidden).numpy()
     ort_hidden = ort.InferenceSession(str(out / "encoder.onnx")).run(None, {"pixel_values": pixel.numpy()})[0]
     got = ort.InferenceSession(str(out / "decoder.onnx")).run(
         None, {"input_ids": ids3.numpy(), "encoder_hidden_states": ort_hidden})[0]
