@@ -105,3 +105,20 @@ def test_augment_case_only_changes_case():
 def test_latin_fonts_listed_for_fetch_and_khmer_text_never_uses_them():
     assert set(synth.GOOGLE_LATIN_FONTS) <= set(synth.ALL_FONTS)
     assert all(kind in synth.KIND_WEIGHTS for kind in synth.ALL_FONTS.values())
+
+
+@needs_raqm
+def test_render_screen_sample_is_a_deterministic_strip():
+    fonts = [font_info(NOTO, "text")]
+    args = ("ភាសាខ្មែរ ២០២៤", ("ស្ត្រីម្នាក់", "ក្រុមហ៊ុន"), fonts)
+    a, meta_a = synth.render_screen_sample(*args, random.Random(3))
+    b, meta_b = synth.render_screen_sample(*args, random.Random(3))
+    assert a.tobytes() == b.tobytes() and meta_a == meta_b
+    assert set(meta_a) == {"font", "kind", "style", "italic"} and meta_a["style"].startswith("screen")
+    alone, _ = synth.render_screen_sample("ភាសាខ្មែរ ២០២៤", (None, None), fonts, random.Random(3))
+    # A strip holds one line: never as tall as two line pitches.
+    assert a.height < 2 * alone.height + 8
+
+
+def test_render_screen_sample_skips_uncovered_text():
+    assert synth.render_screen_sample("ក\U0001F600", (None, None), [font_info(NOTO, "text")], random.Random(0)) is None

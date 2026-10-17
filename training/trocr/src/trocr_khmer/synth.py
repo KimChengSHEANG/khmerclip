@@ -212,6 +212,62 @@ def render_sample(text: str, fonts: list[FontInfo], rng: random.Random):
     return image, {"font": font.path.name, "kind": kind, "style": style, "italic": italic}
 
 
+def _ink_rows(image: Image.Image, bg) -> np.ndarray:
+    px = np.asarray(image, dtype=np.int16)
+    return (np.abs(px - np.array(bg, dtype=np.int16)) > 40).any(axis=2).sum(axis=1)
+
+
+def render_screen_sample(text: str, neighbours: tuple[str | None, str | None], fonts: list[FontInfo],
+                         rng: random.Random):
+    """One line cut from a rendered screen paragraph, the way the app's line splitter cuts it.
+
+    Screens set Khmer at 11-24 px with tight line heights, so the previous / next line's
+    subscripts and above-marks reach into the strip, and the strip spans the whole clip width.
+    Renders up to three lines (``neighbours`` = text above / below, or None) at 1x or 2x and
+    cuts the middle one at the sparsest ink row between baselines. Returns ``(image, meta)``, or
+    ``None`` when no text font covers every line."""
+    lines = [t for t in (neighbours[0], text, neighbours[1]) if t]
+    usable = [f for f in fonts if f.kind in ("text", "italic") and all(covers(f, t) for t in lines)]
+    if not usable:
+        return None
+    font = rng.choice(usable)
+    style = rng.choices(["screen_light", "screen_dark"], weights=[0.7, 0.3])[0]
+    fg, bg = _colors("ui_dark" if style == "screen_dark" else "ui_light", rng)
+    size = rng.randint(11, 24) * rng.choice([1, 2])
+    pitch = int(size * rng.uniform(1.25, 1.8))
+    face = ImageFont.truetype(str(font.path), size, layout_engine=ImageFont.Layout.RAQM)
+    ascent, descent = face.getmetrics()
+    draw0 = ImageDraw.Draw(Image.new("RGB", (1, 1)))
+    widths = [draw0.textlength(t, font=face) for t in lines]
+    pad_x = rng.randint(2, 20)
+    width = int(max(widths) * rng.uniform(1.0, 1.4)) + 2 * pad_x
+    top = ascent + descent  # room for marks above the first line
+    height = top + pitch * (len(lines) - 1) + 2 * (ascent + descent)
+    image = Image.new("RGB", (width, height), bg)
+    draw = ImageDraw.Draw(image)
+    baselines = [top + ascent + k * pitch for k in range(len(lines))]
+    for t, y in zip(lines, baselines):
+        draw.text((pad_x, y), t, font=face, fill=fg, anchor="ls")
+    rows = _ink_rows(image, bg)
+    mid = lines.index(text) if neighbours[0] is None else 1
+    ys = np.nonzero(rows)[0]
+    if ys.size == 0:
+        return None
+
+    def valley(a: int, b: int) -> int:
+        a, b = max(0, a), min(len(rows), b)
+        return a + int(np.argmin(rows[a:b])) if a < b else a
+
+    y_mid = baselines[mid]
+    cut_top = valley(baselines[mid - 1], y_mid - ascent // 2) if mid > 0 else max(0, int(ys[0]) - rng.randint(1, 8))
+    has_next = mid < len(lines) - 1
+    cut_bottom = (valley(y_mid, baselines[mid + 1] - ascent // 2) if has_next
+                  else min(height, int(ys[-1]) + 1 + rng.randint(1, 8)))
+    image = image.crop((0, cut_top, width, cut_bottom))
+    italic = font.kind == "italic"
+    return image, {"font": font.path.name, "kind": font.kind, "style": style, "italic": italic}
+
+
 def _is_khmer(ch: str) -> bool:
     return "ក" <= ch <= "៿"
 

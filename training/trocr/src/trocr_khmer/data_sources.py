@@ -67,6 +67,11 @@ DATASET_REGISTRY = {
     # Clean English lines in Latin fonts (render_synth.py --latin_only).
     "synth_en": DatasetSpec("parquet", data_files=["cache/synth_en/train/*.parquet"]),
     "synth_en_val": DatasetSpec("parquet", data_files=["cache/synth_en/val/*.parquet"]),
+    # Screen strips cut from tight paragraphs at screen sizes (render_synth.py --screen, v3).
+    "synth_screen": DatasetSpec("parquet", data_files=["cache/synth_screen/train/*.parquet"]),
+    "synth_screen_val": DatasetSpec("parquet", data_files=["cache/synth_screen/val/*.parquet"]),
+    # LazyGreed/khmer_img2txt_200K (MIT) minus rows sharing text with eval fixtures (scripts/filter_source.py).
+    "lazygreed": DatasetSpec("parquet", data_files=["cache/lazygreed/train/*.parquet"]),
 }
 
 

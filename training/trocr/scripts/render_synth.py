@@ -8,6 +8,10 @@
 Text comes from existing datasets' labels, chunked to <= --max_chars, minus every eval fixture
 and UI string. --part picks the train or val side of a stable content-hash split.
 
+Screen strips (app line strips from tight paragraphs, small sizes; v3):
+
+    python scripts/render_synth.py --screen --max_chars 64 --part train --count 200000 --seed 4 --out cache/synth_screen/train
+
 Clean English set (Latin fonts, capitalised UI-style lines; eval: training/eval/en_ui_strings.txt):
 
     python scripts/render_synth.py --latin_only --english_texts 300000 --text_sources soyvitou mrrtmob \
@@ -24,7 +28,7 @@ from datasets import Image as DSImage
 
 from trocr_khmer.data_sources import resolve_dataset
 from trocr_khmer.synth import (augment_case, build_corpus, corpus_part, is_latin_only, load_fonts, render_sample,
-                               require_raqm)
+                               render_screen_sample, require_raqm)
 
 EVAL = Path(__file__).resolve().parents[2] / "eval"
 FEATURES = Features(
@@ -84,6 +88,8 @@ def main() -> None:
     p.add_argument("--shard_size", type=int, default=10_000)
     p.add_argument("--english_texts", type=int, default=0, help="add N English Wikipedia paragraphs")
     p.add_argument("--latin_only", action="store_true", help="keep only Latin-only lines; vary their case")
+    p.add_argument("--screen", action="store_true",
+                   help="screen strips: 11-24px (1x/2x) text fonts cut from a tight paragraph (render_screen_sample)")
     args = p.parse_args()
 
     require_raqm()
@@ -113,7 +119,12 @@ def main() -> None:
         tried += 1
         if args.latin_only:
             text = augment_case(text, rng)
-        sample = render_sample(text, fonts, rng)
+        if args.screen:
+            # Neighbour lines exist ~75% of the time (strips at a clip's top / bottom edge have none).
+            near = tuple(corpus[rng.randrange(len(corpus))] if rng.random() < 0.75 else None for _ in range(2))
+            sample = render_screen_sample(text, near, fonts, rng)
+        else:
+            sample = render_sample(text, fonts, rng)
         if sample is None:
             continue
         image, meta = sample
