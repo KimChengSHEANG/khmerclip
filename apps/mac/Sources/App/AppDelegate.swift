@@ -62,15 +62,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func registerHotKeys() {
         MASShortcutBinder.shared().registerDefaultShortcuts([
             AppPreferences.ShortcutKeys.capture: MASShortcut(keyCode: Int(kVK_ANSI_6), modifierFlags: [.command, .shift]),
-            AppPreferences.ShortcutKeys.captureFixture: MASShortcut(keyCode: Int(kVK_ANSI_7), modifierFlags: [.command, .shift]),
         ])
         MASShortcutBinder.shared().bindShortcut(withDefaultsKey: AppPreferences.ShortcutKeys.capture) { [weak self] in
             self?.coordinator.beginCapture(mode: .text)
         }
-        // Dev-only: capture + dump the result into Tests/Fixtures/ocr as a new case.
+        #if DEBUG
+        // Dev-only: capture + dump the result into this checkout's Tests/Fixtures/ocr as a new
+        // case. Release builds skip it: the path is the build machine's, and it would claim ⌘⇧7.
+        MASShortcutBinder.shared().registerDefaultShortcuts([
+            AppPreferences.ShortcutKeys.captureFixture: MASShortcut(keyCode: Int(kVK_ANSI_7), modifierFlags: [.command, .shift]),
+        ])
         MASShortcutBinder.shared().bindShortcut(withDefaultsKey: AppPreferences.ShortcutKeys.captureFixture) { [weak self] in
             self?.coordinator.beginCapture(mode: .text, saveFixture: true)
         }
+        #endif
     }
 
     /// Keeps the menu's key equivalents in sync with whatever the user last set in
