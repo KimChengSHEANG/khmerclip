@@ -17,8 +17,13 @@ rm -rf "$APPDIR"
 cp resources/icon.png build/khmerclip.png
 # 1) Tesseract and its shared libs, rpath-patched by linuxdeploy. Only tesseract goes through
 #    linuxdeploy: patching PyInstaller's binaries would corrupt its appended archive.
-"$TOOLS/linuxdeploy" --appdir "$APPDIR" --executable "$(command -v tesseract)" \
-  --desktop-file packaging/linux/khmerclip.desktop --icon-file build/khmerclip.png
+#    The desktop file and icon are placed by hand: linuxdeploy insists that Exec=KhmerClip
+#    exists in usr/bin, but the app lives in usr/lib/khmerclip and starts through AppRun.
+"$TOOLS/linuxdeploy" --appdir "$APPDIR" --executable "$(command -v tesseract)"
+install -Dm644 packaging/linux/khmerclip.desktop "$APPDIR/usr/share/applications/khmerclip.desktop"
+install -Dm644 build/khmerclip.png "$APPDIR/usr/share/icons/hicolor/256x256/apps/khmerclip.png"
+cp packaging/linux/khmerclip.desktop "$APPDIR/khmerclip.desktop"
+cp build/khmerclip.png "$APPDIR/khmerclip.png"
 # 2) The frozen app, copied untouched.
 mkdir -p "$APPDIR/usr/lib"
 cp -a dist/KhmerClip "$APPDIR/usr/lib/khmerclip"
