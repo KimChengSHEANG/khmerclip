@@ -18,6 +18,7 @@ import json
 import random
 import subprocess
 import tempfile
+import time
 from html import escape
 from pathlib import Path
 
@@ -125,10 +126,16 @@ def chrome_png(html: str, png: Path, scale: int, width: int, height: int) -> Non
         f.write(html)
     # Own profile dir: without it headless Chrome hands off to a running Chrome and never exits.
     with tempfile.TemporaryDirectory() as profile:
-        subprocess.run([CHROME, "--headless=new", "--disable-gpu", "--hide-scrollbars", "--no-first-run",
-                        f"--user-data-dir={profile}", f"--force-device-scale-factor={scale}",
-                        f"--window-size={width},{height}", f"--screenshot={png}", f"file://{f.name}"],
-                       check=True, capture_output=True, timeout=60)
+        cmd = [CHROME, "--headless=new", "--disable-gpu", "--hide-scrollbars", "--no-first-run",
+               f"--user-data-dir={profile}", f"--force-device-scale-factor={scale}",
+               f"--window-size={width},{height}", f"--screenshot={png}", f"file://{f.name}"]
+        for attempt in range(5):  # Chrome sometimes exits 2 when several start at once
+            run = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+            if run.returncode == 0 and png.is_file():
+                break
+            time.sleep(1 + attempt)
+        else:
+            raise RuntimeError(f"Chrome failed rendering {png}: rc={run.returncode} {run.stderr[-500:]}")
     Path(f.name).unlink()
 
 
@@ -180,7 +187,7 @@ def render_one(out: Path, job: dict) -> None:
     crop_to_ink(png, tuple(job["bg"]), job["pad"])
 
 
-def render(text: Path, out: Path, seed: int, workers: int = 8) -> None:
+def render(text: Path, out: Path, seed: int, workers: int = 4) -> None:
     """Sample every clip's style up front (deterministic), then render in parallel."""
     from concurrent.futures import ThreadPoolExecutor
 
