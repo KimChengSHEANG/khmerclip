@@ -168,6 +168,26 @@ final class TrOCRDecodeGuardTests: XCTestCase {
         XCTAssertEqual(TrOCREngine.argmaxLastStep(logits, excluding: 1), 2)
     }
 
+    func testContainsKhmerRoutesLatinOnlyLines() {
+        XCTAssertFalse(TrOCREngine.containsKhmer("Warranty 11 months"))
+        XCTAssertFalse(TrOCREngine.containsKhmer(""))
+        XCTAssertTrue(TrOCREngine.containsKhmer("កុំព្យូទ័រ & គ្រឿងបន្លាស់"))
+        XCTAssertTrue(TrOCREngine.containsKhmer("ដក language"))
+    }
+
+    func testTesseractTSVGivesWordsAndLowestConfidence() {
+        let tsv = """
+        level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext
+        1\t1\t0\t0\t0\t0\t0\t0\t410\t72\t-1\t
+        5\t1\t1\t1\t1\t1\t30\t10\t120\t40\t95.0\tWarranty
+        5\t1\t1\t1\t1\t2\t160\t10\t30\t40\t72.5\t11
+        """
+        let r = TesseractEngine.parseTSV(tsv)
+        XCTAssertEqual(r.text, "Warranty 11")
+        XCTAssertEqual(r.minConfidence, 72.5)
+        XCTAssertEqual(TesseractEngine.parseTSV("").minConfidence, 0)
+    }
+
     func testDecodeCapMatchesTrainingMaxLabelLength() {
         XCTAssertEqual(TrOCREngine.maxLength, 128)   // training MAX_LABEL_LEN
     }

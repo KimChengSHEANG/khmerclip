@@ -18,6 +18,32 @@ from khmerclip.ocr.tokenizer import TrOCRTokenizer
 
 MAX_LENGTH = 64
 
+# Lowest Tesseract word confidence for it to replace a Latin-only TrOCR line.
+# Measured (apps/mac TrOCREngine.tesseractMinConfidence): clean UI strips >= 75.9,
+# all correct; scanned eval lines Tesseract gets wrong <= 62.7.
+TESSERACT_MIN_CONFIDENCE = 70.0
+
+
+def contains_khmer(text: str) -> bool:
+    """Khmer (U+1780-17FF) or Khmer Symbols (U+19E0-19FF)."""
+    return any("\u1780" <= c <= "\u17ff" or "\u19e0" <= c <= "\u19ff" for c in text)
+
+
+def latin_fallback(strip: Image.Image, line: str) -> str:
+    """The Khmer fine-tune misspells clean English UI text ("Warrantly", "PriceSnbox")
+    that Tesseract reads perfectly, but Tesseract is worse on low-res scanned English.
+    So a Latin-only line switches to Tesseract only when every word is confident.
+    Lines with any Khmer stay with TrOCR. ponytail: one tesseract run per Latin-only line."""
+    if contains_khmer(line):
+        return line
+    from khmerclip.ocr import tesseract
+
+    try:
+        text, min_conf = tesseract.recognize_line(strip)
+    except KhmerClipError:
+        return line
+    return text if text and min_conf >= TESSERACT_MIN_CONFIDENCE else line
+
 
 @dataclass
 class Session:
@@ -90,6 +116,6 @@ def recognize_with_session(session, image: Image.Image, progress: Callable[[str]
             if ids[-1] == tok.eos_id:
                 break
         done += len(ids)
-        if line := tok.decode(ids):
+        if line := latin_fallback(strip, tok.decode(ids)):
             lines.append(line)
     return "\n".join(lines)

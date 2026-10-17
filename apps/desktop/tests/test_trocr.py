@@ -78,6 +78,33 @@ def test_progress_reports_token_count():
     assert seen[-1] == "Reading text… (4)"
 
 
+def test_contains_khmer():
+    assert not trocr.contains_khmer("Warranty 11 months")
+    assert trocr.contains_khmer("ដក language")
+
+
+@pytest.mark.parametrize("tess, expected", [
+    (("Warranty 11 months", 95.0), "Warranty 11 months"),   # confident: Tesseract wins
+    (("Warranty 11 rnonths", 40.0), "Warrantly 11 months"),  # unsure: keep TrOCR
+    (("", 0.0), "Warrantly 11 months"),
+])
+def test_latin_fallback_uses_confident_tesseract(monkeypatch, tess, expected):
+    from khmerclip.ocr import tesseract
+    monkeypatch.setattr(tesseract, "recognize_line", lambda img: tess)
+    assert trocr.latin_fallback(Image.new("RGB", (10, 10)), "Warrantly 11 months") == expected
+
+
+def test_latin_fallback_keeps_khmer_and_survives_missing_tesseract(monkeypatch):
+    from khmerclip.errors import EngineUnavailable
+    from khmerclip.ocr import tesseract
+
+    def boom(img):
+        raise EngineUnavailable("no tesseract")
+    monkeypatch.setattr(tesseract, "recognize_line", boom)
+    assert trocr.latin_fallback(Image.new("RGB", (10, 10)), "Price inbox") == "Price inbox"
+    assert trocr.latin_fallback(Image.new("RGB", (10, 10)), "កខ") == "កខ"
+
+
 @pytest.mark.skipif(not os.environ.get("KHMERCLIP_TROCR_DIR"), reason="set KHMERCLIP_TROCR_DIR to an exported model")
 def test_real_model_reads_fixture():
     with Image.open(FIXTURES / "1.png") as img:

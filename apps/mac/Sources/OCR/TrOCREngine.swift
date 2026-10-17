@@ -42,6 +42,12 @@ enum TrOCREngine {
     /// ponytail: single-token runs only; 2-token cycles still end at maxLength.
     static let maxRun = 4
 
+    /// Lowest Tesseract word confidence for it to replace a Latin-only TrOCR
+    /// line. Measured: clean UI strips >= 75.9 (all correct); scanned eval
+    /// lines Tesseract gets wrong <= 62.7 (one exception at 76.9, still
+    /// lower CER than TrOCR there).
+    static let tesseractMinConfidence = 70.0
+
     static func blockedToken(_ ids: [Int], maxRun: Int = maxRun) -> Int? {
         guard ids.count >= maxRun, let last = ids.last,
               ids.suffix(maxRun).allSatisfy({ $0 == last }) else { return nil }
@@ -98,7 +104,19 @@ enum TrOCREngine {
                 await progress?(.reading(tokens: doneTokens + n))
             }
             doneTokens += lineTokens
-            if !line.isEmpty { lines.append(line) }
+            // The Khmer fine-tune misspells clean English UI text ("Warrantly",
+            // "PriceSnbox") that Tesseract reads perfectly, but Tesseract is worse
+            // on low-res scanned English. So a Latin-only line switches to
+            // Tesseract only when every word is confident. Lines with any Khmer
+            // stay with TrOCR, which beats Tesseract on Khmer/mixed text.
+            // ponytail: one tesseract process per Latin-only strip (~90ms each).
+            var text = line
+            if !containsKhmer(line),
+               let tess = try? await TesseractEngine.recognizeLine(in: strip),
+               !tess.text.isEmpty, tess.minConfidence >= tesseractMinConfidence {
+                text = tess.text
+            }
+            if !text.isEmpty { lines.append(text) }
         }
         return lines.joined(separator: "\n")
     }
@@ -174,6 +192,12 @@ enum TrOCREngine {
         lastRunStats.decoderMs += milliseconds(since: decodeStart)
         lastRunStats.decoderSteps += ids.count - 1
         return tokenizer.decode(ids: ids)
+    }
+
+    /// Khmer (U+1780-17FF) or Khmer Symbols (U+19E0-19FF), the blocks the
+    /// tokenizer adds per-character tokens for.
+    static func containsKhmer(_ s: String) -> Bool {
+        s.unicodeScalars.contains { (0x1780...0x17FF).contains($0.value) || (0x19E0...0x19FF).contains($0.value) }
     }
 
     static func argmaxLastStep(_ logits: MLMultiArray, excluding: Int? = nil) -> Int {

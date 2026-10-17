@@ -59,6 +59,25 @@ def ascii_path(path: Path) -> str:
 
 
 def recognize(image: Image.Image) -> str:
+    return _run(image)
+
+
+def recognize_line(image: Image.Image) -> tuple[str, float]:
+    """One text line plus Tesseract's lowest word confidence (0-100), from its TSV output."""
+    return parse_tsv(_run(image, ["-c", "tessedit_create_tsv=1"]))
+
+
+def parse_tsv(tsv: str) -> tuple[str, float]:
+    """TSV columns: level page_num block_num par_num line_num word_num left top width height conf text."""
+    words = []
+    for row in tsv.splitlines()[1:]:
+        f = row.split("\t")
+        if len(f) > 11 and (word := "\t".join(f[11:]).strip()):
+            words.append((word, float(f[10])))
+    return " ".join(w for w, _ in words), min((c for _, c in words), default=0.0)
+
+
+def _run(image: Image.Image, extra_args: list[str] | None = None) -> str:
     exe = find_tesseract()
     if exe is None:
         raise EngineUnavailable("Tesseract was not found. Reinstall KhmerClip (developers: install tesseract-ocr).")
@@ -68,7 +87,7 @@ def recognize(image: Image.Image) -> str:
 
     png = io.BytesIO()
     image.convert("RGB").save(png, "PNG")
-    cmd = [exe, "stdin", "stdout", "--tessdata-dir", ascii_path(tessdata), "-l", LANGS, "--psm", "6"]
+    cmd = [exe, "stdin", "stdout", "--tessdata-dir", ascii_path(tessdata), "-l", LANGS, "--psm", "6", *(extra_args or [])]
     try:
         proc = subprocess.run(
             cmd,
