@@ -3,6 +3,7 @@ shortcut on Wayland) forwards its command to the running instance over a local s
 
 import getpass
 import hashlib
+import sys
 from functools import partial
 
 from PySide6.QtCore import QObject, Signal
@@ -18,14 +19,29 @@ def server_name() -> str:
 
 
 def send_command(command: str, name: str | None = None, timeout_ms: int = 1000) -> bool:
+    name = name or server_name()
+    if sys.platform == "win32":
+        return _send_windows_pipe(command, name)
     sock = QLocalSocket()
-    sock.connectToServer(name or server_name())
+    sock.connectToServer(name)
     if not sock.waitForConnected(timeout_ms):
         return False
     sock.write(command.encode("utf-8") + b"\n")
     ok = sock.waitForBytesWritten(timeout_ms)
     sock.disconnectFromServer()
     return ok
+
+
+def _send_windows_pipe(command: str, name: str) -> bool:
+    """QLocalSocket's writes to a Windows named pipe stay pending when the sending thread has
+    no Qt event loop (CI: waitForBytesWritten False, 8 bytes pending), so a second launch lost
+    its command. A plain blocking write returns once the running instance has read it."""
+    try:
+        with open(rf"\\.\pipe\{name}", "wb", buffering=0) as pipe:
+            pipe.write(command.encode("utf-8") + b"\n")
+        return True
+    except OSError:  # no instance listening (FileNotFoundError) or pipe busy
+        return False
 
 
 class CommandServer(QObject):
