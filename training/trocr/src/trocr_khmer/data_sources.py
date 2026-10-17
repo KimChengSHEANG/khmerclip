@@ -10,7 +10,7 @@ concatenation.
     python scripts/train.py --datasets soyvitou sokheng hanuman mrrtmob kiteaether   # all
 
 Registry aliases include ``handwriting``, ``handwriting_test``, ``darayut``, ``siemreap``,
-``synth``, and ``synth_val``. An existing directory path loads as a local ``imagefolder``
+``synth``, ``synth_val``, ``synth_en`` and ``synth_en_val``. An existing directory path loads as a local ``imagefolder``
 (images plus ``metadata.jsonl`` with ``file_name`` and ``text``).
 
 Any string that isn't a known alias is treated as a raw Hugging Face hub id (assumed to expose
@@ -64,6 +64,9 @@ DATASET_REGISTRY = {
     # Rendered locally by scripts/render_synth.py (paths relative to training/trocr).
     "synth": DatasetSpec("parquet", data_files=["cache/synth/train/*.parquet"]),
     "synth_val": DatasetSpec("parquet", data_files=["cache/synth/val/*.parquet"]),
+    # Clean English lines in Latin fonts (render_synth.py --latin_only).
+    "synth_en": DatasetSpec("parquet", data_files=["cache/synth_en/train/*.parquet"]),
+    "synth_en_val": DatasetSpec("parquet", data_files=["cache/synth_en/val/*.parquet"]),
 }
 
 

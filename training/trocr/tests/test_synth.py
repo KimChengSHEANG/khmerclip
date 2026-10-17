@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 from PIL import Image, ImageFont, features
 
+from trocr_khmer import synth
 from trocr_khmer.synth import (
     COENG,
     build_corpus,
@@ -86,3 +87,21 @@ def test_corpus_part_is_stable_and_mostly_train():
     parts = [corpus_part(f"line {i}") for i in range(2000)]
     assert parts == [corpus_part(f"line {i}") for i in range(2000)]
     assert 0 < parts.count("val") < 100
+
+
+def test_is_latin_only():
+    assert synth.is_latin_only("Battery health 100%")
+    assert not synth.is_latin_only("ដក language")
+    assert not synth.is_latin_only("100%")
+
+
+def test_augment_case_only_changes_case():
+    rng = random.Random(0)
+    outs = {synth.augment_case("battery health 100%", rng) for _ in range(200)}
+    assert "Battery health 100%" in outs and "battery health 100%" in outs
+    assert all(o.lower() == "battery health 100%" for o in outs)
+
+
+def test_latin_fonts_listed_for_fetch_and_khmer_text_never_uses_them():
+    assert set(synth.GOOGLE_LATIN_FONTS) <= set(synth.ALL_FONTS)
+    assert all(kind in synth.KIND_WEIGHTS for kind in synth.ALL_FONTS.values())
