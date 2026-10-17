@@ -10,7 +10,7 @@ and UI string. --part picks the train or val side of a stable content-hash split
 
 Screen strips (app line strips from tight paragraphs, small sizes; v3):
 
-    python scripts/render_synth.py --screen --max_chars 64 --part train --count 200000 --seed 4 --out cache/synth_screen/train
+    for i in 1 2 3 4 5 6; do python scripts/render_synth.py --screen --max_chars 64 --part train --count 34000 --seed 4$i --out cache/synth_screen/train/p$i & done
 
 Clean English set (Latin fonts, capitalised UI-style lines; eval: training/eval/en_ui_strings.txt):
 
