@@ -8,7 +8,7 @@ from functools import partial
 
 from PySide6.QtCore import QObject, QThreadPool, QTimer, QUrl, Signal, Slot
 from PySide6.QtGui import QAction, QDesktopServices, QGuiApplication, QIcon
-from PySide6.QtWidgets import QApplication, QMenu, QMessageBox, QProgressDialog, QSystemTrayIcon
+from PySide6.QtWidgets import QApplication, QDialog, QMenu, QMessageBox, QProgressDialog, QSystemTrayIcon
 
 from khmerclip import __version__, autostart, crash, reports, updater
 from khmerclip.capture import portal
@@ -22,6 +22,7 @@ from khmerclip.ocr import Engine, recognize, trocr_models
 from khmerclip.paths import APP_NAME, resource_dir
 from khmerclip.prefs import Prefs
 from khmerclip.single_instance import CommandServer, send_command
+from khmerclip.ui.feedback_dialog import FeedbackDialog
 from khmerclip.ui.history_window import HistoryWindow
 from khmerclip.ui.image_window import ImageOCRWindow
 from khmerclip.ui.popup import ResultPopup
@@ -227,6 +228,7 @@ class TrayApp(QObject):
         for text, slot in (("Capture Text", controller.start_capture),
                            ("OCR Image File…", self.show_image_window),
                            ("History…", self.show_history),
+                           ("Send Feedback…", self.show_feedback),
                            ("Preferences…", self.show_prefs),
                            ("Check for Updates…", partial(self.check_updates, True))):
             action = QAction(text, self.menu)
@@ -280,10 +282,30 @@ class TrayApp(QObject):
         try:
             payload = reports.capture_payload(history.captures_dir / f"{record.id}.png", meta,
                                               meta.get("ocr_text", record.text), correction, self.c.prefs.engine)
+        except OSError:
+            self._report_save_failed()
+            raise  # tells the History window not to mark the row Reported
+        self._queue_and_send(payload)
+
+    def show_feedback(self) -> None:
+        dialog = FeedbackDialog()
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        message, email = dialog.values()
+        try:
+            self._queue_and_send(reports.feedback_payload(message, email, self.c.prefs.engine))
+        except OSError:
+            pass  # already told the user
+
+    def _report_save_failed(self) -> None:
+        self.c.popup.show_message("Couldn't save the report. Please try again.")
+
+    def _queue_and_send(self, payload: dict) -> None:
+        try:
             reports.enqueue(payload)
         except OSError:
-            self.c.popup.show_message("Couldn't save the report. Please try again.")
-            raise  # tells the History window not to mark the row Reported
+            self._report_save_failed()
+            raise
 
         def done(sent) -> None:
             self.c.popup.show_message("Thanks — your report was sent." if sent else

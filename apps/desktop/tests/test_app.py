@@ -92,7 +92,7 @@ def test_tray_menu_and_commands(controller, monkeypatch):
     monkeypatch.setattr(controller, "start_capture", lambda: captures.append(1))
     tray = TrayApp(controller)
     texts = [a.text() for a in tray.menu.actions() if a.text()]
-    assert texts == ["Capture Text", "OCR Image File…", "History…", "Preferences…",
+    assert texts == ["Capture Text", "OCR Image File…", "History…", "Send Feedback…", "Preferences…",
                      "Check for Updates…", "Quit KhmerClip"]
     tray.on_command("capture")
     assert captures == [1]

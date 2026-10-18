@@ -6,6 +6,7 @@ from PySide6.QtWidgets import QDialog, QLabel, QMessageBox, QPushButton
 from helpers import FIXTURES
 from khmerclip.history import HistoryStore, ScanRecord
 from khmerclip.prefs import Prefs
+from khmerclip.ui.feedback_dialog import FeedbackDialog
 from khmerclip.ui.fonts import khmer_font
 from khmerclip.ui.history_window import HistoryWindow
 from khmerclip.ui.image_window import ImageOCRWindow
@@ -176,3 +177,14 @@ def test_report_dialog_unchanged_text_means_no_correction(qtbot, tmp_path):
     assert d.correction_text() == ""
     d.correction.setPlainText("ខ")
     assert d.correction_text() == "ខ"
+
+
+def test_feedback_dialog_requires_message(qtbot):
+    d = FeedbackDialog(); qtbot.addWidget(d)
+    assert not d.send_button.isEnabled()
+    d.message.setPlainText("  ")
+    assert not d.send_button.isEnabled()
+    d.message.setPlainText("សូមបន្ថែម")
+    assert d.send_button.isEnabled()
+    d.email.setText(" a@b.c ")
+    assert d.values() == ("សូមបន្ថែម", "a@b.c")
