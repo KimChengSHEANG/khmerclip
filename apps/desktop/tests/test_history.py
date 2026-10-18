@@ -1,5 +1,7 @@
 import json
 
+from PIL import Image
+
 from khmerclip.history import HistoryStore, ScanRecord
 
 
@@ -48,7 +50,6 @@ def test_wrong_shape_is_quarantined(tmp_path):
 
 
 def test_captures_are_kept_flagged_and_cleaned_up(tmp_path):
-    from PIL import Image
 
     store = HistoryStore(tmp_path / "h.json")
     plain, kept = ScanRecord("no image"), ScanRecord("ក")
