@@ -160,7 +160,10 @@ class Controller(QObject):
         else:
             message = f"Unexpected error: {error!r}"
             if self.prefs.send_crash_reports:
-                crash.record(error, self.prefs.engine)
+                try:
+                    crash.record(error, self.prefs.engine)
+                except Exception:  # a reporting failure must not hide the popup
+                    pass
         self.popup.show_message(f"Capture failed: {message}")
 
     def copy(self, text: str) -> None:
@@ -321,6 +324,26 @@ class TrayApp(QObject):
         self.c.submit(fetch, on_done=done)
 
 
+def _safe_flush() -> int:
+    """Flush queued reports in the background; failures are never surfaced to the user."""
+    try:
+        return reports.flush()
+    except Exception:
+        return 0
+
+
+def _start_crash_reporting(prefs: Prefs) -> None:
+    try:
+        crash.install(lambda: prefs.send_crash_reports, lambda: prefs.engine)
+        if prefs.send_crash_reports:
+            crash.collect_fault_log(prefs.engine)
+        else:
+            crash.discard_fault_log()
+            reports.drop_type("crash")
+    except Exception:  # crash reporting must never prevent launch
+        pass
+
+
 def run_gui(capture: bool = False) -> int:
     if qpa := preferred_qpa(sys.platform, os.environ):
         os.environ["QT_QPA_PLATFORM"] = qpa  # must precede QApplication
@@ -335,14 +358,9 @@ def run_gui(capture: bool = False) -> int:
     server.listen()
 
     prefs = Prefs.load()
-    crash.install(lambda: prefs.send_crash_reports, lambda: prefs.engine)
-    if prefs.send_crash_reports:
-        crash.collect_fault_log(prefs.engine)
-    else:
-        crash.discard_fault_log()
-        reports.drop_type("crash")
+    _start_crash_reporting(prefs)
     controller = Controller(prefs, HistoryStore())
-    controller.submit(lambda progress, cancel: reports.flush())
+    controller.submit(lambda progress, cancel: _safe_flush())
     tray = TrayApp(controller)
     server.command.connect(tray.on_command)
     qapp.aboutToQuit.connect(tray.hotkeys.stop)

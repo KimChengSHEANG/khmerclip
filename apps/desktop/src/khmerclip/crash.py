@@ -73,13 +73,13 @@ def collect_fault_log(engine: str, outbox: Path | None = None) -> None:
         text = log.read_text(encoding="utf-8", errors="replace")
     except OSError:
         return
-    if text.strip():
-        reports.enqueue(reports.crash_payload("Native crash", text, engine), outbox)
-    if text:
-        try:
+    try:
+        if text.strip():
+            reports.enqueue(reports.crash_payload("Native crash", text, engine), outbox)
+        if text:
             log.write_text("", encoding="utf-8")
-        except OSError:
-            pass
+    except OSError:
+        pass  # keep the log; try again next launch
 
 
 def discard_fault_log(outbox: Path | None = None) -> None:

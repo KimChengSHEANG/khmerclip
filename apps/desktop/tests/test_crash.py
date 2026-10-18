@@ -36,10 +36,19 @@ def test_signature_without_traceback_is_type_name():
 
 
 def test_signature_is_relative_to_package():
-    try:
-        crash.record(None, "x")  # AttributeError raised inside khmerclip/crash.py
-    except AttributeError as e:
-        assert crash.signature(e).startswith("AttributeError at crash.py:")
+    with pytest.raises(AttributeError) as info:
+        crash.signature(5)  # raises inside khmerclip/crash.py:signature
+    assert crash.signature(info.value) == "AttributeError at crash.py:signature"
+
+
+def test_signature_outside_package_uses_basename(tmp_path):
+    src = tmp_path / "elsewhere.py"
+    src.write_text("def boom():\n    raise KeyError('k')\n", encoding="utf-8")
+    ns: dict = {}
+    exec(compile(src.read_text(encoding="utf-8"), str(src), "exec"), ns)
+    with pytest.raises(KeyError) as info:
+        ns["boom"]()
+    assert crash.signature(info.value) == "KeyError at elsewhere.py:boom"
 
 
 def test_excepthook_respects_pref_and_chains(tmp_path, monkeypatch):
@@ -71,6 +80,12 @@ def test_fault_log_becomes_one_crash(tmp_path):
     [p] = (tmp_path / "outbox").glob("*.json")
     assert json.loads(p.read_text(encoding="utf-8"))["signature"] == "Native crash"
     assert (tmp_path / "fault.log").read_text(encoding="utf-8") == ""
+
+
+def test_collect_fault_log_survives_enqueue_failure(tmp_path, monkeypatch):
+    (tmp_path / "fault.log").write_text("Fatal Python error", encoding="utf-8")
+    monkeypatch.setattr(crash.reports, "enqueue", lambda *a, **k: (_ for _ in ()).throw(OSError("disk full")))
+    crash.collect_fault_log("tesseract", tmp_path / "outbox")  # must not raise
 
 
 def test_empty_fault_log_reports_nothing(tmp_path):

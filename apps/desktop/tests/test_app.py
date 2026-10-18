@@ -130,3 +130,18 @@ def test_unexpected_error_is_recorded(controller, monkeypatch):
     controller.prefs.send_crash_reports = False
     controller.handle_error(ZeroDivisionError())
     assert len(seen) == 1
+
+
+def test_error_popup_shows_even_if_recording_fails(controller, monkeypatch):
+    shown = []
+    monkeypatch.setattr(app_module.crash, "record", lambda *a: (_ for _ in ()).throw(OSError("disk full")))
+    monkeypatch.setattr(controller.popup, "show_message", shown.append)
+    controller.handle_error(ZeroDivisionError())
+    assert len(shown) == 1 and "Capture failed" in shown[0]
+
+
+def test_safe_flush_swallows_errors(monkeypatch):
+    monkeypatch.setattr(app_module.reports, "flush", lambda: (_ for _ in ()).throw(RuntimeError("boom")))
+    assert app_module._safe_flush() == 0
+    monkeypatch.setattr(app_module.reports, "flush", lambda: 3)
+    assert app_module._safe_flush() == 3
