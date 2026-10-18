@@ -214,6 +214,37 @@ final class TrOCRWideSplitTests: XCTestCase {
     }
 }
 
+/// Mirrors apps/desktop tests/test_preprocess.py test_content_crop_*.
+final class TrOCRContentCropTests: XCTestCase {
+    private func canvas(dark: Bool, box: (Int, Int, Int, Int)?) throws -> CGImage {
+        let (width, height) = (400, 200)
+        let ctx = try XCTUnwrap(CGContext(data: nil, width: width, height: height, bitsPerComponent: 8,
+                                          bytesPerRow: 0, space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                                          bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue))
+        ctx.setFillColor(dark ? .black : .white)
+        ctx.fill(CGRect(x: 0, y: 0, width: width, height: height))
+        if let (x0, y0, x1, y1) = box {
+            ctx.setFillColor(dark ? .white : .black)
+            ctx.fill(CGRect(x: x0, y: height - 1 - y1, width: x1 - x0 + 1, height: y1 - y0 + 1))
+        }
+        return try XCTUnwrap(ctx.makeImage())
+    }
+
+    func testPadsFourPercentAroundInk() throws {
+        for dark in [false, true] {
+            let out = TrOCREngine.contentCrop(try canvas(dark: dark, box: (100, 80, 299, 119)))
+            XCTAssertEqual([out.width, out.height], [216, 42], "dark=\(dark)")  // x 92..308, y 79..121
+        }
+    }
+
+    func testKeepsBlankAndSliverImages() throws {
+        let blank = try canvas(dark: false, box: nil)
+        XCTAssertEqual(TrOCREngine.contentCrop(blank).width, 400)
+        let sliver = try canvas(dark: false, box: (10, 10, 11, 11))
+        XCTAssertEqual(TrOCREngine.contentCrop(sliver).width, 400)
+    }
+}
+
 final class TrOCRPreprocessTests: XCTestCase {
     private static let macRoot = URL(fileURLWithPath: #filePath)
         .deletingLastPathComponent().deletingLastPathComponent()

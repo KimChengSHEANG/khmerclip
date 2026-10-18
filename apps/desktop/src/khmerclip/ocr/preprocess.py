@@ -136,7 +136,7 @@ def line_strips(image: Image.Image) -> list[Image.Image]:
     return strips
 
 
-WIDE_SPLIT_ASPECT = 8.0  # mac TrOCREngine.wideSplitAspect
+WIDE_SPLIT_ASPECT = 12.0  # mac TrOCREngine.wideSplitAspect
 
 
 def split_wide(strip: Image.Image, max_aspect: float = WIDE_SPLIT_ASPECT) -> list[tuple[str, Image.Image]]:

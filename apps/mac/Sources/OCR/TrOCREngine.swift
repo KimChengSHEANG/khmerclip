@@ -134,7 +134,7 @@ enum TrOCREngine {
         tokenizer: TrOCRTokenizer,
         onStep: (Int) async -> Void
     ) async throws -> String {
-        let pixelValues = try preprocess(image: image)
+        let pixelValues = try preprocess(image: contentCrop(image))
         let encodeStart = ContinuousClock.now
         let encoderOutput = try await encoder.prediction(from: MLDictionaryFeatureProvider(dictionary: [
             "pixel_values": MLFeatureValue(multiArray: pixelValues),
@@ -395,10 +395,35 @@ enum TrOCREngine {
         return runs
     }
 
-    /// Lines wider than this many strip heights are decoded in pieces
-    /// (training/eval/results/accuracy_v3.md: long screen lines CER
-    /// 0.043 -> 0.014 at 8).
-    static let wideSplitAspect = 8.0
+    /// Trims the background margin around the ink (plus 4% padding) so the
+    /// text fills the 384x384 input. Strips span the whole clip width, and a
+    /// short line's blank tail otherwise wastes most of the input; screen-set
+    /// errors -22% (training/eval/results/accuracy_v3.md). A mis-detected
+    /// background collapses the box to a sliver (< 1/20 of a side): keep the
+    /// image then. Port of apps/desktop preprocess.content_crop.
+    static func contentCrop(_ image: CGImage) -> CGImage {
+        guard let mask = inkMask(image) else { return image }
+        var minX = Int.max, maxX = -1, minY = Int.max, maxY = -1
+        for y in 0..<mask.height {
+            for x in 0..<mask.width where mask[x, y] {
+                minX = min(minX, x); maxX = max(maxX, x); minY = min(minY, y); maxY = max(maxY, y)
+            }
+        }
+        guard maxX >= 0, (maxX - minX + 1) * 20 >= mask.width, (maxY - minY + 1) * 20 >= mask.height else {
+            return image
+        }
+        let padX = max(1, (maxX - minX + 1) * 4 / 100), padY = max(1, (maxY - minY + 1) * 4 / 100)
+        let s = mask.scale
+        let x0 = max(0, (minX - padX) * s), y0 = max(0, (minY - padY) * s)
+        let x1 = min(image.width, (maxX + 1 + padX) * s), y1 = min(image.height, (maxY + 1 + padY) * s)
+        return image.cropping(to: CGRect(x: x0, y: y0, width: x1 - x0, height: y1 - y0)) ?? image
+    }
+
+    /// Lines wider than this many strip heights are decoded in pieces.
+    /// Swept 8 / 12 / 16 (training/eval/results/accuracy_v3.md): 12 cut
+    /// screen-set errors 20% without hurting single lines; 8 split 8-12:1
+    /// lines that read fine whole.
+    static let wideSplitAspect = 12.0
 
     /// Cuts a strip whose *line* is wider than `maxAspect` x the strip height
     /// into ~equal pieces at blank-column runs. The line's extent comes from
