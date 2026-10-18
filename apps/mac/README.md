@@ -8,18 +8,16 @@ Khmer OCR menu bar app for macOS — grab-select any text on screen, get instant
 
 - **Screen selection capture** — drag-select any screen region (`SelectionOverlayWindow`), like macOS's built-in screenshot tool.
 - **Capture-from-window** — press Space while the selection overlay is up to switch to "click a window" mode (same toggle macOS's own screenshot tool uses); hovering highlights whichever window is under the cursor (`WindowPicker`, via `CGWindowListCopyWindowInfo`) and a click captures that window's full bounds.
-- **OCR Image File…** — a dedicated drop-zone window (menu bar → "OCR Image File…") for running OCR against an existing image file instead of the live screen: drag a file in, or use "Choose File…".
 - **OCR, two engines** — Preferences → OCR Engine picks the backend:
   - **Tesseract** (vendored binary, `khm+eng`) — works out of the box, no extra setup.
   - **TrOCR** (CoreML Khmer fine-tune) — on-device neural OCR; needs `make trocr-khmer` first.
   Vision (`VNRecognizeTextRequest`) does not support Khmer at all (verified on macOS 26 / Xcode 26.6 — not in `supportedRecognitionLanguages`), so none of the engines use Vision for text.
-- **QR / barcode scanning** — `VNDetectBarcodesRequest`, separate hotkey from text capture.
 - **Auto-copy to clipboard** on every successful capture.
-- **Result HUD** — transient floating panel after capture, with Speak / Translate actions.
+- **Result HUD** — transient floating panel after capture.
 - **Scan history** — persisted to `~/Library/Application Support/KhmerClip/history.json`, with copy/speak/translate/delete per entry.
 - **Text-to-speech** — `AVSpeechSynthesizer`, Khmer voice preferred.
-- **Translate** — Apple's on-device Translation framework, opened from the HUD or history.
-- **Global hotkeys** — customizable (Carbon `RegisterEventHotKey`), one for text capture, one for QR/barcode.
+- **Translate** — Apple's on-device Translation framework, opened from history.
+- **Global hotkeys** — customizable (Carbon `RegisterEventHotKey`), for text capture.
 - **Launch at login** — `SMAppService`.
 - **Preferences window** — hotkey recorder, behavior toggles.
 - **Onboarding window** — shown once on first launch (menu bar → "Welcome / Permissions…" to re-open): explains the app, live-checks Screen Recording access via `CGPreflightScreenCaptureAccess()`, and links straight to the System Settings pane.
@@ -102,19 +100,14 @@ Rendered `"សួស្តី​ពិភពលោក! KhmerClip ២០២៦"` 
 
 This environment has no window manager by default for the sandboxed shell tool, but running Bash with the sandbox disabled gave real WindowServer/Accessibility access, so the actual built `.app` was driven end-to-end rather than just compiled:
 
-- Launched the built `.app`, used Accessibility (`System Events`) to `AXPress` the real status item, and confirmed its menu contents match the code exactly (`Capture Text, Scan QR / Barcode, OCR Image File…, History…, Preferences…, Quit KhmerClip`).
+- Launched the built `.app`, used Accessibility (`System Events`) to `AXPress` the real status item, and confirmed its menu contents match the code exactly (`Capture Text, Preserve Linebreaks, History…, Preferences…, Welcome / Permissions…, Check for Updates…, Quit KhmerClip`).
 - Clicked "Capture Text", then posted a synthetic `CGEvent` mouse drag. Confirmed via Accessibility + `log show` that this created a full-screen overlay window at the exact correct frame, dismissed it on mouse-up, and triggered a real `SCShareableContent`/ScreenCaptureKit call (visible in the unified log, no permission errors), followed by a result window appearing.
-- Opened "OCR Image File…" and confirmed the drop-zone window renders correctly (screenshot-verified). Clicking "Choose File…" spawned the real `com.apple.appkit.xpc.openAndSavePanelService` (visible in `lsappinfo`), confirming `NSOpenPanel` wiring is live, not dead code.
 - Verified the Tesseract OCR call chain against a real CoreText-rendered Khmer+English+numeral string via a standalone compile — see "Accuracy note" above.
 - Compiled the app icon through `actool` with zero warnings and confirmed the resulting `.icns` renders correctly (rounded-square masking applied by the OS, as expected for a full-bleed source image).
 - (Historical) Verified a Vision `fr-FR` path when the app still had a non-Khmer engine option — exact match on `"Bonjour le monde! KhmerClip 2026"`. Vision is not used for Khmer; the current app routes text capture through Tesseract / TrOCR per Preferences.
 - Launched the onboarding window for real and confirmed `CGPreflightScreenCaptureAccess()` reflects live state (screenshot-verified: warning icon + explanatory text render correctly).
 
 What's still unconfirmed: the *exact string* a live capture returns landing in the clipboard/HUD/history in one continuous human-driven run (UI-automation timing made this fiddly to script reliably — clicks and drags each independently proved to work, but chaining all of them through AppleScript in one shot raced against SwiftUI's async accessibility tree). Functionally this is very low risk: it's the same `recognize(image:mode:)` method already proven correct, called from wiring that's each been independently proven to fire.
-
-## Not yet implemented
-
-- Code signing with a real Developer ID, notarization, and distribution — see below, this needs credentials only you have.
 
 ## Code signing, notarization & distribution
 

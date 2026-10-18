@@ -13,8 +13,6 @@ KhmerClip is a menu-bar app for macOS that runs OCR on any region of the screen.
 App features:
 - drag-select screen capture
 - capture a whole window (press Space while selecting)
-- OCR an image file
-- QR/barcode scanning (Vision)
 - auto-copy to the clipboard
 - a result HUD
 - scan history
@@ -535,7 +533,7 @@ Use `CPUS=6` while a TrOCR run shares the box, and `MODEL=` for a separate run s
 8. **Desktop app is unreleased** (§10). The CI workflow hasn't run on GitHub yet, and the Wayland flow is untested on real hardware.
 9. **`docs/superpowers/` is tracked again.** The `feat/trocr-finetune-data` merge removed its `.gitignore` line (added in `151bbd6`), so plans and specs are committed. Restore the line if they should stay local.
 10. **Sparkle.** `SUFeedURL` is a placeholder (`https://example.com/...`), and there is no `SUPublicEDKey`. To ship updates, host an appcast, generate EdDSA keys, and sign releases.
-11. **Distribution.** There is no Developer ID signing or notarization yet. See `apps/mac/README.md` for the archive → export → `notarytool` → `stapler` steps.
+11. **Distribution.** Done: `make release-mac` signs with Developer ID, then notarizes and staples the dmg. See `apps/mac/README.md`.
 12. **`SWIFT_VERSION` is pinned to 5.0** to avoid strict-concurrency errors from the Translation framework.
 13. **`apps/mac/README.md` is out of date in places.** Its layout lists `Hotkey/` and `OCRDispatcher`, which don't exist. Hotkeys use the MASShortcut package.
 

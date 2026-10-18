@@ -28,24 +28,21 @@ Apple's Vision framework, and most OCR tools, can't read Khmer. KhmerClip ships 
 |---|:---:|:---:|
 | Drag-select screen capture, global hotkey | ✅ | ✅ |
 | Auto-copy to clipboard, result popup, history | ✅ | ✅ |
-| OCR an image file | ✅ | ✅ |
+| OCR an image file | — | ✅ |
 | Launch at login, update check | ✅ | ✅ |
 | Engines: Tesseract (default) and Khmer TrOCR | ✅ CoreML | ✅ ONNX, downloaded on first use |
 | Capture a whole window (Space while selecting) | ✅ | — |
-| QR / barcode scanning | ✅ | — |
 | Khmer text-to-speech, on-device translation | ✅ | — |
 
 Choose the engine in **Preferences → OCR Engine**. Tesseract is the default. **TrOCR** is far more accurate on Khmer (see [Results](#results)).
 
 ## Download
 
-Builds will be on the [Releases](https://github.com/KimChengSHEANG/khmerclip/releases) page. Until the first release is out, [build from source](#build-from-source).
+Get the latest build from the [Releases](https://github.com/KimChengSHEANG/khmerclip/releases) page. The macOS build is signed and notarized. The Windows and Linux builds are unsigned.
 
-The builds are unsigned:
-
-- **macOS 15+ (Apple Silicon):** unzip and move KhmerClip to Applications. The first time, right-click → Open, or run `xattr -dr com.apple.quarantine /Applications/KhmerClip.app`. Grant **Screen Recording** when asked.
+- **macOS 15+ (Apple Silicon):** open `KhmerClip-<ver>.dmg` and drag KhmerClip to Applications. Grant **Screen Recording** when asked.
 - **Windows:** run `KhmerClip-<ver>-windows-x64-setup.exe`. SmartScreen warns on first run: More info → Run anyway.
-- **Linux:** `chmod +x KhmerClip-<ver>-x86_64.AppImage`, then run it. On Wayland, bind a desktop shortcut to `KhmerClip-…AppImage --capture`. GNOME needs the AppIndicator extension for the tray icon.
+- **Linux:** on Ubuntu/Debian, `sudo apt install ./khmerclip_<ver>_amd64.deb`. Otherwise, `chmod +x KhmerClip-<ver>-x86_64.AppImage`, then run it. On Wayland, bind a desktop shortcut to `KhmerClip-…AppImage --capture`. GNOME needs the AppIndicator extension for the tray icon.
 
 The Windows/Linux TrOCR model (~1.3 GB) downloads on first use from [`kcsheang/khmerclip-trocr-khmer-onnx`](https://huggingface.co/kcsheang/khmerclip-trocr-khmer-onnx). The app checks it against a pinned commit and SHA-256.
 
@@ -197,8 +194,8 @@ Model weights and build products are not in git. Each subproject README explains
 
 ## Known limitations
 
-- Builds are unsigned and not notarized. macOS auto-update (Sparkle) isn't wired up yet.
-- The Windows/Linux app has no QR scanning, text-to-speech, translation or window capture. Wayland capture hasn't been tested on real hardware yet.
+- Windows and Linux builds are unsigned. Neither app updates itself: the update check opens the release page.
+- The Windows/Linux app has no text-to-speech, translation or window capture. Wayland capture hasn't been tested on real hardware yet.
 - TrOCR reads one line at a time. Splitting a block into lines is heuristic, so complex layouts such as tables and multi-column text can come out in the wrong order.
 
 ## License
