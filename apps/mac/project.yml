@@ -69,6 +69,7 @@ targets:
       - path: Tests
       - path: Sources/Capture/WindowPicker.swift
       - path: Sources/History/ScanRecord.swift
+      - path: Sources/History/FeedbackMerge.swift
       - path: Sources/OCR/TesseractEngine.swift
       - path: Sources/OCR/TrOCREngine.swift
       - path: Sources/OCR/TrOCRTokenizer.swift
