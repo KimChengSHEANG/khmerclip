@@ -12,6 +12,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var statusItem: NSStatusItem!
     private var coordinator: CaptureCoordinator!
     private var historyWindowController: NSWindowController?
+    private var feedbackWindowController: NSWindowController?
     private var captureMenuItem: NSMenuItem!
     private var preserveLinebreaksMenuItem: NSMenuItem!
     private var keepCapturesSubscription: AnyCancellable?
@@ -55,6 +56,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         preserveLinebreaksMenuItem = menu.addItem(withTitle: "Preserve Linebreaks", action: #selector(togglePreserveLinebreaks), keyEquivalent: "")
         menu.addItem(.separator())
         menu.addItem(withTitle: "History…", action: #selector(showHistory), keyEquivalent: "")
+        menu.addItem(withTitle: "Send Feedback…", action: #selector(showFeedback), keyEquivalent: "")
         menu.addItem(withTitle: "Preferences…", action: #selector(showPreferences), keyEquivalent: ",")
         menu.addItem(withTitle: "Welcome / Permissions…", action: #selector(showOnboarding), keyEquivalent: "")
         menu.addItem(.separator())
@@ -131,6 +133,40 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         historyWindowController?.showWindow(nil)
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    @objc private func showFeedback() {
+        if feedbackWindowController == nil {
+            let hosting = NSHostingController(rootView: FeedbackView(onSend: { [weak self] in self?.sendFeedback($0, email: $1) }))
+            let window = NSWindow(contentViewController: hosting)
+            window.title = "Send Feedback"
+            window.styleMask = [.titled, .closable]
+            window.isReleasedWhenClosed = false
+            window.center()
+            feedbackWindowController = NSWindowController(window: window)
+        }
+        feedbackWindowController?.showWindow(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    /// Closes the window only once the report is safely queued; on failure it stays open with the text intact.
+    private func sendFeedback(_ message: String, email: String) {
+        let payload = Report.feedback(message: message, email: email, engine: preferences.ocrEngine.rawValue)
+        do {
+            try ReportSender.queueAndSend(payload) { [weak self] in self?.showReportAlert($0) }
+            feedbackWindowController?.close()
+            feedbackWindowController = nil  // next open starts with a blank form
+        } catch {
+            showReportAlert(ReportSender.saveFailedMessage)
+        }
+    }
+
+    private func showReportAlert(_ message: String) {
+        let alert = NSAlert()
+        alert.messageText = message
+        alert.addButton(withTitle: "OK")
+        NSApp.activate(ignoringOtherApps: true)
+        alert.runModal()
     }
 
     @objc private func showPreferences() {
