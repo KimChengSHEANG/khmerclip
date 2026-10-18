@@ -23,6 +23,7 @@ APP_KEY = "kc-reports-1"
 MAX_PNG_BYTES = 2_000_000  # relay limit
 TARGET_PNG_BYTES = 1_500_000  # keeps the base64 request body under the relay's 3 MB cap
 MAX_TEXT_CHARS = 20_000
+MAX_EMAIL_UNITS = 254  # relay limit, counted in UTF-16 code units like JavaScript's .length
 _FIELD_CHARS = 100
 _flush_lock = threading.Lock()
 _DONE_STATUSES = {200, 400, 401, 413}  # sent, or rejected for good: never retry
@@ -63,7 +64,14 @@ def capture_payload(image_path: Path, meta: dict, ocr_text: str, correction: str
             "ocr_text": ocr_text[:MAX_TEXT_CHARS], "correction": correction[:MAX_TEXT_CHARS], "meta": meta}
 
 
+def _utf16_len(text: str) -> int:
+    return len(text.encode("utf-16-le")) // 2
+
+
 def feedback_payload(message: str, email: str, engine: str) -> dict:
+    email = email.strip()
+    if _utf16_len(email) > MAX_EMAIL_UNITS:
+        email = ""  # an over-long email must not get the whole report rejected
     return {**base_fields(engine), "type": "feedback", "message": message[:MAX_TEXT_CHARS], "email": email}
 
 

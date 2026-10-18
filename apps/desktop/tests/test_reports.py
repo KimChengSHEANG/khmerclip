@@ -141,3 +141,12 @@ def test_capture_text_truncated(tmp_path):
     Image.new("RGB", (10, 10)).save(img)
     d = reports.capture_payload(img, {}, "ក" * 30_000, "ខ" * 30_000, "t")
     assert len(d["ocr_text"]) == len(d["correction"]) == reports.MAX_TEXT_CHARS
+
+
+def test_feedback_email_trimmed_and_blanked_when_too_long():
+    assert reports.feedback_payload("m", "  a@b.co \n", "t")["email"] == "a@b.co"
+    ok = "a" * 249 + "@b.co"  # exactly 254
+    assert reports.feedback_payload("m", ok, "t")["email"] == ok
+    assert reports.feedback_payload("m", "a" * 250 + "@b.co", "t")["email"] == ""
+    # The relay counts UTF-16 units: 128 astral chars are 256 units, so over the limit.
+    assert reports.feedback_payload("m", "\U0001F600" * 128, "t")["email"] == ""
