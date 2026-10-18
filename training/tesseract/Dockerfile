@@ -17,3 +17,6 @@ RUN mkdir -p /opt/tessdata_best \
  && wget -qO /opt/tessdata_best/khm.traineddata \
       "https://github.com/tesseract-ocr/tessdata_best/raw/${TESSDATA_BEST_REF}/khm.traineddata" \
  && echo "${KHM_BEST_SHA256}  /opt/tessdata_best/khm.traineddata" | sha256sum -c -
+
+# Non-root by default; the Makefile also passes --user $(id -u):$(id -g).
+USER ubuntu
