@@ -237,6 +237,8 @@ At runtime, `TrOCREngine` does the following:
 
 ### 4.5 Current measured state
 
+**Fine-tune v3 + line-split fixes (2026-10-18, CoreML).** Frozen 200: CER **0.0034** with the Latin fallback (printed 0.0035, ui 0.0030, mixed 0.0046), median 102 ms. Screen set (450 Chrome-rendered clips in held-out system fonts): **0.0215**, down from ~0.14 for v2 as shipped; style slices 0.0109. Most of the screen gain is the line splitter: `lineStrips` now cuts touching lines at the line pitch, `splitWide` decodes lines wider than 12 strip heights in pieces, and `contentCrop` trims each piece to its ink. v3 (`checkpoint-8` step 16k, `scripts/run_v3b.sh`) adds `synth_screen` and LazyGreed. Every candidate and its keep/drop numbers: `training/eval/results/accuracy_v3.md`. v2 weights are backed up as `raw_models/TrOCR-khmer-v2-step10k`.
+
 **Fine-tune v2 (2026-10-17, CoreML, 200 fixtures).** CER 0.0054 without the Latin fallback, **0.0044** with it (mixed 0.0133 → 0.0046, ui 0.0032), median 105 ms. v1 with fallback was 0.0063. The table below is the older v0 history.
 
 Source: `training/eval/results/trocr_speed_accuracy.md`. Full 200 fixtures, Release `OCRBench`, same `bench.py` run as Tesseract. Checkpoint: v0 (`checkpoint-3`, step 72k).

@@ -65,9 +65,21 @@ All engines are scored on one frozen set of 200 line images ([`training/eval`](t
 |---|---:|---:|---:|---:|---:|
 | Tesseract 5 `khm+eng` (stock `tessdata_fast`) | 0.2580 | 0.5370 | 0.0199 | 0.0894 | ~76–108 ms |
 | TrOCR v0, before fine-tuning on new data | 0.0593 | 0.0433 | 0.0662 | 0.0950 | 95 ms |
-| **TrOCR v2 + Latin-line fallback (current)** | **0.0044** | 0.0055 ¹ | **0.0032** | **0.0046** | **105 ms** |
+| TrOCR v2 + Latin-line fallback | 0.0044 | 0.0055 ¹ | 0.0032 | 0.0046 | 105 ms |
+| **TrOCR v3 + line-split fixes + Latin-line fallback (current)** | **0.0034** | 0.0035 | **0.0030** | **0.0046** | **102 ms** |
 
 ¹ The v2 printed number is the PyTorch reference (Hugging Face, greedy). The other v2 columns are CoreML on the Mac.
+
+### Screen captures
+
+The frozen set is clean single lines. Real captures are paragraphs of small screen text, so a second, auto-labelled set renders Khmer Wikipedia lines (deduplicated against all training text) with headless Chrome in fonts that were never trained on: Khmer Sangam MN, Khmer MN and the Khmer OS family, 12-20 px, 1x and 2x, light and dark ([`build_screen_fixtures.py`](training/eval/scripts/build_screen_fixtures.py), [results](training/eval/results/accuracy_v3.md)).
+
+| On-device CoreML, CER | screen, 1-5 lines (300) | screen, one 60-120 char line (150) | style slices (320) |
+|---|---:|---:|---:|
+| v2 as shipped | ~0.195 | ~0.040 | - |
+| **v3 + line-split fixes (current)** | **0.027** | **0.011** | **0.011** |
+
+Most of the gain is in line splitting, not the model. Khmer subscripts of one line touch the marks of the next, so the app read two to five lines squashed into one image. It now cuts touching lines at the line pitch, decodes lines wider than 12 strip heights in pieces, and crops each piece to its ink. v3 then cut the remaining errors by another 18% on screens.
 
 > **Caveat on printed CER:** checkpoints trained before October 2026 saw the SoyVitou test split, which the printed fixtures come from. The loader is fixed, but v2 builds on those checkpoints, so its printed number is optimistic. The **ui** and **mixed** subsets were never in training data.
 
@@ -79,7 +91,11 @@ On the Mac, TrOCR runs as a CoreML FP16 encoder plus a stateful KV-cache decoder
 |---|---:|---:|---:|---:|---:|
 | v0, `checkpoint-3` (step 72k, beam 4) | 0.0542 | 0.0425 | 0.0586 | 0.0828 | — |
 | v1, more data + handwriting + synthetic fonts | 0.0069 | 0.0064 | 0.0021 | 0.0271 | 62.3% |
-| **v2, + clean English synthetic set (shipped)** | **0.0054** | 0.0055 | 0.0032 | **0.0133** | **76.0%** |
+| v2, + clean English synthetic set | 0.0054 | 0.0055 | 0.0032 | 0.0133 | 76.0% |
+| **v3, + screen-strip synthetic set and LazyGreed (shipped)** | **0.0070** ² | 0.0093 ² | 0.0030 ² | 0.0133 ² | **78.7%** ³ |
+
+² Through the app pipeline (line split, wide split, content crop), not whole images, so not comparable with the rows above. v2 through the same pipeline: 0.0076 / 0.0115 / 0.0021 / 0.0133.
+³ v2 measured 74.3% in the same run (76.0% above was measured on 2026-10-17 in a different environment).
 
 v1 and v2 rows use greedy decoding with the repeat-run cap, which is what the apps run. English UI line accuracy is measured on held-out English UI strings rendered in macOS system fonts that aren't in the training set ([`eval_english.py`](training/trocr/scripts/eval_english.py)). v1 also cut CER on new domains: handwriting 0.318 → 0.014, synthetic 0.056 → 0.008, Siem Reap font set 0.279 → 0.076.
 
@@ -123,6 +139,8 @@ All public line-image datasets from Hugging Face. Thanks to their authors.
 | [Darayut/khmer-document-synthetic-low-res](https://huggingface.co/datasets/Darayut/khmer-document-synthetic-low-res) | 100k | not stated | Low-res synthetic document lines | 100k |
 | [KimkosalYon/khmer-ocr-200k-siemreap-arial](https://huggingface.co/datasets/KimkosalYon/khmer-ocr-200k-siemreap-arial) | 200k | not stated | Siemreap / Arial font lines | 100k |
 | `synth` (rendered here) | 400k | own render, OFL fonts | Multi-font Khmer + mixed lines | 400k |
+| [LazyGreed/khmer_img2txt_200K](https://huggingface.co/datasets/LazyGreed/khmer_img2txt_200K) (v3) | ~180k | MIT | Khmer + English lines; rows sharing text with any eval set removed ([`filter_source.py`](training/trocr/scripts/filter_source.py)) | v3: 40k |
+| `synth_screen` (rendered here, v3) | 204k | own render, OFL fonts | Screen strips: 11-24 px at 1x/2x, cut from tight paragraphs the way the app splits lines, so neighbour lines' marks intrude | v3: 150k |
 | `synth_en` (rendered here, v2) | 150k | own render, OFL fonts; text from [English Wikipedia](https://huggingface.co/datasets/wikimedia/wikipedia) (`20231101.en`, CC BY-SA 4.0) | Clean English: Wikipedia paragraphs + English labels from SoyVitou/mrrtmob, case-augmented, wide UI strips | v2: 150k |
 
 Which stages used what:
@@ -130,6 +148,7 @@ Which stages used what:
 - **v0** (`checkpoint-3`): SoyVitou, Sokheng, Hanuman, mrrtmob and KiteAether, starting from `microsoft/trocr-base-printed`.
 - **v1:** every row above except `synth_en` (nine sources), starting from v0.
 - **v2:** adds `synth_en`, starting from v1.
+- **v3** (`checkpoint-8`, step 16k): adds `synth_screen` and LazyGreed over a replay of the v2 mix, starting from v2 step 10k. A first v3 with less English replay (`synth_en` 40k) lost English UI accuracy and was dropped; 120k fixed it.
 
 The `synth` text comes from the labels of the datasets above. Handwriting's test split is held out for evaluation only.
 
