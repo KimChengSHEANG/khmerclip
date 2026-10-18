@@ -2,6 +2,7 @@
 (segfaults) are captured by faulthandler into a log that is turned into a report on next launch."""
 
 import faulthandler
+import re
 import sys
 import threading
 import traceback
@@ -12,6 +13,15 @@ from khmerclip import reports
 
 _PACKAGE_DIR = Path(__file__).resolve().parent
 _fault_file = None  # faulthandler needs the file object to stay open for the whole process
+_FAULT_FRAME = re.compile(r'^\s*File "(.+)", line \d+ in (.+)$')
+
+
+def _where(filename: str) -> str:
+    """Package-relative path for our own files, the bare file name for anything else."""
+    try:
+        return Path(filename).resolve().relative_to(_PACKAGE_DIR).as_posix()
+    except (ValueError, OSError):
+        return Path(filename).name
 
 
 def signature(exc: BaseException) -> str:
@@ -19,11 +29,25 @@ def signature(exc: BaseException) -> str:
     if not frames:
         return type(exc).__name__
     last = frames[-1]
-    try:
-        where = Path(last.filename).resolve().relative_to(_PACKAGE_DIR).as_posix()
-    except (ValueError, OSError):
-        where = Path(last.filename).name
-    return f"{type(exc).__name__} at {where}:{last.name}"
+    return f"{type(exc).__name__} at {_where(last.filename)}:{last.name}"
+
+
+def native_signature(fault_text: str) -> str:
+    """Signature of a faulthandler log: the crashing thread's most recent Python frame."""
+    lines = fault_text.splitlines()
+    current = next((i for i, line in enumerate(lines) if line.startswith("Current thread ")), None)
+    if current is not None:  # only the faulting thread's block; never another thread's frame
+        block = []
+        for line in lines[current + 1:]:
+            if not line.strip():
+                break
+            block.append(line)
+        lines = block
+    for line in lines:
+        match = _FAULT_FRAME.match(line)
+        if match:
+            return f"Native crash at {_where(match.group(1))}:{match.group(2)}"
+    return "Native crash"
 
 
 def record(exc: BaseException, engine: str, outbox: Path | None = None) -> Path:
@@ -75,7 +99,7 @@ def collect_fault_log(engine: str, outbox: Path | None = None) -> None:
         return
     try:
         if text.strip():
-            reports.enqueue(reports.crash_payload("Native crash", text, engine), outbox)
+            reports.enqueue(reports.crash_payload(native_signature(text), text, engine), outbox)
         if text:
             log.write_text("", encoding="utf-8")
     except OSError:

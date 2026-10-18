@@ -206,4 +206,51 @@ final class ReportTests: XCTestCase {
         XCTAssertTrue(payloads().isEmpty)
         XCTAssertFalse(FileManager.default.fileExists(atPath: empty.path))
     }
+
+    // MARK: - Crash signatures
+
+    private let signalLog = """
+        Signal 11
+        0   KhmerClip                           0x0000000100a1c75c $s9KhmerClip13CrashReporterO7install10pendingURLy10Foundation3URLV_tFZySicfU0_To + 120
+        1   libsystem_platform.dylib            0x000000019a1b2584 _sigtramp + 56
+        2   AppKit                              0x000000019d001234 -[NSApplication run] + 400
+        3   KhmerClip                           0x0000000100a10040 $s9KhmerClip18CaptureCoordinatorC6handleyyF + 36
+        4   KhmerClip                           0x0000000100a10100 main + 12
+        """
+
+    func testSignalSignatureNamesFirstAppFrameOutsideTheHandler() {
+        XCTAssertEqual(CrashReporter.signature(fromPending: signalLog),
+                       "Signal 11 at $s9KhmerClip18CaptureCoordinatorC6handleyyF")
+    }
+
+    func testSignalSignatureFallsBackWithoutAppSymbol() {
+        let stripped = """
+            Signal 6
+            0   KhmerClip                           0x0000000100a1c75c __mh_execute_header + 120
+            1   libsystem_platform.dylib            0x000000019a1b2584 _sigtramp + 56
+            2   KhmerClip                           0x0000000100a10040 __mh_execute_header + 9000
+            """
+        XCTAssertEqual(CrashReporter.signature(fromPending: stripped), "Signal 6")
+        XCTAssertEqual(CrashReporter.signature(fromPending: "Signal 4\n"), "Signal 4")
+        let onlyOthers = "Signal 10\n0   AppKit   0x000000019d001234 -[NSApplication run] + 400"
+        XCTAssertEqual(CrashReporter.signature(fromPending: onlyOthers), "Signal 10")
+    }
+
+    func testExceptionSignatureDropsPerRunTokens() {
+        let a = "NSInvalidArgumentException: -[NSNull length]: unrecognized selector sent to instance 0x600001c2a0f0\n0 CoreFoundation"
+        let b = "NSInvalidArgumentException: -[NSNull length]: unrecognized selector sent to instance 0x7fd3b8e04a10\n0 CoreFoundation"
+        XCTAssertEqual(CrashReporter.signature(fromPending: a), CrashReporter.signature(fromPending: b))
+        XCTAssertFalse(CrashReporter.signature(fromPending: a).contains("0x6"))
+        XCTAssertTrue(CrashReporter.signature(fromPending: a).hasPrefix("NSInvalidArgumentException: -[NSNull length]"))
+        let c = "NSRangeException: *** index 5 beyond bounds [0 .. 3]"
+        let d = "NSRangeException: *** index 9 beyond bounds [0 .. 7]"
+        XCTAssertEqual(CrashReporter.signature(fromPending: c), CrashReporter.signature(fromPending: d))
+    }
+
+    func testCollectUsesParsedSignature() throws {
+        let pending = try writePending(signalLog)
+        CrashReporter.collect(pendingURL: pending, outbox: outbox, engine: "tesseract", enabled: true)
+        XCTAssertEqual(payloads().first?["signature"] as? String,
+                       "Signal 11 at $s9KhmerClip18CaptureCoordinatorC6handleyyF")
+    }
 }

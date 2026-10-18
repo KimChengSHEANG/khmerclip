@@ -68,7 +68,33 @@ enum CrashReporter {
         }
         guard let data = try? Data(contentsOf: pendingURL), !data.isEmpty else { return }
         let text = String(decoding: data, as: UTF8.self)
-        guard let first = text.split(separator: "\n", omittingEmptySubsequences: true).first else { return }
-        _ = try? outbox.enqueue(Report.crash(signature: String(first), details: text, engine: engine))
+        guard text.contains(where: { !$0.isWhitespace }) else { return }
+        _ = try? outbox.enqueue(Report.crash(signature: signature(fromPending: text), details: text, engine: engine))
+    }
+
+    /// Fingerprint of a pending crash, stable across runs so the relay can dedup it:
+    /// "Signal N at <symbol>" (first app frame outside this handler), or "<name>: <reason>"
+    /// with addresses and numbers masked.
+    static func signature(fromPending text: String, image: String = "KhmerClip") -> String {
+        let lines = text.split(separator: "\n", omittingEmptySubsequences: true).map(String.init)
+        guard let first = lines.first else { return "" }
+        guard first.hasPrefix("Signal ") else {
+            return first
+                .replacingOccurrences(of: #"\b0x[0-9A-Fa-f]+\b"#, with: "<addr>", options: .regularExpression)
+                .replacingOccurrences(of: #"\b[0-9]+\b"#, with: "<n>", options: .regularExpression)
+        }
+        for line in lines.dropFirst() {
+            // backtrace_symbols format: "<index> <image> 0x<address> <symbol> + <offset>".
+            let parts = line.split(separator: " ", omittingEmptySubsequences: true).map(String.init)
+            guard parts.count >= 4, parts[1] == image, parts[2].hasPrefix("0x") else { continue }
+            let symbolParts = parts.count >= 6 && parts[parts.count - 2] == "+"
+                ? parts[3..<(parts.count - 2)] : parts[3...]
+            let symbol = symbolParts.joined(separator: " ")
+            if symbol.contains("CrashReporter") { continue }  // the signal handler itself
+            // No usable symbol (a stripped build): the address alone would not be stable.
+            if symbol == image || symbol.hasPrefix("0x") || symbol == "__mh_execute_header" { return first }
+            return "\(first) at \(symbol)"
+        }
+        return first
     }
 }
