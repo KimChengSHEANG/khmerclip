@@ -150,4 +150,52 @@ final class ReportTests: XCTestCase {
         let bad = Report.feedback(message: "m", email: long, engine: "e")
         XCTAssertEqual(bad["email"] as? String, "")
     }
+
+    // MARK: - CrashReporter
+
+    private func payloads() -> [[String: Any]] {
+        files().compactMap {
+            (try? JSONSerialization.jsonObject(with: Data(contentsOf: $0))) as? [String: Any]
+        }
+    }
+
+    private func writePending(_ text: String) throws -> URL {
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let url = dir.appendingPathComponent("crash-pending.txt")
+        try text.write(to: url, atomically: true, encoding: .utf8)
+        return url
+    }
+
+    func testCollectTurnsPendingFileIntoOneCrash() throws {
+        let pending = try writePending("Signal 11\n0 KhmerClip \(NSHomeDirectory())/x")
+        CrashReporter.collect(pendingURL: pending, outbox: outbox, engine: "tesseract", enabled: true)
+        let all = payloads()
+        XCTAssertEqual(all.count, 1)
+        XCTAssertEqual(all.first?["type"] as? String, "crash")
+        XCTAssertEqual(all.first?["signature"] as? String, "Signal 11")
+        let details = all.first?["details"] as? String ?? ""
+        XCTAssertFalse(details.contains(NSHomeDirectory()))
+        XCTAssertTrue(details.contains("~/x"))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: pending.path))
+    }
+
+    func testCollectDisabledDropsCrashes() throws {
+        try outbox.enqueue(Report.crash(signature: "old", details: "d", engine: "e"))
+        try queueFeedback()
+        let pending = try writePending("Signal 6\nframes")
+        CrashReporter.collect(pendingURL: pending, outbox: outbox, engine: "tesseract", enabled: false)
+        let all = payloads()
+        XCTAssertEqual(all.count, 1)
+        XCTAssertEqual(all.first?["type"] as? String, "feedback")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: pending.path))
+    }
+
+    func testCollectIgnoresMissingOrEmptyPending() throws {
+        let missing = dir.appendingPathComponent("none.txt")
+        CrashReporter.collect(pendingURL: missing, outbox: outbox, engine: "e", enabled: true)
+        let empty = try writePending("")
+        CrashReporter.collect(pendingURL: empty, outbox: outbox, engine: "e", enabled: true)
+        XCTAssertTrue(payloads().isEmpty)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: empty.path))
+    }
 }

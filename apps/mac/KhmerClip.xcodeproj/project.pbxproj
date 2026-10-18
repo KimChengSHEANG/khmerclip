@@ -26,6 +26,7 @@
 		367FBC107697BD0AEDD8E0B2 /* TrOCREngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F28AC5556DD4873DAE816548 /* TrOCREngine.swift */; };
 		3B6BE2B14B802E40CF9677EE /* 5.png in Resources */ = {isa = PBXBuildFile; fileRef = 6C57D6188A09D12382F4C53E /* 5.png */; };
 		4127D7D28758F5D87E8BBEA3 /* ClipboardManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0366075B3BF602C8EEF72939 /* ClipboardManager.swift */; };
+		416DD1874236F00F2A7C41EC /* CrashReporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 481E56854391B5A91CBBA59E /* CrashReporter.swift */; };
 		41B6E16B8A68760DCC969C98 /* TextToSpeechManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 590632F017F79C6EF7B86A1E /* TextToSpeechManager.swift */; };
 		47C85E4C6E588F111DD8E015 /* TrOCRTokenizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E539C8C16E8B740DA8C6FB3 /* TrOCRTokenizer.swift */; };
 		4A8FFF96FE052EA269EFC7DF /* TesseractEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30AD7270593AC4C9DC7B6CB8 /* TesseractEngine.swift */; };
@@ -34,6 +35,7 @@
 		4EF98F2F0094EE8AC67E709E /* ScanRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51E97609987FE3C2F208125C /* ScanRecord.swift */; };
 		4F3E21076891B79EC1B5B2C3 /* ScreenCaptureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83EFA75EF7390F3761F3C80B /* ScreenCaptureManager.swift */; };
 		50533DCABA72E2298F0FF443 /* TrOCREngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F28AC5556DD4873DAE816548 /* TrOCREngine.swift */; };
+		576D89E4CD2B3CC713B85168 /* CrashReporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 481E56854391B5A91CBBA59E /* CrashReporter.swift */; };
 		5BEDD79CAC327435065D2212 /* WindowPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84240B22CF5DC4369019FF7E /* WindowPicker.swift */; };
 		6B0A9519786FD5AC3F30F198 /* TesseractEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30AD7270593AC4C9DC7B6CB8 /* TesseractEngine.swift */; };
 		6E7EDDC0E6D136C7BD84B3B1 /* TranslateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41ED3D7FEE65288F2A99A021 /* TranslateView.swift */; };
@@ -86,6 +88,7 @@
 		41ED3D7FEE65288F2A99A021 /* TranslateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslateView.swift; sourceTree = "<group>"; };
 		42BBCFF88E9D2502006D7E0B /* CaptureCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureCoordinator.swift; sourceTree = "<group>"; };
 		430E4883CB7E3AD3F9DB5182 /* tesseract */ = {isa = PBXFileReference; lastKnownFileType = folder; name = tesseract; path = Vendor/tesseract; sourceTree = SOURCE_ROOT; };
+		481E56854391B5A91CBBA59E /* CrashReporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashReporter.swift; sourceTree = "<group>"; };
 		487780CE994B91979E2E659C /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
 		51E97609987FE3C2F208125C /* ScanRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanRecord.swift; sourceTree = "<group>"; };
 		57B0CFA4E0122085BB393B9B /* OCRBench */ = {isa = PBXFileReference; includeInIndex = 0; path = OCRBench; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -262,6 +265,7 @@
 		A12AA28AA9F7974BA60A92BB /* Reports */ = {
 			isa = PBXGroup;
 			children = (
+				481E56854391B5A91CBBA59E /* CrashReporter.swift */,
 				ED9F6261658E864DC7E77A36 /* Report.swift */,
 				3DE93F9ADCA421C8C2616490 /* ReportOutbox.swift */,
 			);
@@ -502,6 +506,7 @@
 				C6AF9F5EADE093C539977639 /* BarcodeEngine.swift in Sources */,
 				E73DC34EC0FE9E533FA1FB64 /* CaptureCoordinator.swift in Sources */,
 				4127D7D28758F5D87E8BBEA3 /* ClipboardManager.swift in Sources */,
+				576D89E4CD2B3CC713B85168 /* CrashReporter.swift in Sources */,
 				A7A05BF6217CF3900EB4E324 /* HUDWindowController.swift in Sources */,
 				8075B37A149AB14884F7AA5A /* HistoryView.swift in Sources */,
 				B2C94F79D7ADDBAD2ACD8396 /* HotKeyRecorderView.swift in Sources */,
@@ -532,6 +537,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				416DD1874236F00F2A7C41EC /* CrashReporter.swift in Sources */,
 				7E6089D818FE50C494A037C3 /* GeometryAndRecordTests.swift in Sources */,
 				7A09CCD0C906E6110CE4C3EF /* OCREngine.swift in Sources */,
 				BA47AF7E456BCF6A7EB62FF4 /* OCRTests.swift in Sources */,

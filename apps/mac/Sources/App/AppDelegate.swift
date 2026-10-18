@@ -19,6 +19,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     static let releasesURL = URL(string: "https://github.com/KimChengSHEANG/khmerclip/releases/latest")!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        let crashPending = ScanHistoryStore.dataDir.appendingPathComponent("crash-pending.txt")
+        CrashReporter.collect(pendingURL: crashPending, outbox: ReportOutbox.shared,
+                              engine: preferences.ocrEngine.rawValue, enabled: preferences.sendCrashReports)
+        CrashReporter.install(pendingURL: crashPending)
+        Task { _ = await ReportOutbox.shared.flush(post: { await ReportOutbox.post($0, to: ReportOutbox.reportURL) }) }
         coordinator = CaptureCoordinator(preferences: preferences, historyStore: historyStore)
         setUpStatusItem()
         registerHotKeys()
