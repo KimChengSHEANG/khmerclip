@@ -83,14 +83,18 @@ enum CrashReporter {
                 .replacingOccurrences(of: #"\b0x[0-9A-Fa-f]+\b"#, with: "<addr>", options: .regularExpression)
                 .replacingOccurrences(of: #"\b[0-9]+\b"#, with: "<n>", options: .regularExpression)
         }
-        for line in lines.dropFirst() {
-            // backtrace_symbols format: "<index> <image> 0x<address> <symbol> + <offset>".
+        // backtrace_symbols format: "<index> <image> 0x<address> <symbol> + <offset>".
+        let frames: [(image: String, symbol: String)] = lines.dropFirst().compactMap { line in
             let parts = line.split(separator: " ", omittingEmptySubsequences: true).map(String.init)
-            guard parts.count >= 4, parts[1] == image, parts[2].hasPrefix("0x") else { continue }
+            guard parts.count >= 4, parts[2].hasPrefix("0x") else { return nil }
             let symbolParts = parts.count >= 6 && parts[parts.count - 2] == "+"
                 ? parts[3..<(parts.count - 2)] : parts[3...]
-            let symbol = symbolParts.joined(separator: " ")
-            if symbol.contains("CrashReporter") { continue }  // the signal handler itself
+            return (parts[1], symbolParts.joined(separator: " "))
+        }
+        // Frames up to _sigtramp are the handler (and stdlib generics it calls); the interrupted code follows.
+        let start = frames.firstIndex { $0.symbol == "_sigtramp" }.map { $0 + 1 } ?? 0
+        for (frameImage, symbol) in frames[start...] where frameImage == image {
+            if start == 0 && symbol.contains("CrashReporter") { continue }  // the handler, when no _sigtramp is listed
             // No usable symbol (a stripped build): the address alone would not be stable.
             if symbol == image || symbol.hasPrefix("0x") || symbol == "__mh_execute_header" { return first }
             return "\(first) at \(symbol)"
