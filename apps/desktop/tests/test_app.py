@@ -103,7 +103,11 @@ def test_tray_menu_and_commands(controller, monkeypatch):
 def test_keep_captures_saves_image_with_ocr_details(controller):
     image = Image.new("RGB", (20, 20), "white")
     controller.handle_text("ក\nខ", image=image)
-    assert not controller.history.has_capture(controller.history.records[0].id)  # off by default
+    assert controller.history.has_capture(controller.history.records[0].id)  # on by default
+
+    controller.prefs.keep_captures = False
+    controller.handle_text("ក\nខ", image=image)
+    assert not controller.history.has_capture(controller.history.records[0].id)
 
     controller.prefs.keep_captures = True
     controller.prefs.preserve_linebreaks = False
@@ -113,3 +117,16 @@ def test_keep_captures_saves_image_with_ocr_details(controller):
     meta = json.loads((controller.history.captures_dir / f"{record.id}.json").read_text(encoding="utf-8"))
     assert meta["ocr_text"] == "ក\nខ" and record.text == "ក ខ"  # raw OCR kept, not the formatted text
     assert meta["engine"] == "tesseract" and meta["preserve_linebreaks"] is False
+
+
+def test_unexpected_error_is_recorded(controller, monkeypatch):
+    seen = []
+    monkeypatch.setattr(app_module.crash, "record", lambda exc, engine: seen.append(exc))
+    controller.handle_error(ZeroDivisionError())
+    assert len(seen) == 1
+    controller.handle_error(KhmerClipError("x"))
+    controller.handle_error(Cancelled())
+    assert len(seen) == 1
+    controller.prefs.send_crash_reports = False
+    controller.handle_error(ZeroDivisionError())
+    assert len(seen) == 1

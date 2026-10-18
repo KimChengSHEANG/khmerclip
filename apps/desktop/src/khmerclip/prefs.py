@@ -18,7 +18,8 @@ class Prefs:
     check_updates: bool = True
     last_update_check: float = 0.0
     welcomed: bool = False
-    keep_captures: bool = False  # keep capture images so wrong results can be flagged
+    keep_captures: bool = True  # keep capture images so wrong results can be flagged
+    send_crash_reports: bool = True
     path: Path | None = field(default=None, repr=False, compare=False)
 
     @classmethod

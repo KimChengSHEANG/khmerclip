@@ -16,6 +16,7 @@ CHECKS = (
     ("launch_at_login", "Launch at login"),
     ("check_updates", "Check for updates daily"),
     ("keep_captures", "Keep capture images for accuracy feedback"),
+    ("send_crash_reports", "Send crash reports automatically"),
 )
 
 

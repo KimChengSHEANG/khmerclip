@@ -10,7 +10,7 @@ from PySide6.QtCore import QObject, QThreadPool, QTimer, QUrl, Signal, Slot
 from PySide6.QtGui import QAction, QDesktopServices, QGuiApplication, QIcon
 from PySide6.QtWidgets import QApplication, QMenu, QMessageBox, QProgressDialog, QSystemTrayIcon
 
-from khmerclip import __version__, autostart, updater
+from khmerclip import __version__, autostart, crash, reports, updater
 from khmerclip.capture import portal
 from khmerclip.capture.geometry import capture_backend
 from khmerclip.capture.overlay import RegionSelector
@@ -155,7 +155,12 @@ class Controller(QObject):
     def handle_error(self, error: BaseException) -> None:
         if isinstance(error, Cancelled):
             return
-        message = str(error) if isinstance(error, KhmerClipError) else f"Unexpected error: {error!r}"
+        if isinstance(error, KhmerClipError):
+            message = str(error)
+        else:
+            message = f"Unexpected error: {error!r}"
+            if self.prefs.send_crash_reports:
+                crash.record(error, self.prefs.engine)
         self.popup.show_message(f"Capture failed: {message}")
 
     def copy(self, text: str) -> None:
@@ -329,7 +334,15 @@ def run_gui(capture: bool = False) -> int:
     server = CommandServer(parent=qapp)
     server.listen()
 
-    controller = Controller(Prefs.load(), HistoryStore())
+    prefs = Prefs.load()
+    crash.install(lambda: prefs.send_crash_reports, lambda: prefs.engine)
+    if prefs.send_crash_reports:
+        crash.collect_fault_log(prefs.engine)
+    else:
+        crash.discard_fault_log()
+        reports.drop_type("crash")
+    controller = Controller(prefs, HistoryStore())
+    controller.submit(lambda progress, cancel: reports.flush())
     tray = TrayApp(controller)
     server.command.connect(tray.on_command)
     qapp.aboutToQuit.connect(tray.hotkeys.stop)
