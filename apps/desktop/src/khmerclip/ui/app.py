@@ -276,13 +276,13 @@ class TrayApp(QObject):
         _present(self.history_window)
 
     def _report(self, record: ScanRecord, correction: str) -> None:
-        """Queue a capture report (raises OSError if it can't be saved), then try to send it."""
+        """Queue a capture report (raises if it can't be built or saved), then try to send it."""
         history = self.c.history
         meta = history.capture_meta(record.id)
         try:
             payload = reports.capture_payload(history.captures_dir / f"{record.id}.png", meta,
                                               meta.get("ocr_text", record.text), correction, self.c.prefs.engine)
-        except OSError:
+        except Exception:  # unreadable or corrupt image, not just OSError: never fail silently
             self._report_save_failed()
             raise  # tells the History window not to mark the row Reported
         self._queue_and_send(payload)
@@ -294,7 +294,7 @@ class TrayApp(QObject):
         message, email = dialog.values()
         try:
             self._queue_and_send(reports.feedback_payload(message, email, self.c.prefs.engine))
-        except OSError:
+        except Exception:
             pass  # already told the user
 
     def _report_save_failed(self) -> None:
@@ -303,7 +303,7 @@ class TrayApp(QObject):
     def _queue_and_send(self, payload: dict) -> None:
         try:
             reports.enqueue(payload)
-        except OSError:
+        except Exception:
             self._report_save_failed()
             raise
 

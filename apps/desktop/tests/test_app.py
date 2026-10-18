@@ -145,3 +145,19 @@ def test_safe_flush_swallows_errors(monkeypatch):
     assert app_module._safe_flush() == 0
     monkeypatch.setattr(app_module.reports, "flush", lambda: 3)
     assert app_module._safe_flush() == 3
+
+
+@pytest.mark.parametrize("error", [ValueError("corrupt png"), OSError("disk full")])
+def test_report_send_failure_tells_the_user(controller, monkeypatch, error):
+    monkeypatch.setattr(app_module.HotkeyListener, "start", lambda self, *a, **k: False)
+    controller.prefs.check_updates = False
+    controller.prefs.welcomed = True
+    tray = TrayApp(controller)
+    controller.handle_text("ក", image=Image.new("RGB", (20, 20), "white"))
+    record = controller.history.records[0]
+    shown = []
+    monkeypatch.setattr(controller.popup, "show_message", shown.append)
+    monkeypatch.setattr(app_module.reports, "capture_payload", lambda *a, **k: (_ for _ in ()).throw(error))
+    with pytest.raises(type(error)):  # the History window must not mark the row Reported
+        tray._report(record, "")
+    assert shown == ["Couldn't save the report. Please try again."]
