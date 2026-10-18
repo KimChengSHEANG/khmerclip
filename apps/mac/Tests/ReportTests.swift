@@ -134,4 +134,20 @@ final class ReportTests: XCTestCase {
         XCTAssertEqual(p["type"] as? String, "capture")
         XCTAssertEqual(p["correction"] as? String, "")
     }
+
+    func testTextCapCountsUnicodeScalars() {
+        let khmer = String(repeating: "ក្សា", count: 6000)  // 4 scalars per cluster
+        let payload = Report.crash(signature: "s", details: khmer, engine: "e")
+        let details = payload["details"] as? String ?? ""
+        XCTAssertLessThanOrEqual(details.unicodeScalars.count, 20_000)
+        XCTAssertGreaterThan(details.unicodeScalars.count, 0)
+    }
+
+    func testFeedbackEmailIsTrimmedAndBlankedWhenTooLong() {
+        let ok = Report.feedback(message: "m", email: "  a@b.co \n", engine: "e")
+        XCTAssertEqual(ok["email"] as? String, "a@b.co")
+        let long = String(repeating: "a", count: 250) + "@b.co"  // 255 chars
+        let bad = Report.feedback(message: "m", email: long, engine: "e")
+        XCTAssertEqual(bad["email"] as? String, "")
+    }
 }

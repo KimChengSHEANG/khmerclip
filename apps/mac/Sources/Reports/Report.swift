@@ -15,10 +15,16 @@ enum Report {
     }
 
     private static func line(_ s: String) -> String {
-        String(s.split(whereSeparator: \.isWhitespace).joined(separator: " ").prefix(fieldChars))
+        scalarPrefix(s.split(whereSeparator: \.isWhitespace).joined(separator: " "), fieldChars)
     }
 
-    private static func cap(_ s: String) -> String { String(s.prefix(maxTextChars)) }
+    /// The relay's limits count UTF-16 code units, and Khmer clusters span several scalars,
+    /// so caps count Unicode scalars rather than grapheme clusters.
+    private static func scalarPrefix(_ s: String, _ n: Int) -> String {
+        String(String.UnicodeScalarView(s.unicodeScalars.prefix(n)))
+    }
+
+    private static func cap(_ s: String) -> String { scalarPrefix(s, maxTextChars) }
 
     private static func base(_ engine: String, type: String) -> [String: Any] {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev"
@@ -45,7 +51,8 @@ enum Report {
     static func feedback(message: String, email: String, engine: String) -> [String: Any] {
         var p = base(engine, type: "feedback")
         p["message"] = cap(message)
-        p["email"] = email
+        let trimmed = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        p["email"] = trimmed.count > 254 ? "" : trimmed  // an over-long email must not get the whole report rejected
         return p
     }
 
