@@ -25,6 +25,10 @@ class Prefs:
     @classmethod
     def load(cls, path: Path | None = None) -> "Prefs":
         prefs = cls(path=path or paths.config_dir() / "prefs.json")
+        if prefs.path.exists():
+            # Keeping images defaults on for new installs only: an existing install that never
+            # chose keeps the old default (off) unless the file says otherwise.
+            prefs.keep_captures = False
         try:
             raw = json.loads(prefs.path.read_text(encoding="utf-8"))
         except (OSError, ValueError):

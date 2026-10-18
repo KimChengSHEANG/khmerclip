@@ -17,10 +17,11 @@ final class ScanHistoryStore: ObservableObject {
         .appendingPathComponent("KhmerClip", isDirectory: true)
     static let capturesDir = dataDir.appendingPathComponent("captures", isDirectory: true)
     static let feedbackDir = dataDir.appendingPathComponent("feedback", isDirectory: true)
+    static let historyURL = dataDir.appendingPathComponent("history.json")
 
     init() {
         try? FileManager.default.createDirectory(at: Self.dataDir, withIntermediateDirectories: true)
-        fileURL = Self.dataDir.appendingPathComponent("history.json")
+        fileURL = Self.historyURL
         load()
     }
 
