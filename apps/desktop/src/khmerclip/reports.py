@@ -62,7 +62,8 @@ def _png_within_limit(image_path: Path) -> bytes:
 def capture_payload(image_path: Path, meta: dict, ocr_text: str, correction: str, engine: str) -> dict:
     png = _png_within_limit(image_path)
     return {**base_fields(engine), "type": "capture", "image_png_b64": base64.b64encode(png).decode("ascii"),
-            "ocr_text": ocr_text[:MAX_TEXT_CHARS], "correction": correction[:MAX_TEXT_CHARS], "meta": meta}
+            "ocr_text": ocr_text[:MAX_TEXT_CHARS], "correction": correction[:MAX_TEXT_CHARS],
+            "meta": {k: v[:MAX_TEXT_CHARS] if isinstance(v, str) else v for k, v in meta.items()}}
 
 
 def _utf16_len(text: str) -> int:

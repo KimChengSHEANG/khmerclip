@@ -171,3 +171,13 @@ def test_enqueue_crash_caps_queued_crashes(tmp_path):
         assert reports.enqueue_crash(reports.crash_payload(f"E{i}", "d", "t"), tmp_path) is not None
     assert reports.enqueue_crash(reports.crash_payload("one too many", "d", "t"), tmp_path) is None
     assert len(_crash_files(tmp_path)) == reports.MAX_QUEUED_CRASHES == 20
+
+
+def test_capture_meta_free_text_capped(tmp_path):
+    img = tmp_path / "a.png"
+    Image.new("RGB", (10, 10)).save(img)
+    meta = {"ocr_text": "ក" * 30_000, "engine": "tesseract", "preserve_linebreaks": True, "model_version": 3}
+    d = reports.capture_payload(img, meta, "ក", "", "t")
+    assert len(d["meta"]["ocr_text"]) == reports.MAX_TEXT_CHARS
+    assert d["meta"]["engine"] == "tesseract" and d["meta"]["preserve_linebreaks"] is True
+    assert d["meta"]["model_version"] == 3 and len(meta["ocr_text"]) == 30_000  # caller's dict untouched

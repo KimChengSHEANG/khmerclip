@@ -286,4 +286,17 @@ final class ReportTests: XCTestCase {
         }
         XCTAssertEqual(crashCount(), 1)
     }
+
+    func testCaptureMetaFreeTextIsCapped() throws {
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let png = dir.appendingPathComponent("a.png")
+        try Data([0x89, 0x50, 0x4E, 0x47]).write(to: png)
+        let meta: [String: Any] = ["ocr_text": String(repeating: "ក", count: 30_000), "engine": "tesseract",
+                                   "preserve_linebreaks": true]
+        let p = Report.capture(pngURL: png, meta: meta, ocrText: "ក", correction: "", engine: "e")
+        let capped = p["meta"] as? [String: Any] ?? [:]
+        XCTAssertEqual((capped["ocr_text"] as? String)?.unicodeScalars.count, 20_000)
+        XCTAssertEqual(capped["engine"] as? String, "tesseract")
+        XCTAssertEqual(capped["preserve_linebreaks"] as? Bool, true)
+    }
 }

@@ -44,7 +44,7 @@ enum Report {
         p["image_png_b64"] = pngWithinLimit(pngURL).base64EncodedString()
         p["ocr_text"] = cap(ocrText)
         p["correction"] = cap(correction)
-        p["meta"] = meta
+        p["meta"] = meta.mapValues { ($0 as? String).map(cap) ?? $0 }  // keeps meta under the relay's field limit
         return p
     }
 
