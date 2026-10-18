@@ -219,7 +219,7 @@ The ui delta is one line (`ui-054`, a doubled `ង`). Backups: `raw_models/TrOCR
 
 ### 4.4 Shipping to the app (CoreML)
 
-1. Copy `experiments/checkpoint-N/final/` to `apps/mac/raw_models/TrOCR-khmer/`. Locally this currently holds fine-tune v2 (`checkpoint-5` step 10k). Older models are backed up as `raw_models/TrOCR-khmer-v1-ckpt4` and `raw_models/TrOCR-khmer-v0-step72k`.
+1. Copy `experiments/checkpoint-N/final/` to `apps/mac/raw_models/TrOCR-khmer/`. Locally this currently holds fine-tune v3 (`checkpoint-8` step 16k). Older models are backed up as `raw_models/TrOCR-khmer-v2-step10k`, `raw_models/TrOCR-khmer-v1-ckpt4` and `raw_models/TrOCR-khmer-v0-step72k`.
 2. Convert from `apps/mac`:
    - Run `make trocr-khmer`, or `make trocr-khmer KHMER_CKPT=path`.
    - The first run creates `.trocr-venv` with `torch==2.7.0`, `transformers==4.57.*`, `coremltools`, `pillow`, `pytest` and `jiwer`.

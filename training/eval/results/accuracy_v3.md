@@ -69,3 +69,19 @@ Paired, last column vs the middle one: frozen 15 -> 14 errors; screen 1850 -> 11
 The most common screen-set "error" is ដ -> ត after a coeng (111 times): the subscripts ្ដ and ្ត are the same glyph in these fonts, so pixels can't tell them apart; Wikipedia often writes ្ដ where training labels use ្ត. Next are deprecated characters in the references (ឤ U+17A4 read as អា, ឣ U+17A3 read as អ), which render identically. These cost both sides of every paired comparison equally, so no keep/drop decision depends on them.
 
 (e) splits runs of touching lines at the row-profile autocorrelation pitch, cutting only sparse valleys (<= 0.2 x the run's densest row), before the mark merge. Clips segmented correctly: 357 -> 439 of 450; frozen fixtures stay one strip each. Swift and desktop strip counts match the Python reference on all 650 fixtures.
+
+## v3 fine-tune (Task 4)
+
+From v2 step 10k, lr 1e-5, 1 epoch, `--augment --max_aspect 32`. New sources: `synth_screen` (204k strips, `render_synth.py --screen`) and LazyGreed (179,916 of 179,988 rows after removing eval-text overlap). KhmerST was excluded: its upstream repository states no licence. All rows below use the final app config (split touching + wide split 12 + crop), paired against v2 in the same config.
+
+| Model | frozen errs | screen errs | slices errs | English UI line acc | Verdict |
+|---|---:|---:|---:|---:|---|
+| v2 step 10k | 39 | 1153 | 188 | 0.743 | baseline |
+| v3 (`synth_en` 40k), step 15242 | 36 | 921 (-20.1%) | 169 (-10.1%) | 0.720 | drop: English UI regressed |
+| v3 (`synth_en` 40k), best mid-train (12k) | 36 | 971 (-15.8%) | 177 (-5.9%) | 0.727 | drop |
+| **v3b (`synth_en` 120k), step 16000** | **35** | **946 (-18.0%, 83 / 35)** | **164 (-12.8%)** | **0.787** | **keep, shipped** |
+| v3b, best mid-train (8k) | 38 | 1016 (-11.9%) | 175 (-6.9%) | 0.727 | drop |
+
+Mid-train CER (mixed holdout) picked early steps both times, as it did for v2; the late checkpoint was better on every gate set.
+
+On device (CoreML, `OCRBench`), v3b vs v2 with the same app changes: frozen CER 0.0039 -> **0.0034** (14 -> 11 errors), screen 0.0260 -> **0.0215** (-17.9%, 85 / 35), slices 0.0141 -> **0.0109** (-14.9%); frozen median 102 ms. Desktop ONNX export parity max abs diff 2.9e-5.
