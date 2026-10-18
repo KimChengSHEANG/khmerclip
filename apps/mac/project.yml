@@ -74,6 +74,8 @@ targets:
       - path: Sources/OCR/TrOCRTokenizer.swift
       - path: Sources/OCR/OCREngine.swift
       - path: Sources/OCR/OCRTextFormatter.swift
+      - path: Sources/Reports/Report.swift
+      - path: Sources/Reports/ReportOutbox.swift
       # The vendored tesseract binary + tessdata, and the converted TrOCR
       # CoreML models, are what these OCR tests spawn/load. Tests point the
       # engines at Vendor/tesseract and Vendor/trocr directly, so those need

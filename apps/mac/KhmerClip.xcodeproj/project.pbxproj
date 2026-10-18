@@ -10,6 +10,7 @@
 		0252425B38FFEFC59B9471E1 /* TrOCRTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C115C9430DAD2CC6BB91EBF /* TrOCRTests.swift */; };
 		028B8332AD6CA94EB8623526 /* LaunchAtLoginManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 940302DA2B8F3E9504A79E76 /* LaunchAtLoginManager.swift */; };
 		02B5A9DA5DED5F776368762D /* 6.png in Resources */ = {isa = PBXBuildFile; fileRef = D76B52BEC4C54A3AC5D3B454 /* 6.png */; };
+		04F79F673716A8816D1E8988 /* ReportOutbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DE93F9ADCA421C8C2616490 /* ReportOutbox.swift */; };
 		05F97A238434B520C7D4C0F4 /* TrOCREngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F28AC5556DD4873DAE816548 /* TrOCREngine.swift */; };
 		07BDE15F0DD21B40B1B12CA5 /* OCRTextFormatterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B17DFE7B3AB478CF3969F370 /* OCRTextFormatterTests.swift */; };
 		0BBBCFBB36E86714BBC36B4D /* OCRBenchMain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57E581094120BFEFFD8E2C66 /* OCRBenchMain.swift */; };
@@ -29,6 +30,7 @@
 		47C85E4C6E588F111DD8E015 /* TrOCRTokenizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E539C8C16E8B740DA8C6FB3 /* TrOCRTokenizer.swift */; };
 		4A8FFF96FE052EA269EFC7DF /* TesseractEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30AD7270593AC4C9DC7B6CB8 /* TesseractEngine.swift */; };
 		4AE75FA35E53A70E10549043 /* 3.png in Resources */ = {isa = PBXBuildFile; fileRef = A33272AD306F1947AEE7F335 /* 3.png */; };
+		4EB2509868306F9AB81D895E /* Report.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED9F6261658E864DC7E77A36 /* Report.swift */; };
 		4EF98F2F0094EE8AC67E709E /* ScanRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51E97609987FE3C2F208125C /* ScanRecord.swift */; };
 		4F3E21076891B79EC1B5B2C3 /* ScreenCaptureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83EFA75EF7390F3761F3C80B /* ScreenCaptureManager.swift */; };
 		50533DCABA72E2298F0FF443 /* TrOCREngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F28AC5556DD4873DAE816548 /* TrOCREngine.swift */; };
@@ -38,6 +40,7 @@
 		77732F84485C0420269D780E /* SelectionOverlayWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D8A9621D341C764E8B6BE2C /* SelectionOverlayWindow.swift */; };
 		7A09CCD0C906E6110CE4C3EF /* OCREngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A839A38973DE12649A2B49AE /* OCREngine.swift */; };
 		7B6184EC31E95213DB70B8E5 /* 6.txt in Resources */ = {isa = PBXBuildFile; fileRef = E7FB98C098DE34C4E947ACB8 /* 6.txt */; };
+		7CB1F50B8FC3E5E54EE7A5E5 /* ReportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CB4A1D92A3DAB78C58E307C /* ReportTests.swift */; };
 		7E3D61D7E4778991CA35C648 /* PreferencesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5150C71AA76ACC1D0591016 /* PreferencesView.swift */; };
 		7E6089D818FE50C494A037C3 /* GeometryAndRecordTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3424A9D74DEB1E4A32924DA /* GeometryAndRecordTests.swift */; };
 		8075B37A149AB14884F7AA5A /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 487780CE994B91979E2E659C /* HistoryView.swift */; };
@@ -55,6 +58,8 @@
 		A7A05BF6217CF3900EB4E324 /* HUDWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40237F6FFDC497014AC65F64 /* HUDWindowController.swift */; };
 		B2C94F79D7ADDBAD2ACD8396 /* HotKeyRecorderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96954E97899DE9E5DD7BFAC6 /* HotKeyRecorderView.swift */; };
 		B33ACA7CE1674E2331B6C030 /* 3.txt in Resources */ = {isa = PBXBuildFile; fileRef = F09B9657E5EE2EF73F7FB56F /* 3.txt */; };
+		B405762C8FC5CAC2E67980BA /* ReportOutbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DE93F9ADCA421C8C2616490 /* ReportOutbox.swift */; };
+		B63EEB182F93684045F43490 /* Report.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED9F6261658E864DC7E77A36 /* Report.swift */; };
 		BA47AF7E456BCF6A7EB62FF4 /* OCRTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF2FB2F7640462994F6BD3B5 /* OCRTests.swift */; };
 		C1A8FF3908EADEED8107F6BB /* 2.png in Resources */ = {isa = PBXBuildFile; fileRef = BA7D68CA7B298B49CA56E1C4 /* 2.png */; };
 		C22795622E2CD6145F872E34 /* 1.png in Resources */ = {isa = PBXBuildFile; fileRef = BB263D87A43A720A0D872BBA /* 1.png */; };
@@ -76,6 +81,7 @@
 		275733D8BA12749124D5457B /* 5.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = 5.txt; sourceTree = "<group>"; };
 		29154C1ED53CEDAF183346A9 /* 4.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = 4.png; sourceTree = "<group>"; };
 		30AD7270593AC4C9DC7B6CB8 /* TesseractEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TesseractEngine.swift; sourceTree = "<group>"; };
+		3DE93F9ADCA421C8C2616490 /* ReportOutbox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportOutbox.swift; sourceTree = "<group>"; };
 		40237F6FFDC497014AC65F64 /* HUDWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HUDWindowController.swift; sourceTree = "<group>"; };
 		41ED3D7FEE65288F2A99A021 /* TranslateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslateView.swift; sourceTree = "<group>"; };
 		42BBCFF88E9D2502006D7E0B /* CaptureCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureCoordinator.swift; sourceTree = "<group>"; };
@@ -93,6 +99,7 @@
 		6E4C8B0E890E4D78CB98AC0A /* ScanHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanHistoryStore.swift; sourceTree = "<group>"; };
 		705A93999820618E034AB26E /* KhmerClipTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KhmerClipTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		71067B571A8F652733E03BA6 /* printed-001.pil384.rgb */ = {isa = PBXFileReference; path = "printed-001.pil384.rgb"; sourceTree = "<group>"; };
+		7CB4A1D92A3DAB78C58E307C /* ReportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportTests.swift; sourceTree = "<group>"; };
 		83EFA75EF7390F3761F3C80B /* ScreenCaptureManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenCaptureManager.swift; sourceTree = "<group>"; };
 		84240B22CF5DC4369019FF7E /* WindowPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowPicker.swift; sourceTree = "<group>"; };
 		8C115C9430DAD2CC6BB91EBF /* TrOCRTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrOCRTests.swift; sourceTree = "<group>"; };
@@ -118,6 +125,7 @@
 		E5150C71AA76ACC1D0591016 /* PreferencesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesView.swift; sourceTree = "<group>"; };
 		E6DEA5E0117C84B3F7FFA1D3 /* trocr */ = {isa = PBXFileReference; lastKnownFileType = folder; name = trocr; path = Vendor/trocr; sourceTree = SOURCE_ROOT; };
 		E7FB98C098DE34C4E947ACB8 /* 6.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = 6.txt; sourceTree = "<group>"; };
+		ED9F6261658E864DC7E77A36 /* Report.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Report.swift; sourceTree = "<group>"; };
 		EF2FB2F7640462994F6BD3B5 /* OCRTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCRTests.swift; sourceTree = "<group>"; };
 		F09B9657E5EE2EF73F7FB56F /* 3.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = 3.txt; sourceTree = "<group>"; };
 		F28AC5556DD4873DAE816548 /* TrOCREngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrOCREngine.swift; sourceTree = "<group>"; };
@@ -157,6 +165,7 @@
 				5C32345BA6FDD477C859E9EE /* OCR */,
 				E67818BD3D857A9A70891481 /* Onboarding */,
 				ECDB7B1BF5F5ED774421C8C9 /* Preferences */,
+				A12AA28AA9F7974BA60A92BB /* Reports */,
 				C8CB390A525B7C672A8BA2EA /* Speech */,
 				9FF5F1C0F10B539639C4F422 /* Translate */,
 			);
@@ -169,6 +178,7 @@
 				A3424A9D74DEB1E4A32924DA /* GeometryAndRecordTests.swift */,
 				EF2FB2F7640462994F6BD3B5 /* OCRTests.swift */,
 				B17DFE7B3AB478CF3969F370 /* OCRTextFormatterTests.swift */,
+				7CB4A1D92A3DAB78C58E307C /* ReportTests.swift */,
 				8C115C9430DAD2CC6BB91EBF /* TrOCRTests.swift */,
 				8894677B6FDA2C26A0D44450 /* Fixtures */,
 			);
@@ -247,6 +257,15 @@
 				41ED3D7FEE65288F2A99A021 /* TranslateView.swift */,
 			);
 			path = Translate;
+			sourceTree = "<group>";
+		};
+		A12AA28AA9F7974BA60A92BB /* Reports */ = {
+			isa = PBXGroup;
+			children = (
+				ED9F6261658E864DC7E77A36 /* Report.swift */,
+				3DE93F9ADCA421C8C2616490 /* ReportOutbox.swift */,
+			);
+			path = Reports;
 			sourceTree = "<group>";
 		};
 		C8CB390A525B7C672A8BA2EA /* Speech */ = {
@@ -494,6 +513,8 @@
 				F35C1034EFAE67AD22785090 /* OCRTextFormatter.swift in Sources */,
 				8240A87A75BA64758C709283 /* OnboardingWindowController.swift in Sources */,
 				7E3D61D7E4778991CA35C648 /* PreferencesView.swift in Sources */,
+				B63EEB182F93684045F43490 /* Report.swift in Sources */,
+				B405762C8FC5CAC2E67980BA /* ReportOutbox.swift in Sources */,
 				8AC42638CB9C219520CC4FEB /* ScanHistoryStore.swift in Sources */,
 				4EF98F2F0094EE8AC67E709E /* ScanRecord.swift in Sources */,
 				4F3E21076891B79EC1B5B2C3 /* ScreenCaptureManager.swift in Sources */,
@@ -516,6 +537,9 @@
 				BA47AF7E456BCF6A7EB62FF4 /* OCRTests.swift in Sources */,
 				C321D1D92BD527D82CA7AED0 /* OCRTextFormatter.swift in Sources */,
 				07BDE15F0DD21B40B1B12CA5 /* OCRTextFormatterTests.swift in Sources */,
+				4EB2509868306F9AB81D895E /* Report.swift in Sources */,
+				04F79F673716A8816D1E8988 /* ReportOutbox.swift in Sources */,
+				7CB1F50B8FC3E5E54EE7A5E5 /* ReportTests.swift in Sources */,
 				0F9EAD00BE67E31178E23F78 /* ScanRecord.swift in Sources */,
 				D257C17027A8D9C9057E1E38 /* TesseractEngine.swift in Sources */,
 				50533DCABA72E2298F0FF443 /* TrOCREngine.swift in Sources */,

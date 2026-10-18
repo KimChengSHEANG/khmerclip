@@ -105,3 +105,7 @@ final class ScanHistoryStore: ObservableObject {
         try? data.write(to: fileURL, options: .atomic)
     }
 }
+
+extension ReportOutbox {
+    static let shared = ReportOutbox(dir: ScanHistoryStore.dataDir.appendingPathComponent("outbox", isDirectory: true))
+}
