@@ -50,9 +50,10 @@ def native_signature(fault_text: str) -> str:
     return "Native crash"
 
 
-def record(exc: BaseException, engine: str, outbox: Path | None = None) -> Path:
+def record(exc: BaseException, engine: str, outbox: Path | None = None) -> Path | None:
+    """Queue a crash report; None if skipped (already queued, or the outbox is full)."""
     details = "".join(traceback.format_exception(exc))
-    return reports.enqueue(reports.crash_payload(signature(exc), details, engine), outbox)
+    return reports.enqueue_crash(reports.crash_payload(signature(exc), details, engine), outbox)
 
 
 def _fault_log(outbox: Path | None) -> Path:
@@ -99,7 +100,7 @@ def collect_fault_log(engine: str, outbox: Path | None = None) -> None:
         return
     try:
         if text.strip():
-            reports.enqueue(reports.crash_payload(native_signature(text), text, engine), outbox)
+            reports.enqueue_crash(reports.crash_payload(native_signature(text), text, engine), outbox)
         if text:
             log.write_text("", encoding="utf-8")
     except OSError:

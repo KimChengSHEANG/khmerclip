@@ -150,3 +150,24 @@ def test_feedback_email_trimmed_and_blanked_when_too_long():
     assert reports.feedback_payload("m", "a" * 250 + "@b.co", "t")["email"] == ""
     # The relay counts UTF-16 units: 128 astral chars are 256 units, so over the limit.
     assert reports.feedback_payload("m", "\U0001F600" * 128, "t")["email"] == ""
+
+
+def _crash_files(outbox):
+    return [p for p in outbox.glob("*.json") if (reports._load(p) or {}).get("type") == "crash"]
+
+
+def test_enqueue_crash_skips_a_signature_already_queued(tmp_path):
+    first = reports.enqueue_crash(reports.crash_payload(f"E at {Path.home()}/a.py:f", "d1", "t"), tmp_path)
+    again = reports.enqueue_crash(reports.crash_payload(f"E at {Path.home()}/a.py:f", "d2", "t"), tmp_path)
+    other = reports.enqueue_crash(reports.crash_payload("F at a.py:f", "d", "t"), tmp_path)
+    assert first is not None and first.exists() and again is None and other is not None
+    assert len(_crash_files(tmp_path)) == 2
+
+
+def test_enqueue_crash_caps_queued_crashes(tmp_path):
+    reports.enqueue(reports.feedback_payload("x", "", "t"), tmp_path)  # not a crash: not counted
+    (tmp_path / "junk.json").write_text("{not json", encoding="utf-8")  # unreadable: not counted
+    for i in range(reports.MAX_QUEUED_CRASHES):
+        assert reports.enqueue_crash(reports.crash_payload(f"E{i}", "d", "t"), tmp_path) is not None
+    assert reports.enqueue_crash(reports.crash_payload("one too many", "d", "t"), tmp_path) is None
+    assert len(_crash_files(tmp_path)) == reports.MAX_QUEUED_CRASHES == 20

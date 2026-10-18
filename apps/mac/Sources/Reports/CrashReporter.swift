@@ -69,7 +69,7 @@ enum CrashReporter {
         guard let data = try? Data(contentsOf: pendingURL), !data.isEmpty else { return }
         let text = String(decoding: data, as: UTF8.self)
         guard text.contains(where: { !$0.isWhitespace }) else { return }
-        _ = try? outbox.enqueue(Report.crash(signature: signature(fromPending: text), details: text, engine: engine))
+        _ = try? outbox.enqueueCrash(Report.crash(signature: signature(fromPending: text), details: text, engine: engine))
     }
 
     /// Fingerprint of a pending crash, stable across runs so the relay can dedup it:

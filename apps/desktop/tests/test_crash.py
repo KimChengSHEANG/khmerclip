@@ -138,3 +138,20 @@ def test_fault_log_signature_names_the_frame(tmp_path):
     crash.collect_fault_log("tesseract", tmp_path / "outbox")
     [p] = (tmp_path / "outbox").glob("*.json")
     assert json.loads(p.read_text(encoding="utf-8"))["signature"] == "Native crash at native.py:run"
+
+
+def test_record_skips_a_crash_already_queued(tmp_path):
+    for _ in range(3):
+        try:
+            raise ValueError("same place")
+        except ValueError as e:
+            crash.record(e, "trocr", tmp_path)
+    assert len(list(tmp_path.glob("*.json"))) == 1
+
+
+def test_duplicate_fault_log_is_skipped_and_cleared(tmp_path):
+    for _ in range(2):
+        (tmp_path / "fault.log").write_text(_fault_text("/opt/lib/native.py"), encoding="utf-8")
+        crash.collect_fault_log("tesseract", tmp_path / "outbox")
+        assert (tmp_path / "fault.log").read_text(encoding="utf-8") == ""
+    assert len(list((tmp_path / "outbox").glob("*.json"))) == 1

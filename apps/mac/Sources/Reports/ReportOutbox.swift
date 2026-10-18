@@ -8,6 +8,8 @@ struct ReportOutbox {
     static let unsetURL = URL(string: "https://khmerclip-report-relay.REPLACE_ME.workers.dev/report")!
     static var reportURL = unsetURL
     static let appKey = "kc-reports-1"
+    /// A crash loop must not flood the outbox (or the relay).
+    static let maxQueuedCrashes = 20
 
     /// 200 = sent; 400/401/413 = rejected for good. Both are deleted, anything else is retried.
     private static let doneStatuses: Set<Int> = [200, 400, 401, 413]
@@ -21,6 +23,18 @@ struct ReportOutbox {
         let data = try JSONSerialization.data(withJSONObject: payload, options: [.sortedKeys])
         try data.write(to: url, options: .atomic)
         return url
+    }
+
+    /// Queues a crash report unless one with the same signature is already queued or the outbox
+    /// already holds `maxQueuedCrashes` crashes. Returns nil when skipped.
+    @discardableResult
+    func enqueueCrash(_ payload: [String: Any]) throws -> URL? {
+        let crashes = queued().compactMap(Self.load).filter { $0["type"] as? String == "crash" }
+        let signature = payload["signature"] as? String
+        if crashes.count >= Self.maxQueuedCrashes || crashes.contains(where: { $0["signature"] as? String == signature }) {
+            return nil
+        }
+        return try enqueue(payload)
     }
 
     private func queued() -> [URL] {

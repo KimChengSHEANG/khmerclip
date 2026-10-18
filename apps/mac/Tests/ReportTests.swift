@@ -253,4 +253,37 @@ final class ReportTests: XCTestCase {
         XCTAssertEqual(payloads().first?["signature"] as? String,
                        "Signal 11 at $s9KhmerClip18CaptureCoordinatorC6handleyyF")
     }
+
+    // MARK: - Crash dedup and cap
+
+    private func crashCount() -> Int { payloads().filter { $0["type"] as? String == "crash" }.count }
+
+    func testEnqueueCrashSkipsASignatureAlreadyQueued() throws {
+        let home = NSHomeDirectory()
+        XCTAssertNotNil(try outbox.enqueueCrash(Report.crash(signature: "Signal 11 at \(home)/x", details: "a", engine: "e")))
+        XCTAssertNil(try outbox.enqueueCrash(Report.crash(signature: "Signal 11 at \(home)/x", details: "b", engine: "e")))
+        XCTAssertNotNil(try outbox.enqueueCrash(Report.crash(signature: "Signal 6", details: "c", engine: "e")))
+        XCTAssertEqual(crashCount(), 2)
+    }
+
+    func testEnqueueCrashCapsQueuedCrashes() throws {
+        try queueFeedback()  // not a crash: not counted
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        try "{not json".write(to: dir.appendingPathComponent("junk.json"), atomically: true, encoding: .utf8)
+        for i in 0..<ReportOutbox.maxQueuedCrashes {
+            XCTAssertNotNil(try outbox.enqueueCrash(Report.crash(signature: "E\(i)", details: "d", engine: "e")))
+        }
+        XCTAssertNil(try outbox.enqueueCrash(Report.crash(signature: "one too many", details: "d", engine: "e")))
+        XCTAssertEqual(ReportOutbox.maxQueuedCrashes, 20)
+        XCTAssertEqual(crashCount(), 20)
+    }
+
+    func testCollectSkipsACrashAlreadyQueued() throws {
+        for _ in 0..<2 {
+            let pending = try writePending(signalLog)
+            CrashReporter.collect(pendingURL: pending, outbox: outbox, engine: "tesseract", enabled: true)
+            XCTAssertFalse(FileManager.default.fileExists(atPath: pending.path))
+        }
+        XCTAssertEqual(crashCount(), 1)
+    }
 }

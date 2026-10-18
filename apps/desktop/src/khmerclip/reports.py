@@ -24,6 +24,7 @@ MAX_PNG_BYTES = 2_000_000  # relay limit
 TARGET_PNG_BYTES = 1_500_000  # keeps the base64 request body under the relay's 3 MB cap
 MAX_TEXT_CHARS = 20_000
 MAX_EMAIL_UNITS = 254  # relay limit, counted in UTF-16 code units like JavaScript's .length
+MAX_QUEUED_CRASHES = 20  # a crash loop must not flood the outbox (or the relay)
 _FIELD_CHARS = 100
 _flush_lock = threading.Lock()
 _DONE_STATUSES = {200, 400, 401, 413}  # sent, or rejected for good: never retry
@@ -84,6 +85,16 @@ def enqueue(payload: dict, outbox: Path | None = None) -> Path:
     path = (outbox or outbox_dir()) / f"{payload['id']}.json"
     paths.atomic_write_text(path, json.dumps(payload, ensure_ascii=False))
     return path
+
+
+def enqueue_crash(payload: dict, outbox: Path | None = None) -> Path | None:
+    """Queue a crash report unless one with the same signature is already queued or the
+    outbox already holds MAX_QUEUED_CRASHES crashes. Returns None when skipped."""
+    outbox = outbox or outbox_dir()
+    queued = [d for d in map(_load, outbox.glob("*.json")) if d is not None and d.get("type") == "crash"]
+    if len(queued) >= MAX_QUEUED_CRASHES or any(d.get("signature") == payload["signature"] for d in queued):
+        return None
+    return enqueue(payload, outbox)
 
 
 def _load(path: Path) -> dict | None:
