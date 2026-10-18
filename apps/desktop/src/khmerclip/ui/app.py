@@ -270,8 +270,25 @@ class TrayApp(QObject):
 
     def show_history(self) -> None:
         if self.history_window is None:
-            self.history_window = HistoryWindow(self.c.history, self.c.copy)
+            self.history_window = HistoryWindow(self.c.history, self.c.copy, report=self._report)
         _present(self.history_window)
+
+    def _report(self, record: ScanRecord, correction: str) -> None:
+        """Queue a capture report (raises OSError if it can't be saved), then try to send it."""
+        history = self.c.history
+        meta = history.capture_meta(record.id)
+        try:
+            payload = reports.capture_payload(history.captures_dir / f"{record.id}.png", meta,
+                                              meta.get("ocr_text", record.text), correction, self.c.prefs.engine)
+            reports.enqueue(payload)
+        except OSError:
+            self.c.popup.show_message("Couldn't save the report. Please try again.")
+            raise  # tells the History window not to mark the row Reported
+
+        def done(sent) -> None:
+            self.c.popup.show_message("Thanks — your report was sent." if sent else
+                                      "Report saved. It will be sent when you're online.")
+        self.c.submit(lambda p, c: _safe_flush(), on_done=done)
 
     def show_prefs(self) -> None:
         if self.prefs_window is None:

@@ -1,22 +1,25 @@
 from collections.abc import Callable
 
-from PySide6.QtCore import Qt, QUrl
-from PySide6.QtGui import QDesktopServices
-from PySide6.QtWidgets import (QHBoxLayout, QListWidget, QListWidgetItem, QMessageBox, QPushButton,
-                               QVBoxLayout, QWidget)
+from PySide6.QtCore import QSize, Qt
+from PySide6.QtGui import QPixmap
+from PySide6.QtWidgets import (QDialog, QHBoxLayout, QLabel, QListWidget, QListWidgetItem, QMessageBox,
+                               QPushButton, QVBoxLayout, QWidget)
 
 from khmerclip.history import HistoryStore, ScanRecord
 from khmerclip.ui.fonts import khmer_font
+from khmerclip.ui.report_dialog import ReportDialog
 
 PREVIEW_CHARS = 300
+THUMB_SIZE = QSize(72, 40)
 
 
 class HistoryWindow(QWidget):
-    def __init__(self, store: HistoryStore, copy: Callable[[str], None]):
+    def __init__(self, store: HistoryStore, copy: Callable[[str], None],
+                 report: Callable[[ScanRecord, str], None] | None = None):
         super().__init__()
         self.setWindowTitle("KhmerClip History")
         self.resize(480, 420)
-        self.store, self._copy = store, copy
+        self.store, self._copy, self._report = store, copy, report
         self.list = QListWidget()
         self.list.setFont(khmer_font(12))
         self.list.setWordWrap(True)
@@ -26,14 +29,6 @@ class HistoryWindow(QWidget):
             button = QPushButton(label)
             button.clicked.connect(slot)
             buttons.addWidget(button)
-        # Only meaningful for scans whose image was kept (Preferences > Keep capture images).
-        self.flag_button = QPushButton("Flag as Wrong")
-        self.flag_button.clicked.connect(self.flag_selected)
-        self.feedback_button = QPushButton("Feedback Folder")
-        self.feedback_button.clicked.connect(self.open_feedback)
-        buttons.addWidget(self.flag_button)
-        buttons.addWidget(self.feedback_button)
-        self.list.currentItemChanged.connect(lambda *_: self._update_flag_button())
         layout = QVBoxLayout(self)
         layout.addWidget(self.list)
         layout.addLayout(buttons)
@@ -41,13 +36,54 @@ class HistoryWindow(QWidget):
     def refresh(self) -> None:
         self.list.clear()
         for record in self.store.records:
-            preview = record.text if len(record.text) <= PREVIEW_CHARS else record.text[:PREVIEW_CHARS] + "…"
-            item = QListWidgetItem(preview)
+            item = QListWidgetItem()
             item.setData(Qt.ItemDataRole.UserRole, record.id)
             item.setToolTip(record.date)
+            row = self._row_widget(record)
+            item.setSizeHint(row.sizeHint())
             self.list.addItem(item)
-        self._update_flag_button()
-        self.feedback_button.setVisible(self.store.feedback_dir.is_dir())
+            self.list.setItemWidget(item, row)
+
+    def _row_widget(self, record: ScanRecord) -> QWidget:
+        row = QWidget()
+        layout = QHBoxLayout(row)
+        has_capture = self.store.has_capture(record.id)
+        if has_capture:
+            thumb = QLabel()
+            thumb.setFixedSize(THUMB_SIZE)
+            pixmap = QPixmap(str(self.store.captures_dir / f"{record.id}.png"))
+            thumb.setPixmap(pixmap.scaled(THUMB_SIZE, Qt.AspectRatioMode.KeepAspectRatio,
+                                          Qt.TransformationMode.SmoothTransformation))
+            thumb.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+            layout.addWidget(thumb)
+        preview = record.text if len(record.text) <= PREVIEW_CHARS else record.text[:PREVIEW_CHARS] + "…"
+        text = QLabel(preview)
+        text.setFont(khmer_font(12))
+        text.setWordWrap(True)
+        text.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)  # clicks select the row
+        layout.addWidget(text, 1)
+        if has_capture:
+            reported = self.store.is_flagged(record.id)
+            button = QPushButton("Reported" if reported else "Report")
+            button.setObjectName("report_button")
+            button.setEnabled(not reported)
+            button.clicked.connect(lambda _=False, r=record: self.report_record(r))
+            layout.addWidget(button)
+        return row
+
+    def report_record(self, record: ScanRecord) -> None:
+        dialog = ReportDialog(self.store.captures_dir / f"{record.id}.png",
+                              self.store.capture_meta(record.id).get("ocr_text", record.text), self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        correction = dialog.correction_text()
+        if self._report is not None:
+            try:
+                self._report(record, correction)
+            except Exception:
+                return  # not queued: leave the row unreported so the user can retry
+        self.store.flag(record.id, correction)
+        self.refresh()
 
     def _selected(self) -> ScanRecord | None:
         item = self.list.currentItem()
@@ -59,22 +95,6 @@ class HistoryWindow(QWidget):
     def copy_selected(self) -> None:
         if record := self._selected():
             self._copy(record.text)
-
-    def _update_flag_button(self) -> None:
-        record = self._selected()
-        self.flag_button.setVisible(any(self.store.has_capture(r.id) for r in self.store.records))
-        flagged = record is not None and self.store.is_flagged(record.id)
-        self.flag_button.setText("Flagged" if flagged else "Flag as Wrong")
-        self.flag_button.setEnabled(record is not None and self.store.has_capture(record.id) and not flagged)
-
-    def flag_selected(self) -> None:
-        if record := self._selected():
-            self.store.flag(record.id)
-            self._update_flag_button()
-            self.feedback_button.setVisible(True)
-
-    def open_feedback(self) -> None:
-        QDesktopServices.openUrl(QUrl.fromLocalFile(str(self.store.feedback_dir)))
 
     def delete_selected(self) -> None:
         if record := self._selected():

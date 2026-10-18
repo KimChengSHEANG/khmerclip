@@ -71,3 +71,13 @@ def test_captures_are_kept_flagged_and_cleaned_up(tmp_path):
     store.add(ScanRecord("x"), image=Image.new("RGB", (2, 2)))
     store.clear()
     assert not (tmp_path / "captures").exists()
+
+
+def test_flag_stores_correction(tmp_path):
+    store = HistoryStore(tmp_path / "h.json"); rec = ScanRecord("ក")
+    store.add(rec, image=Image.new("RGB", (8, 4)), meta={"ocr_text": "ក"})
+    store.flag(rec.id, "ខ")
+    saved = json.loads((tmp_path / "feedback" / f"{rec.id}.json").read_text(encoding="utf-8"))
+    assert saved == {"ocr_text": "ក", "correction": "ខ"}
+    assert store.capture_meta(rec.id) == {"ocr_text": "ក"}
+    assert store.capture_meta("missing") == {}
