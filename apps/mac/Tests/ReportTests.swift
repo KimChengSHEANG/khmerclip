@@ -151,6 +151,14 @@ final class ReportTests: XCTestCase {
         XCTAssertEqual(bad["email"] as? String, "")
     }
 
+    func testCrashSignatureIsSingleLineAndCapped() {
+        let long = "NSInvalidArgumentException: " + String(repeating: "ក្សា\n", count: 500)
+        let sig = Report.crash(signature: long, details: "d", engine: "e")["signature"] as? String ?? ""
+        XCTAssertFalse(sig.contains("\n"))
+        XCTAssertLessThanOrEqual(sig.unicodeScalars.count, 200)
+        XCTAssertTrue(sig.hasPrefix("NSInvalidArgumentException:"))
+    }
+
     // MARK: - CrashReporter
 
     private func payloads() -> [[String: Any]] {

@@ -14,8 +14,8 @@ enum Report {
         s.replacingOccurrences(of: NSHomeDirectory(), with: "~")
     }
 
-    private static func line(_ s: String) -> String {
-        scalarPrefix(s.split(whereSeparator: \.isWhitespace).joined(separator: " "), fieldChars)
+    private static func line(_ s: String, _ limit: Int = fieldChars) -> String {
+        scalarPrefix(s.split(whereSeparator: \.isWhitespace).joined(separator: " "), limit)
     }
 
     /// The relay's limits count UTF-16 code units, and Khmer clusters span several scalars,
@@ -58,7 +58,7 @@ enum Report {
 
     static func crash(signature: String, details: String, engine: String) -> [String: Any] {
         var p = base(engine, type: "crash")
-        p["signature"] = scrubHome(signature)
+        p["signature"] = scalarPrefix(scrubHome(line(signature, 1_000_000)), 200)
         p["details"] = cap(scrubHome(details))
         return p
     }
