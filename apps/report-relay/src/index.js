@@ -6,6 +6,9 @@ const MAX_IMAGE = 2_000_000;
 const MAX_TEXT = 65_536;
 const MAX_EMAIL = 254;
 const ID_RE = /^[0-9a-f]{32}$/;
+const META_RE = /^[^\r\n]{1,100}$/;
+const B64_RE = /^[A-Za-z0-9+/]*={0,2}$/;
+const STRING_FIELDS = ['signature', 'details', 'image_png_b64', 'ocr_text', 'correction', 'message', 'email'];
 const GH = 'https://api.github.com';
 
 const REQUIRED = {
@@ -78,7 +81,12 @@ function validate(r) {
   if (!r || typeof r !== 'object' || Array.isArray(r)) return false;
   const spec = REQUIRED[r.type];
   if (!spec || typeof r.id !== 'string' || !ID_RE.test(r.id)) return false;
-  for (const k of ['app_version', 'os', 'engine']) if (typeof r[k] !== 'string') return false;
+  for (const k of ['app_version', 'os', 'engine']) {
+    if (typeof r[k] !== 'string' || !META_RE.test(r[k])) return false;
+  }
+  // Any present field must have the right type, even if this report type ignores it.
+  for (const k of STRING_FIELDS) if (r[k] !== undefined && typeof r[k] !== 'string') return false;
+  if (r.meta !== undefined && (!r.meta || typeof r.meta !== 'object' || Array.isArray(r.meta))) return false;
   for (const [k, t] of Object.entries(spec)) {
     const v = r[k];
     if (t === 'object' ? !v || typeof v !== 'object' || Array.isArray(v) : typeof v !== t) return false;
@@ -88,6 +96,7 @@ function validate(r) {
   }
   if (r.meta && JSON.stringify(r.meta).length > MAX_TEXT) throw new TooLarge();
   if (r.email !== undefined && r.email.length > MAX_EMAIL) throw new TooLarge();
+  if (r.type === 'capture' && (r.image_png_b64.length % 4 !== 0 || !B64_RE.test(r.image_png_b64))) return false;
   if (r.image_png_b64 !== undefined && decodedSize(r.image_png_b64) > MAX_IMAGE) throw new TooLarge();
   return true;
 }
@@ -109,7 +118,7 @@ function oneLine(s) {
 }
 
 function render(r, repo) {
-  const head = `App ${r.app_version} · ${r.os} · ${r.engine}`;
+  const head = fence(`App ${r.app_version} · ${r.os} · ${r.engine}`);
   if (r.type === 'capture') {
     const parts = [
       head,
@@ -172,7 +181,7 @@ async function fileOnGithub(r, title, body, env, fetchFn) {
     const found = await (await gh(`/search/issues?q=${q}`, 'GET')).json();
     if (found.total_count > 0) {
       await gh(`/repos/${repo}/issues/${found.items[0].number}/comments`, 'POST',
-        { body: `+1 · ${r.app_version} · ${r.os}` });
+        { body: fence(`+1 · ${r.app_version} · ${r.os}`) });
       return;
     }
     body = `<!-- fp:${fp} -->\n${body}`;

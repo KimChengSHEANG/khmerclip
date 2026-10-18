@@ -72,6 +72,31 @@ test('rejects bad id and unknown type', async () => {
   assert.equal(f.calls.length, 0);
 });
 
+test('present field of wrong type is 400, not a crash', async () => {
+  const f = makeFetch();
+  for (const extra of [{ email: null }, { image_png_b64: 5 }, { details: 1 }, { meta: [] }, { message: {} }]) {
+    assert.equal((await handle(req(crash(extra)), makeEnv(), f)).status, 400, JSON.stringify(extra));
+  }
+  assert.equal(f.calls.length, 0);
+});
+
+test('app_version/os/engine must be single-line, 1-100 chars', async () => {
+  const f = makeFetch();
+  for (const o of [{ os: 'a\nb' }, { os: 'a\rb' }, { engine: '' }, { app_version: 'x'.repeat(101) }]) {
+    assert.equal((await handle(req(capture(o)), makeEnv(), f)).status, 400, JSON.stringify(o));
+  }
+  assert.equal(f.calls.length, 0);
+  assert.equal((await handle(req(capture({ os: 'x'.repeat(100) })), makeEnv(), makeFetch())).status, 200);
+});
+
+test('capture image must be valid base64', async () => {
+  const f = makeFetch();
+  for (const b of ['abc', 'ab!d', 'a=bc', '====']) {
+    assert.equal((await handle(req(capture({ image_png_b64: b })), makeEnv(), f)).status, 400, b);
+  }
+  assert.equal(f.calls.length, 0);
+});
+
 test('rejects oversized image', async () => {
   const big = btoa('a'.repeat(2_000_001));
   const f = makeFetch();
@@ -121,7 +146,7 @@ test('capture uploads png + sidecar then opens labeled issue', async () => {
   assert.deepEqual(c.json.labels, ['capture']);
   assert.ok(c.json.title.startsWith('Wrong text: '));
   assert.ok(c.json.body.includes(`reports/${ID}.png?raw=true`));
-  assert.ok(c.json.body.includes('App 0.2.0 · macOS 15 · trocr'));
+  assert.ok(c.json.body.includes('~~~\nApp 0.2.0 · macOS 15 · trocr\n~~~'));
   assert.ok(c.json.body.includes('Should say'));
   assert.equal(a.init.headers.Authorization, 'Bearer gh-token');
   assert.equal(a.init.headers['User-Agent'], 'khmerclip-report-relay');
@@ -149,7 +174,7 @@ test('crash with known fingerprint comments instead of opening', async () => {
   const posts = f.calls.filter((c) => c.method === 'POST');
   assert.equal(posts.length, 1);
   assert.equal(posts[0].url, `https://api.github.com/repos/${REPO}/issues/7/comments`);
-  assert.equal(posts[0].json.body, '+1 · 0.2.0 · macOS 15');
+  assert.equal(posts[0].json.body, '~~~\n+1 · 0.2.0 · macOS 15\n~~~');
   const q = new URL(f.calls[0].url).searchParams.get('q');
   assert.match(q, new RegExp(`^repo:${REPO} is:issue is:open label:crash "fp:[0-9a-f]{16}"$`));
 });
@@ -206,10 +231,8 @@ test('github failure falls back to email with attachment', async () => {
 });
 
 test('github throw falls back to email without attachment for non-capture', async () => {
-  let n = 0;
   const f = makeFetch((url) => {
     if (url.includes('api.github.com')) throw new Error('network');
-    n++;
   });
   const res = await handle(req(crash()), makeEnv(), f);
   assert.equal((await res.json()).via, 'email');
