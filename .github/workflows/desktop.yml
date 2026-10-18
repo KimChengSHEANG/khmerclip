@@ -119,10 +119,11 @@ jobs:
           dpkg-deb --info "$deb"
           sudo apt-get install -y "./$deb"
           # tesseract-ocr was removed above: this must use the copy bundled in /opt/khmerclip.
-          khmerclip ocr ../mac/Tests/Fixtures/ocr/1.png -o smoke-deb.txt
+          # Full path: `pip install -e .` put a dev `khmerclip` script earlier on PATH.
+          /usr/bin/khmerclip ocr ../mac/Tests/Fixtures/ocr/1.png -o smoke-deb.txt
           test -s smoke-deb.txt && cat smoke-deb.txt
           set +e
-          xvfb-run -a timeout 15 khmerclip
+          xvfb-run -a timeout 15 /usr/bin/khmerclip
           code=$?
           set -e
           test "$code" -eq 124 || { echo "installed GUI exited early with code $code"; exit 1; }
