@@ -36,7 +36,7 @@ def main() -> None:
         "--engine",
         action="append",
         required=True,
-        choices=["tesseract", "tesseract-ft", "trocr-hf", "trocr-coreml", "trocr-pipeline"],
+        choices=["tesseract", "tesseract-ft", "trocr-hf", "trocr-coreml", "trocr-pipeline", "trocr-desktop"],
     )
     p.add_argument("--limit", type=int, default=None)
     p.add_argument("--out", type=Path, default=Path("bench_results.csv"))
@@ -85,6 +85,19 @@ def main() -> None:
                 )
             continue
 
+        if engine == "trocr-desktop":
+            # The shipped desktop ONNX path (apps/desktop), CPU provider, Latin fallback included.
+            from PIL import Image
+
+            sys.path.insert(0, str(REPO / "apps/desktop/src"))
+            from khmerclip.ocr import trocr as desktop_trocr
+
+            if not args.trocr_model_dir:
+                raise SystemExit("--trocr-model-dir required")
+            session = desktop_trocr.load_session(args.trocr_model_dir)
+            if items:  # warm-up: first ONNX run allocates arenas
+                desktop_trocr.recognize_with_session(session, Image.open(items[0].image_path))
+
         for item in items:
             t0 = time.perf_counter()
             if engine == "tesseract":
@@ -111,6 +124,9 @@ def main() -> None:
                 if not args.trocr_model_dir:
                     raise SystemExit("--trocr-model-dir required")
                 pred = trocr_hf.recognize(item.image_path, args.trocr_model_dir)
+            elif engine == "trocr-desktop":
+                # The app puts one line per row; labels join lines with a space, as OCRBench does.
+                pred = desktop_trocr.recognize_with_session(session, Image.open(item.image_path)).replace("\n", " ")
             else:
                 raise AssertionError(f"unhandled engine: {engine}")
             ms = (time.perf_counter() - t0) * 1000.0
