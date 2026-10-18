@@ -41,5 +41,31 @@ Character errors, paired against the previous kept configuration. Sets: frozen 2
 | Candidate | frozen errs | screen errs | +/- (screen) | Verdict |
 |---|---:|---:|---:|---|
 | (e) split touching lines at the line pitch | 40 -> 40 | 9394 -> 1835 (-80.5%) | 87 / 5 | **keep** (Mac, desktop) |
+| (f) 2-token cycle cap (on top of e) | 40 -> 40 | 1835 -> 1817 (-1.0%) | 1 / 0 | drop (below the 5% bar) |
+| (b) normalize (strip ZWSP) | 40 -> 40 | 1817 -> 1817 | 0 / 0 | drop (the model never emits ZWSP) |
+| (a) wide split, R = 8 | 40 -> 41 | 1817 -> 1373 (-24.4%) | 126 / 78 | drop: slices 194 -> 214 (+10%), splits 8-12:1 lines that read fine whole |
+| (a) wide split, R = 12 | 40 -> 40 | 1817 -> 1456 (-19.9%) | 99 / 35 | **keep**; slices 194 -> 193 |
+| (a) wide split, R = 16 | 40 -> 40 | 1817 -> 1600 (-11.9%) | 55 / 13 | weaker than 12 |
+| (d) content crop | 40 -> 39 | 1817 -> 1417 (-22.0%) | 129 / 58 | **keep**; slices 194 -> 184. Desktop already cropped; Mac now does too |
+| (c) beam 4 when min greedy token p < 0.5 | 40 -> 37 | 1817 -> 1768 (-2.7%) | 33 / 13 | drop (below the bar; needs several KV states in the CoreML decoder) |
+
+(b)-(d) and (f) are paired against (e) + (f), the configuration they were swept on; (f) itself was then dropped, which changes one clip.
+
+The first wide-split version cut blank tails and neighbour-line mark fragments of full-width strips into pieces TrOCR hallucinated text for (multi-line clips +26% errors at R = 8). The kept version measures the line from ink in the strip's central band (rows 30-70%) and splits only that.
+
+### On device (CoreML, Mac `OCRBench`, v2 model, Latin fallback on)
+
+| Set | v2 as shipped | + split touching | + wide split 12 + content crop |
+|---|---:|---:|---:|
+| frozen 200 CER | 0.0044 | 0.0044 | **0.0039** |
+| screen 450 CER | ~0.14 (pipeline 0.1435) | 0.0401 | **0.0260** |
+| slices 320 CER | - | 0.0138 | 0.0141 |
+| screen median ms | - | 609 | 666 |
+
+Paired, last column vs the middle one: frozen 15 -> 14 errors; screen 1850 -> 1177 (-36.4%, 160 better / 49 worse; long lines -72.5%); slices 195 -> 194 (24 / 19). Per slice, bold (+7 errors) and display (+8) got worse while small (-8), coloured (-5) and low contrast (-2) improved.
+
+### Residual errors are partly the labels
+
+The most common screen-set "error" is ដ -> ត after a coeng (111 times): the subscripts ្ដ and ្ត are the same glyph in these fonts, so pixels can't tell them apart; Wikipedia often writes ្ដ where training labels use ្ត. Next are deprecated characters in the references (ឤ U+17A4 read as អា, ឣ U+17A3 read as អ), which render identically. These cost both sides of every paired comparison equally, so no keep/drop decision depends on them.
 
 (e) splits runs of touching lines at the row-profile autocorrelation pitch, cutting only sparse valleys (<= 0.2 x the run's densest row), before the mark merge. Clips segmented correctly: 357 -> 439 of 450; frozen fixtures stay one strip each. Swift and desktop strip counts match the Python reference on all 650 fixtures.
