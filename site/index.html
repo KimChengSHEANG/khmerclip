@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KhmerClipper</title>
+<meta name="description" content="On-device screen OCR for Khmer and mixed Khmer/English text. Select any part of the screen and the text lands on your clipboard. macOS, Windows, Linux.">
+<meta property="og:title" content="KhmerClipper: screen OCR for Khmer">
+<meta property="og:description" content="Select any part of the screen and the Khmer text is on your clipboard. Fully on-device.">
+<meta property="og:image" content="img/icon.png">
+<link rel="icon" href="img/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Khmer:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f6f8fb; --surface: #fff; --text: #13233d; --muted: #5a6b84; --line: #dde4ee;
+    --brand: #2d6aa8; --brand-deep: #1e3a66; --accent: #f2b233; --good: #1f8a5b; --bad: #c2453b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0b1424; --surface: #111e33; --text: #e6edf7; --muted: #94a3bb; --line: #1f2f4a;
+      --brand: #6aa6e0; --brand-deep: #9cc4ec; --accent: #ffc94d; --good: #45c08a; --bad: #ef7a70;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 Inter, system-ui, sans-serif; }
+  [lang="km"] { font-family: "Noto Sans Khmer", Inter, sans-serif; }
+  a { color: var(--brand); }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+  nav { display: flex; align-items: center; justify-content: space-between; padding: 18px 0; }
+  nav .logo { display: flex; align-items: center; gap: 10px; font-weight: 700; text-decoration: none; color: var(--text); }
+  nav .logo img { width: 32px; height: 32px; }
+  nav .links { display: flex; gap: 20px; font-size: 15px; }
+  nav .links a { color: var(--muted); text-decoration: none; }
+  nav .links a:hover { color: var(--text); }
+
+  .hero { display: grid; grid-template-columns: 1.05fr 1fr; gap: 48px; align-items: center; padding: 48px 0 72px; }
+  .hero h1 { font-size: clamp(36px, 5.5vw, 56px); line-height: 1.08; letter-spacing: -0.03em; margin: 0 0 18px; }
+  .hero h1 .km { color: var(--brand); }
+  .hero p.lead { font-size: 19px; color: var(--muted); margin: 0 0 28px; max-width: 34em; }
+  .cta { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 13px 22px; border-radius: 12px; font-weight: 600; text-decoration: none; }
+  .btn.primary { background: var(--brand-deep); color: #fff; }
+  @media (prefers-color-scheme: dark) { .btn.primary { background: var(--accent); color: #1b1300; } }
+  .btn.ghost { border: 1px solid var(--line); color: var(--text); background: var(--surface); }
+  .platforms { margin-top: 18px; font-size: 14px; color: var(--muted); }
+
+  /* demo: a mock window, a selection box drawn over a Khmer line, then the copied toast */
+  .demo { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 24px 60px -24px rgba(19,35,61,.35); overflow: hidden; }
+  .demo .bar { display: flex; gap: 6px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+  .demo .bar i { width: 11px; height: 11px; border-radius: 50%; background: var(--line); }
+  .demo .doc { padding: 26px 26px 92px; font-size: 17px; line-height: 2.1; }
+  .demo .doc p { margin: 0; color: var(--muted); }
+  .demo .doc .target { position: relative; display: inline-block; color: var(--text); font-weight: 600; }
+  .sel { position: absolute; inset: -6px -10px; border: 2px dashed var(--brand); border-radius: 6px; background: color-mix(in srgb, var(--brand) 12%, transparent); transform-origin: top left; animation: sel 6s infinite; }
+  .scan { position: absolute; left: -10px; right: -10px; height: 3px; top: -6px; border-radius: 2px; background: linear-gradient(90deg, transparent, var(--accent), transparent); animation: scan 6s infinite; }
+  .toast { position: absolute; left: 50%; bottom: 18px; transform: translateX(-50%); width: calc(100% - 36px); background: var(--brand-deep); color: #fff; border-radius: 12px; padding: 12px 16px; font-size: 14px; animation: toast 6s infinite; }
+  @media (prefers-color-scheme: dark) { .toast { background: #1d3354; } }
+  .toast b { display: block; font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; opacity: .7; margin-bottom: 2px; }
+  @keyframes sel { 0%, 8% { transform: scale(0); opacity: 0; } 10% { opacity: 1; } 30%, 80% { transform: scale(1); opacity: 1; } 90%, 100% { opacity: 0; } }
+  @keyframes scan { 0%, 32% { opacity: 0; top: -6px; } 34% { opacity: 1; } 50% { opacity: 1; top: calc(100% + 3px); } 52%, 100% { opacity: 0; } }
+  @keyframes toast { 0%, 52% { opacity: 0; transform: translate(-50%, 12px); } 58%, 88% { opacity: 1; transform: translate(-50%, 0); } 96%, 100% { opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .sel, .scan, .toast { animation: none; } .scan { display: none; } }
+
+  section { padding: 64px 0; border-top: 1px solid var(--line); }
+  h2 { font-size: clamp(26px, 3.4vw, 34px); letter-spacing: -0.02em; margin: 0 0 10px; }
+  .sub { color: var(--muted); margin: 0 0 36px; max-width: 42em; }
+
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .stat { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 22px; }
+  .stat .n { font-size: 38px; font-weight: 800; letter-spacing: -0.03em; }
+  .stat .l { color: var(--muted); font-size: 14px; }
+
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 22px; }
+  .card h3 { margin: 0 0 6px; font-size: 17px; }
+  .card p { margin: 0; color: var(--muted); font-size: 15px; }
+  .card .ic { font-size: 22px; margin-bottom: 10px; }
+
+  .bars { display: grid; gap: 14px; margin-bottom: 18px; }
+  .bar-row { display: grid; grid-template-columns: 210px 1fr 70px; gap: 14px; align-items: center; font-size: 15px; }
+  .track { height: 14px; background: var(--line); border-radius: 7px; overflow: hidden; }
+  .fill { height: 100%; border-radius: 7px; background: var(--bad); }
+  .fill.good { background: var(--good); }
+  .bar-row .v { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+  .note { font-size: 13px; color: var(--muted); }
+
+  table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; font-size: 15px; }
+  th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  tr:last-child td { border-bottom: 0; }
+  th { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); font-weight: 600; }
+  td img { height: 28px; max-width: 100%; display: block; border-radius: 4px; background: #fff; }
+  .ok { color: var(--good); font-weight: 600; }
+  .no { color: var(--bad); font-weight: 600; }
+  .scroll { overflow-x: auto; }
+
+  .steps { counter-reset: s; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .steps .card::before { counter-increment: s; content: counter(s); display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--brand-deep); color: #fff; font-weight: 700; margin-bottom: 12px; }
+  @media (prefers-color-scheme: dark) { .steps .card::before { background: var(--accent); color: #1b1300; } }
+  code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; }
+  pre { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; overflow-x: auto; margin: 0 0 16px; }
+
+  footer { padding: 40px 0 56px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; }
+
+  @media (max-width: 820px) {
+    .hero { grid-template-columns: 1fr; padding-top: 24px; }
+    .grid, .steps { grid-template-columns: 1fr 1fr; }
+    nav .links a:not(.gh) { display: none; }
+  }
+  @media (max-width: 560px) {
+    .grid, .steps, .stats { grid-template-columns: 1fr; }
+    .bar-row { grid-template-columns: 1fr 64px; }
+    .bar-row .track { grid-column: 1 / -1; grid-row: 2; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav>
+    <a class="logo" href="#"><img src="img/icon.png" alt="">KhmerClipper</a>
+    <div class="links">
+      <a href="#features">Features</a>
+      <a href="#accuracy">Accuracy</a>
+      <a href="#build">Build</a>
+      <a class="gh" href="https://github.com/KimChengSHEANG/khmerclipper">GitHub</a>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div>
+      <h1>Copy <span class="km" lang="km">អក្សរខ្មែរ</span> straight off your screen.</h1>
+      <p class="lead">Drag a box over any Khmer or mixed Khmer/English text, and it's on your clipboard. KhmerClipper runs its own fine-tuned OCR model fully on-device, because most OCR tools can't read Khmer.</p>
+      <div class="cta">
+        <a class="btn primary" href="https://github.com/KimChengSHEANG/khmerclipper/releases/latest">Download</a>
+        <a class="btn ghost" href="https://github.com/KimChengSHEANG/khmerclipper">View source</a>
+      </div>
+      <div class="platforms">macOS 15+ (Apple Silicon) · Windows · Linux · Free and open source</div>
+    </div>
+    <div class="demo" aria-hidden="true">
+      <div class="bar"><i></i><i></i><i></i></div>
+      <div class="doc" lang="km">
+        <p>ព័ត៌មានថ្មីៗ ប្រចាំថ្ងៃ</p>
+        <p><span class="target">សូមស្វាគមន៍មកកាន់ប្រទេសកម្ពុជា<span class="sel"></span><span class="scan"></span></span></p>
+        <p>ការអប់រំ និងបច្ចេកវិទ្យា</p>
+      </div>
+      <div class="toast"><b lang="en">Copied to clipboard</b><span lang="km">សូមស្វាគមន៍មកកាន់ប្រទេសកម្ពុជា</span></div>
+    </div>
+  </header>
+</div>
+
+<section id="features">
+  <div class="wrap">
+    <h2>Built for Khmer</h2>
+    <p class="sub">A global hotkey, a drag, and the text is copied. Nothing leaves your computer.</p>
+    <div class="grid">
+      <div class="card"><div class="ic">⌨️</div><h3>Hotkey capture</h3><p>Press the global shortcut and drag over any part of any screen.</p></div>
+      <div class="card"><div class="ic">📋</div><h3>Auto-copy</h3><p>Text goes straight to the clipboard, with a result popup and a history of past captures.</p></div>
+      <div class="card"><div class="ic">🔒</div><h3>Fully on-device</h3><p>CoreML on the Mac and ONNX Runtime on Windows and Linux. No cloud, no account.</p></div>
+      <div class="card"><div class="ic">🧠</div><h3>Two engines</h3><p>Khmer TrOCR (the default) for accuracy, Tesseract as a lightweight fallback.</p></div>
+      <div class="card"><div class="ic">🔤</div><h3>Mixed scripts</h3><p>Khmer and English on the same line, including UI strings, prices and digits.</p></div>
+      <div class="card"><div class="ic">🍎</div><h3>Mac extras</h3><p>Window capture (Space while selecting), Khmer text-to-speech and on-device translation.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="accuracy">
+  <div class="wrap">
+    <h2>Accuracy you can measure</h2>
+    <p class="sub">Every engine is scored on the same frozen set of 200 line images. The metric is character error rate (CER), where lower is better.</p>
+    <div class="stats" style="margin-bottom:36px">
+      <div class="stat"><div class="n">0.34%</div><div class="l">CER of the current TrOCR model on the 200-line benchmark</div></div>
+      <div class="stat"><div class="n">2.7%</div><div class="l">CER on real screen captures of 1–5 lines, in fonts never seen in training</div></div>
+      <div class="stat"><div class="n">~100 ms</div><div class="l">Median time per line on Apple Silicon, about as fast as Tesseract</div></div>
+    </div>
+    <div class="bars">
+      <div class="bar-row"><span>Tesseract 5 (stock)</span><div class="track"><div class="fill" style="width:100%"></div></div><span class="v">25.8%</span></div>
+      <div class="bar-row"><span>TrOCR v0 (before fine-tuning)</span><div class="track"><div class="fill" style="width:23%"></div></div><span class="v">5.93%</span></div>
+      <div class="bar-row"><span><b>KhmerClipper TrOCR v3</b></span><div class="track"><div class="fill good" style="width:1.4%;min-width:6px"></div></div><span class="v">0.34%</span></div>
+    </div>
+    <p class="note">CER on all 200 images, on-device on Apple Silicon. The printed subset comes from a dataset that earlier checkpoints saw during training, so its number is optimistic; the UI subset (0.30%) and mixed subset (0.46%) were never in training data. <a href="https://github.com/KimChengSHEANG/khmerclipper#results">Full results</a></p>
+
+    <h3 style="margin:44px 0 14px">Side by side</h3>
+    <div class="scroll">
+      <table>
+        <tr><th>Image</th><th>Meaning</th><th>Tesseract</th><th>KhmerClipper</th></tr>
+        <tr><td><img src="img/printed-001.png" alt="Printed Khmer line"></td><td>"…back and forth between agreeing and opposing opinions. Is…"</td><td class="no">3 errors</td><td class="ok">Exact</td></tr>
+        <tr><td><img src="img/printed-019.png" alt="Printed Khmer line"></td><td>"…strongly. In…"</td><td class="no">Latin junk</td><td class="ok">Exact</td></tr>
+        <tr><td><img src="img/ui-033.png" alt="Khmer UI string"></td><td>"No data found"</td><td class="no">Wrong vowel sign</td><td class="ok">Exact</td></tr>
+        <tr><td><img src="img/printed-063.png" alt="English line"></td><td>(English line)</td><td class="no">Dropped a word</td><td class="ok">Exact</td></tr>
+      </table>
+    </div>
+    <p class="note">Illustrative samples run through both engines; the benchmark above is the measured accuracy.</p>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <h2>How it works</h2>
+    <p class="sub">A TrOCR model fine-tuned on over a million Khmer and English text lines, exported to run locally on each platform.</p>
+    <div class="steps">
+      <div class="card"><h3>Split into lines</h3><p>Khmer subscripts of one line touch the marks of the next, so the app cuts touching lines at the line pitch and crops each piece to its ink.</p></div>
+      <div class="card"><h3>Read each line</h3><p>A ViT encoder and a decoder with one token per Khmer character, trained on public datasets plus about 750k synthetic lines rendered in dozens of Khmer and Latin fonts.</p></div>
+      <div class="card"><h3>Pick the best reading</h3><p>For lines with no Khmer, a confident Tesseract result wins, since it reads clean English UI text slightly better.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="download">
+  <div class="wrap">
+    <h2>Install</h2>
+    <p class="sub">Grab the latest build from <a href="https://github.com/KimChengSHEANG/khmerclipper/releases/latest">GitHub Releases</a>.</p>
+    <div class="grid">
+      <div class="card"><h3>macOS</h3><p>Open the <code>.dmg</code> and drag KhmerClipper to Applications. Grant Screen Recording when asked. Signed and notarized.</p></div>
+      <div class="card"><h3>Windows</h3><p>Run the <code>-setup.exe</code>. The build is unsigned, so SmartScreen asks once: More info → Run anyway.</p></div>
+      <div class="card"><h3>Linux</h3><p><code>sudo apt install ./khmerclipper_*.deb</code>, or run the AppImage. The TrOCR model (~1.3 GB) downloads on first use.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="build">
+  <div class="wrap">
+    <h2>Build from source</h2>
+    <p class="sub">The macOS app is Swift; the Windows/Linux app is Python with PySide6 and ONNX Runtime.</p>
+<pre>git clone https://github.com/KimChengSHEANG/khmerclipper && cd khmerclipper
+
+# macOS (Xcode 16+, brew install xcodegen)
+cd apps/mac && make run
+
+# Windows / Linux (Python 3.12)
+cd apps/desktop && python3.12 -m venv .venv && .venv/bin/pip install -e '.[dev]'
+.venv/bin/python tools/fetch_tessdata.py && .venv/bin/python -m khmerclipper</pre>
+    <p class="note">Training recipes, datasets and known issues are in the <a href="https://github.com/KimChengSHEANG/khmerclipper/blob/main/docs/PROJECT.md">project guide</a>.</p>
+  </div>
+</section>
+
+<div class="wrap">
+  <footer>
+    <span>KhmerClipper · open source, see <a href="https://github.com/KimChengSHEANG/khmerclipper/blob/main/LICENSE">LICENSE</a></span>
+    <span>Model on <a href="https://huggingface.co/kcsheang/khmerclipper-trocr-khmer-onnx">Hugging Face</a> · Thanks to the authors of the public Khmer OCR datasets</span>
+  </footer>
+</div>
+</body>
+</html>
