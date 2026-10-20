@@ -40,7 +40,8 @@ def test_step_logits_match_full_decoder(learned_pos: bool) -> None:
     want = model.decoder(input_ids=seq, encoder_hidden_states=enc).logits  # [1, T, V]
 
     step = KVDecoderStep(model, MAX_LEN).eval()
+    ck, cv = step.cross_kv(enc)
     for pos in range(seq.shape[1]):
         attn, write = masks(pos)
-        got = step(seq[:, pos : pos + 1].int(), torch.tensor([pos], dtype=torch.int32), attn, write, enc)
+        got = step(seq[:, pos : pos + 1].int(), torch.tensor([pos], dtype=torch.int32), attn, write, ck, cv)
         torch.testing.assert_close(got[0, 0], want[0, pos], atol=1e-4, rtol=1e-4)

@@ -59,13 +59,26 @@ class Encoder(torch.nn.Module):
         return self.proj(h) if self.proj is not None else h
 
 
+class EncoderCrossKV(torch.nn.Module):
+    """Image -> the decoder's cross-attention K/V, computed once per line."""
+
+    def __init__(self, m):
+        super().__init__()
+        self.encoder = Encoder(m)
+        self.step = KVDecoderStep(m, 1)
+
+    def forward(self, pixel_values):
+        return self.step.cross_kv(self.encoder(pixel_values))
+
+
 def convert_encoder(model, img_size, precision):
     example = torch.rand(1, 3, img_size, img_size)
-    traced = torch.jit.trace(Encoder(model).eval(), (example,))
+    traced = torch.jit.trace(EncoderCrossKV(model).eval(), (example,))
     return ct.convert(
         traced,
         inputs=[ct.TensorType(name="pixel_values", shape=example.shape, dtype=np.float32)],
-        outputs=[ct.TensorType(name="encoder_hidden_states", dtype=np.float32)],
+        outputs=[ct.TensorType(name="cross_k", dtype=np.float16),
+                 ct.TensorType(name="cross_v", dtype=np.float16)],
         convert_to="mlprogram",
         compute_precision=precision,
         minimum_deployment_target=ct.target.macOS15,
@@ -78,8 +91,10 @@ def convert_decoder(model, enc_shape, max_len, precision):
     attn[..., 0] = 0
     write = torch.zeros(1, 1, max_len, 1)
     write[:, :, 0, 0] = 1
+    with torch.no_grad():
+        ck, cv = step.cross_kv(torch.rand(*enc_shape))
     example = (torch.zeros(1, 1, dtype=torch.int32), torch.zeros(1, dtype=torch.int32),
-               attn, write, torch.rand(*enc_shape))
+               attn, write, ck, cv)
     traced = torch.jit.trace(step, example)
     cache = ct.TensorType(shape=tuple(step.k_cache.shape), dtype=np.float16)
     return ct.convert(
@@ -89,7 +104,8 @@ def convert_decoder(model, enc_shape, max_len, precision):
             ct.TensorType(name="position", shape=(1,), dtype=np.int32),
             ct.TensorType(name="attn_mask", shape=(1, 1, 1, max_len), dtype=np.float32),
             ct.TensorType(name="write_mask", shape=(1, 1, max_len, 1), dtype=np.float32),
-            ct.TensorType(name="encoder_hidden_states", shape=tuple(enc_shape), dtype=np.float32),
+            ct.TensorType(name="cross_k", shape=tuple(ck.shape), dtype=np.float16),
+            ct.TensorType(name="cross_v", shape=tuple(cv.shape), dtype=np.float16),
         ],
         states=[ct.StateType(wrapped_type=cache, name="k_cache"),
                 ct.StateType(wrapped_type=cache, name="v_cache")],

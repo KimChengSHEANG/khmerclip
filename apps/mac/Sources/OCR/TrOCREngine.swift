@@ -56,14 +56,34 @@ enum TrOCREngine {
 
     /// Per-call timing breakdown for OCRBench diagnostics. ponytail: global,
     /// last-call-only -- fine for the single-threaded bench CLI; return it from
-    /// recognizeText if the app ever needs it.
+    /// recognizeText if the app ever needs it. With concurrent lines the ms
+    /// totals add up overlapping time, so they can exceed the wall clock.
     struct RunStats {
         var strips = 0
         var decoderSteps = 0
         var encoderMs = 0.0
         var decoderMs = 0.0
+
+        mutating func add(_ o: RunStats) {
+            decoderSteps += o.decoderSteps
+            encoderMs += o.encoderMs
+            decoderMs += o.decoderMs
+        }
     }
     static var lastRunStats = RunStats()
+
+    /// Lines decoded at once. Bench knob: KHMERCLIPPER_TROCR_LINES.
+    static let maxConcurrentLines = ProcessInfo.processInfo.environment["KHMERCLIPPER_TROCR_LINES"].flatMap(Int.init) ?? 4
+
+    /// Running token total for the progress HUD across concurrent lines.
+    @MainActor final class TokenCount {
+        private var n = 0
+        nonisolated init() {}
+        func add(_ progress: @MainActor (OCRProgress) -> Void) {
+            n += 1
+            progress(.reading(tokens: n))
+        }
+    }
 
     static func milliseconds(since start: ContinuousClock.Instant) -> Double {
         let d = start.duration(to: .now)
@@ -92,22 +112,44 @@ enum TrOCREngine {
         // TrOCR reads one text line per pass, so a multi-line clip is split into
         // line strips and each decoded separately; joining with "\n" is what lets
         // Preserve Linebreaks have anything to preserve.
-        var lines: [String] = []
-        var doneTokens = 0
-        lastRunStats = RunStats()
         let strips = lineStrips(image)
-        lastRunStats.strips = strips.count
-        for strip in strips {
-            // A long line squashed into 384x384 loses its thin marks; decode it in pieces.
-            var line = ""
-            for piece in splitWide(strip, maxAspect: wideSplitAspect) {
-                var pieceTokens = 0
-                let text = try await recognizeLine(piece.image, encoder: encoder, decoder: decoder, tokenizer: tokenizer) { n in
-                    pieceTokens = n
-                    await progress?(.reading(tokens: doneTokens + n))
+        // A long line squashed into 384x384 loses its thin marks; decode it in pieces.
+        let pieces = strips.map { splitWide($0, maxAspect: wideSplitAspect) }
+        let jobs = pieces.indices.flatMap { i in pieces[i].indices.map { (line: i, piece: $0) } }
+
+        // Pieces decode concurrently (each has its own KV state): one decode
+        // step is too small to fill the GPU, so overlapping lines is nearly free.
+        let tokens = TokenCount()
+        var texts = Array(repeating: [String](), count: strips.count)
+        for i in strips.indices { texts[i] = Array(repeating: "", count: pieces[i].count) }
+        var stats = RunStats(strips: strips.count)
+        try await withThrowingTaskGroup(of: (Int, Int, String, RunStats).self) { group in
+            var next = 0
+            func addJob() {
+                let (i, j) = jobs[next]
+                let image = pieces[i][j].image
+                group.addTask {
+                    let (text, s) = try await recognizeLine(image, encoder: encoder, decoder: decoder, tokenizer: tokenizer) {
+                        if let progress { await tokens.add(progress) }
+                    }
+                    return (i, j, text, s)
                 }
-                doneTokens += pieceTokens
-                let trimmed = text.trimmingCharacters(in: .whitespaces)
+                next += 1
+            }
+            while next < min(jobs.count, maxConcurrentLines) { addJob() }
+            for try await (i, j, text, s) in group {
+                texts[i][j] = text
+                stats.add(s)
+                if next < jobs.count { addJob() }
+            }
+        }
+        lastRunStats = stats
+
+        var lines: [String] = []
+        for (i, strip) in strips.enumerated() {
+            var line = ""
+            for (j, piece) in pieces[i].enumerated() {
+                let trimmed = texts[i][j].trimmingCharacters(in: .whitespaces)
                 if !trimmed.isEmpty { line += (line.isEmpty ? "" : piece.separator) + trimmed }
             }
             // The Khmer fine-tune misspells clean English UI text ("Warrantly",
@@ -132,15 +174,19 @@ enum TrOCREngine {
         encoder: MLModel,
         decoder: MLModel,
         tokenizer: TrOCRTokenizer,
-        onStep: (Int) async -> Void
-    ) async throws -> String {
+        onStep: @Sendable () async -> Void
+    ) async throws -> (String, RunStats) {
+        var stats = RunStats()
         let pixelValues = try preprocess(image: contentCrop(image))
         let encodeStart = ContinuousClock.now
         let encoderOutput = try await encoder.prediction(from: MLDictionaryFeatureProvider(dictionary: [
             "pixel_values": MLFeatureValue(multiArray: pixelValues),
         ]))
-        lastRunStats.encoderMs += milliseconds(since: encodeStart)
-        guard let encoderHidden = encoderOutput.featureValue(for: "encoder_hidden_states")?.multiArrayValue else {
+        stats.encoderMs = milliseconds(since: encodeStart)
+        // The encoder model also projects the cross-attention K/V, once per line
+        // instead of on every decoder step (tools/trocr/kv_decoder.py).
+        guard let crossK = encoderOutput.featureValue(for: "cross_k")?.multiArrayValue,
+              let crossV = encoderOutput.featureValue(for: "cross_v")?.multiArrayValue else {
             throw TrOCRError.predictionFailed
         }
 
@@ -172,7 +218,8 @@ enum TrOCREngine {
             "position": MLFeatureValue(multiArray: position),
             "attn_mask": MLFeatureValue(multiArray: attnMask),
             "write_mask": MLFeatureValue(multiArray: writeMask),
-            "encoder_hidden_states": MLFeatureValue(multiArray: encoderHidden),
+            "cross_k": MLFeatureValue(multiArray: crossK),
+            "cross_v": MLFeatureValue(multiArray: crossV),
         ])
 
         let decodeStart = ContinuousClock.now
@@ -191,13 +238,13 @@ enum TrOCREngine {
             }
             let nextId = argmaxLastStep(logits, excluding: blockedToken(ids))
             ids.append(nextId)
-            await onStep(ids.count)
+            await onStep()
             if nextId == tokenizer.eosId { break }
         }
 
-        lastRunStats.decoderMs += milliseconds(since: decodeStart)
-        lastRunStats.decoderSteps += ids.count - 1
-        return tokenizer.decode(ids: ids)
+        stats.decoderMs = milliseconds(since: decodeStart)
+        stats.decoderSteps = ids.count - 1
+        return (tokenizer.decode(ids: ids), stats)
     }
 
     /// Khmer (U+1780-17FF) or Khmer Symbols (U+19E0-19FF), the blocks the
