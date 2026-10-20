@@ -26,6 +26,7 @@ struct PreferencesView: View {
                 Toggle("Show result popup", isOn: $preferences.showResultHUD)
                 Toggle("Play sound on capture", isOn: $preferences.playCaptureSound)
                 Toggle("Keep capture images for accuracy feedback", isOn: $preferences.keepCaptureImages)
+                Toggle("Send crash reports automatically", isOn: $preferences.sendCrashReports)
                 Toggle("Launch at login", isOn: Binding(
                     get: { preferences.launchAtLogin },
                     set: { newValue in

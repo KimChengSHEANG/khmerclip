@@ -38,3 +38,14 @@ def test_wrong_typed_fields_fall_back_individually(tmp_path):
     assert prefs.last_update_check == 7.0     # int accepted for float
     assert prefs.check_updates is True        # 1 is not a bool -> default
     assert prefs.engine == "tesseract"        # unknown engine -> default
+
+
+def test_keep_captures_on_for_new_installs_only(tmp_path):
+    path = tmp_path / "prefs.json"
+    assert Prefs.load(path).keep_captures is True  # new install: no prefs file yet
+    path.write_text(json.dumps({"engine": "trocr"}), encoding="utf-8")
+    assert Prefs.load(path).keep_captures is False  # existing install that never set it
+    path.write_text("{not json", encoding="utf-8")
+    assert Prefs.load(path).keep_captures is False  # unreadable, but the app has run before
+    path.write_text(json.dumps({"keep_captures": True}), encoding="utf-8")
+    assert Prefs.load(path).keep_captures is True  # an explicit choice wins

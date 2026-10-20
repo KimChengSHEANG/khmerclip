@@ -69,11 +69,17 @@ targets:
       - path: Tests
       - path: Sources/Capture/WindowPicker.swift
       - path: Sources/History/ScanRecord.swift
+      - path: Sources/History/FeedbackMerge.swift
       - path: Sources/OCR/TesseractEngine.swift
       - path: Sources/OCR/TrOCREngine.swift
       - path: Sources/OCR/TrOCRTokenizer.swift
       - path: Sources/OCR/OCREngine.swift
       - path: Sources/OCR/OCRTextFormatter.swift
+      - path: Sources/Reports/Report.swift
+      - path: Sources/Reports/ReportOutbox.swift
+      - path: Sources/Reports/CrashReporter.swift
+      - path: Sources/Reports/FeedbackView.swift
+      - path: Sources/Preferences/KeepCapturesDefault.swift
       # The vendored tesseract binary + tessdata, and the converted TrOCR
       # CoreML models, are what these OCR tests spawn/load. Tests point the
       # engines at Vendor/tesseract and Vendor/trocr directly, so those need

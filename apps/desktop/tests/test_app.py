@@ -92,7 +92,7 @@ def test_tray_menu_and_commands(controller, monkeypatch):
     monkeypatch.setattr(controller, "start_capture", lambda: captures.append(1))
     tray = TrayApp(controller)
     texts = [a.text() for a in tray.menu.actions() if a.text()]
-    assert texts == ["Capture Text", "OCR Image File…", "History…", "Preferences…",
+    assert texts == ["Capture Text", "OCR Image File…", "History…", "Send Feedback…", "Preferences…",
                      "Check for Updates…", "Quit KhmerClip"]
     tray.on_command("capture")
     assert captures == [1]
@@ -103,7 +103,11 @@ def test_tray_menu_and_commands(controller, monkeypatch):
 def test_keep_captures_saves_image_with_ocr_details(controller):
     image = Image.new("RGB", (20, 20), "white")
     controller.handle_text("ក\nខ", image=image)
-    assert not controller.history.has_capture(controller.history.records[0].id)  # off by default
+    assert controller.history.has_capture(controller.history.records[0].id)  # on by default
+
+    controller.prefs.keep_captures = False
+    controller.handle_text("ក\nខ", image=image)
+    assert not controller.history.has_capture(controller.history.records[0].id)
 
     controller.prefs.keep_captures = True
     controller.prefs.preserve_linebreaks = False
@@ -113,3 +117,47 @@ def test_keep_captures_saves_image_with_ocr_details(controller):
     meta = json.loads((controller.history.captures_dir / f"{record.id}.json").read_text(encoding="utf-8"))
     assert meta["ocr_text"] == "ក\nខ" and record.text == "ក ខ"  # raw OCR kept, not the formatted text
     assert meta["engine"] == "tesseract" and meta["preserve_linebreaks"] is False
+
+
+def test_unexpected_error_is_recorded(controller, monkeypatch):
+    seen = []
+    monkeypatch.setattr(app_module.crash, "record", lambda exc, engine: seen.append(exc))
+    controller.handle_error(ZeroDivisionError())
+    assert len(seen) == 1
+    controller.handle_error(KhmerClipError("x"))
+    controller.handle_error(Cancelled())
+    assert len(seen) == 1
+    controller.prefs.send_crash_reports = False
+    controller.handle_error(ZeroDivisionError())
+    assert len(seen) == 1
+
+
+def test_error_popup_shows_even_if_recording_fails(controller, monkeypatch):
+    shown = []
+    monkeypatch.setattr(app_module.crash, "record", lambda *a: (_ for _ in ()).throw(OSError("disk full")))
+    monkeypatch.setattr(controller.popup, "show_message", shown.append)
+    controller.handle_error(ZeroDivisionError())
+    assert len(shown) == 1 and "Capture failed" in shown[0]
+
+
+def test_safe_flush_swallows_errors(monkeypatch):
+    monkeypatch.setattr(app_module.reports, "flush", lambda: (_ for _ in ()).throw(RuntimeError("boom")))
+    assert app_module._safe_flush() == 0
+    monkeypatch.setattr(app_module.reports, "flush", lambda: 3)
+    assert app_module._safe_flush() == 3
+
+
+@pytest.mark.parametrize("error", [ValueError("corrupt png"), OSError("disk full")])
+def test_report_send_failure_tells_the_user(controller, monkeypatch, error):
+    monkeypatch.setattr(app_module.HotkeyListener, "start", lambda self, *a, **k: False)
+    controller.prefs.check_updates = False
+    controller.prefs.welcomed = True
+    tray = TrayApp(controller)
+    controller.handle_text("ក", image=Image.new("RGB", (20, 20), "white"))
+    record = controller.history.records[0]
+    shown = []
+    monkeypatch.setattr(controller.popup, "show_message", shown.append)
+    monkeypatch.setattr(app_module.reports, "capture_payload", lambda *a, **k: (_ for _ in ()).throw(error))
+    with pytest.raises(type(error)):  # the History window must not mark the row Reported
+        tray._report(record, "")
+    assert shown == ["Couldn't save the report. Please try again."]

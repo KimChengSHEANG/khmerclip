@@ -2,15 +2,14 @@ import SwiftUI
 
 struct HistoryView: View {
     @ObservedObject var store: ScanHistoryStore
+    @State private var reporting: ScanRecord?
+    @State private var alertMessage: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
                 Text("Scan History").font(.headline)
                 Spacer()
-                if FileManager.default.fileExists(atPath: ScanHistoryStore.feedbackDir.path) {
-                    Button("Feedback Folder") { NSWorkspace.shared.open(ScanHistoryStore.feedbackDir) }
-                }
                 Button("Clear") { store.clear() }
                     .disabled(store.records.isEmpty)
             }
@@ -25,30 +24,39 @@ struct HistoryView: View {
             } else {
                 List {
                     ForEach(store.records) { record in
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack {
-                                Image(systemName: record.kind == .barcode ? "qrcode" : "text.viewfinder")
-                                Text(record.date, style: .relative)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                Spacer()
+                        HStack(spacing: 10) {
+                            let hasCapture = store.hasCapture(record.id)
+                            if hasCapture, let image = NSImage(contentsOf: store.captureURL(record.id)) {
+                                Image(nsImage: image)
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 72, height: 40)
                             }
-                            Text(record.text)
-                                .lineLimit(3)
-                                .textSelection(.enabled)
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack {
+                                    Image(systemName: record.kind == .barcode ? "qrcode" : "text.viewfinder")
+                                    Text(record.date, style: .relative)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                    Spacer()
+                                }
+                                Text(record.text)
+                                    .lineLimit(3)
+                                    .textSelection(.enabled)
+                            }
+                            if hasCapture {
+                                if store.isFlagged(record.id) {
+                                    Button("Reported") {}.disabled(true)
+                                } else {
+                                    Button("Report") { reporting = record }
+                                }
+                            }
                         }
                         .padding(.vertical, 4)
                         .contextMenu {
                             Button("Copy") { ClipboardManager.copy(record.text) }
                             Button("Speak") { TextToSpeechManager.shared.speak(record.text) }
                             Button("Translate") { TranslateWindowPresenter.show(text: record.text) }
-                            if store.hasCapture(record.id) {
-                                if store.isFlagged(record.id) {
-                                    Button("Flagged") {}.disabled(true)
-                                } else {
-                                    Button("Flag as Wrong") { store.flag(record.id) }
-                                }
-                            }
                             Divider()
                             Button("Delete", role: .destructive) { store.remove(record.id) }
                         }
@@ -56,6 +64,32 @@ struct HistoryView: View {
                 }
             }
         }
-        .frame(width: 420, height: 480)
+        .frame(width: 520, height: 480)
+        .sheet(item: $reporting) { record in
+            ReportView(imageURL: store.captureURL(record.id), ocrText: ocrText(for: record),
+                       onSend: { send(record, correction: $0) }, onCancel: { reporting = nil })
+        }
+        .alert(alertMessage ?? "", isPresented: Binding(get: { alertMessage != nil },
+                                                        set: { if !$0 { alertMessage = nil } })) {
+            Button("OK") {}
+        }
+    }
+
+    private func ocrText(for record: ScanRecord) -> String {
+        (store.captureMeta(record.id)["ocr_text"] as? String) ?? record.text
+    }
+
+    /// Queue first; only a saved report marks the row Reported.
+    private func send(_ record: ScanRecord, correction: String) {
+        reporting = nil
+        let payload = Report.capture(pngURL: store.captureURL(record.id), meta: store.captureMeta(record.id),
+                                     ocrText: ocrText(for: record), correction: correction,
+                                     engine: UserDefaults.standard.string(forKey: "ocrEngine") ?? "tesseract")
+        do {
+            try ReportSender.queueAndSend(payload) { alertMessage = $0 }
+            store.flag(record.id, correction: correction)
+        } catch {
+            alertMessage = ReportSender.saveFailedMessage
+        }
     }
 }

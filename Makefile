@@ -2,9 +2,10 @@
 # its own throwaway uv env built from its pyproject, so a stale editable
 # install elsewhere (e.g. from a worktree) or the active pyenv/venv can't leak
 # packages in. Python 3.12 is what apps/desktop requires (<3.13).
+NODE ?= node
 UVT = uv run --isolated --no-project --managed-python --python 3.12 --with pytest --with-editable
 
-.PHONY: run build build-mac build-desktop release-mac check check-eval check-tesseract check-trocr check-desktop check-mac-tools check-mac
+.PHONY: run build build-mac build-desktop release-mac check check-eval check-tesseract check-trocr check-desktop check-mac-tools check-mac check-relay
 
 # `make run` builds and launches the Mac app.
 run:
@@ -31,8 +32,11 @@ build-desktop:
 	cd apps/desktop && $(UVT) '.[dev]' python tools/fetch_tessdata.py
 	cd apps/desktop && $(UVT) '.[dev]' pyinstaller packaging/khmerclip.spec --noconfirm
 
-check: check-eval check-tesseract check-trocr check-desktop check-mac-tools check-mac
+check: check-eval check-tesseract check-trocr check-desktop check-mac-tools check-mac check-relay
 	@echo "make check: all suites passed"
+
+check-relay:
+	cd apps/report-relay && $(NODE) --test
 
 check-eval:
 	cd training/eval && $(UVT) . pytest -q

@@ -7,7 +7,7 @@ import CoreGraphics
 /// menu-bar-only (LSUIElement) app has no other natural place to greet the user.
 enum OnboardingWindowPresenter {
     private static var controller: NSWindowController?
-    private static let completedKey = "hasCompletedOnboarding"
+    static let completedKey = "hasCompletedOnboarding"
 
     static var shouldShow: Bool {
         !UserDefaults.standard.bool(forKey: completedKey)

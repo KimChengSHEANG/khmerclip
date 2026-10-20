@@ -25,6 +25,11 @@ final class AppPreferences: ObservableObject {
         didSet { UserDefaults.standard.set(keepCaptureImages, forKey: Keys.keepCaptureImages) }
     }
 
+    /// Send crash reports to the developer automatically (anonymous; no images or scanned text).
+    @Published var sendCrashReports: Bool {
+        didSet { UserDefaults.standard.set(sendCrashReports, forKey: Keys.sendCrashReports) }
+    }
+
     /// Defaults keys MASShortcutView/MASShortcutBinder read and write shortcuts under.
     enum ShortcutKeys {
         static let capture = "captureShortcut"
@@ -40,6 +45,7 @@ final class AppPreferences: ObservableObject {
         static let ocrEngine = "ocrEngine"
         static let preserveLinebreaks = "preserveLinebreaks"
         static let keepCaptureImages = "keepCaptureImages"
+        static let sendCrashReports = "sendCrashReports"
     }
 
     init() {
@@ -50,6 +56,13 @@ final class AppPreferences: ObservableObject {
         self.launchAtLogin = defaults.object(forKey: Keys.launchAtLogin) as? Bool ?? false
         self.ocrEngine = (defaults.string(forKey: Keys.ocrEngine)).flatMap(OCREngineKind.init) ?? .tesseract
         self.preserveLinebreaks = defaults.object(forKey: Keys.preserveLinebreaks) as? Bool ?? true
-        self.keepCaptureImages = defaults.object(forKey: Keys.keepCaptureImages) as? Bool ?? false
+        let storedKeep = defaults.object(forKey: Keys.keepCaptureImages) as? Bool
+        let keep = KeepCapturesDefault.resolve(
+            stored: storedKeep,
+            hasHistory: FileManager.default.fileExists(atPath: ScanHistoryStore.historyURL.path),
+            completedOnboarding: defaults.bool(forKey: OnboardingWindowPresenter.completedKey))
+        self.keepCaptureImages = keep
+        if storedKeep == nil { defaults.set(keep, forKey: Keys.keepCaptureImages) }  // didSet doesn't run in init
+        self.sendCrashReports = defaults.object(forKey: Keys.sendCrashReports) as? Bool ?? true
     }
 }

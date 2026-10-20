@@ -23,8 +23,9 @@ class ScanRecord:
 
 class HistoryStore:
     """Scan history, plus (opt-in) each capture's image in ``captures/<id>.png`` with a
-    ``<id>.json`` of OCR details. "Flag as wrong" copies that pair into ``feedback/`` for the
-    eval set (training/eval/scripts/draft_real_fixtures.py). Same layout as the Mac app."""
+    ``<id>.json`` of OCR details. Reporting a scan copies that pair into ``feedback/`` (with the user's
+    correction), which also marks the scan "Reported"; it feeds the eval set
+    (training/eval/scripts/draft_real_fixtures.py). Same layout as the Mac app."""
 
     MAX_RECORDS = 200
 
@@ -63,13 +64,23 @@ class HistoryStore:
     def is_flagged(self, record_id: str) -> bool:
         return (self.feedback_dir / f"{record_id}.png").is_file()
 
-    def flag(self, record_id: str) -> None:
-        """Copy the capture pair into feedback/. Flagged clips outlive the history."""
+    def capture_meta(self, record_id: str) -> dict:
+        try:
+            meta = json.loads((self.captures_dir / f"{record_id}.json").read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return {}
+        return meta if isinstance(meta, dict) else {}
+
+    def flag(self, record_id: str, correction: str = "") -> None:
+        """Copy the capture pair into feedback/ with the correction. Reported clips outlive the history."""
         self.feedback_dir.mkdir(parents=True, exist_ok=True)
-        for suffix in (".png", ".json"):
-            src = self.captures_dir / f"{record_id}{suffix}"
-            if src.is_file():
-                shutil.copy2(src, self.feedback_dir / src.name)
+        png = self.captures_dir / f"{record_id}.png"
+        if png.is_file():
+            shutil.copy2(png, self.feedback_dir / png.name)
+        meta = self.capture_meta(record_id)
+        meta["correction"] = correction
+        paths.atomic_write_text(self.feedback_dir / f"{record_id}.json",
+                                json.dumps(meta, ensure_ascii=False, indent=1))
 
     def purge_captures(self) -> None:
         shutil.rmtree(self.captures_dir, ignore_errors=True)

@@ -18,12 +18,17 @@ class Prefs:
     check_updates: bool = True
     last_update_check: float = 0.0
     welcomed: bool = False
-    keep_captures: bool = False  # keep capture images so wrong results can be flagged
+    keep_captures: bool = True  # keep capture images so wrong results can be flagged
+    send_crash_reports: bool = True
     path: Path | None = field(default=None, repr=False, compare=False)
 
     @classmethod
     def load(cls, path: Path | None = None) -> "Prefs":
         prefs = cls(path=path or paths.config_dir() / "prefs.json")
+        if prefs.path.exists():
+            # Keeping images defaults on for new installs only: an existing install that never
+            # chose keeps the old default (off) unless the file says otherwise.
+            prefs.keep_captures = False
         try:
             raw = json.loads(prefs.path.read_text(encoding="utf-8"))
         except (OSError, ValueError):

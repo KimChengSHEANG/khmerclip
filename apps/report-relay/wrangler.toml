@@ -1,0 +1,15 @@
+name = "khmerclip-report-relay"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+
+[vars]
+APP_KEY = "kc-reports-1"
+REPORTS_REPO = "KimChengSHEANG/khmerclip-reports"
+EMAIL_TO = "cheng900@gmail.com"
+
+# Secrets (set with `wrangler secret put`): GITHUB_TOKEN, RESEND_API_KEY
+
+[[ratelimits]]
+name = "RATE_LIMITER"
+namespace_id = "1001"
+simple = { limit = 10, period = 60 }

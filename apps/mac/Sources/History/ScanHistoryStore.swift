@@ -2,7 +2,7 @@ import AppKit
 import Combine
 
 /// Scan history, plus (opt-in) each capture's image in `captures/<id>.png` with a
-/// `<id>.json` of OCR details. "Flag as Wrong" copies that pair into `feedback/`
+/// `<id>.json` of OCR details. Reporting a capture copies it into `feedback/`
 /// for the eval set (training/eval/scripts/draft_real_fixtures.py). Same layout
 /// as the desktop app's HistoryStore.
 final class ScanHistoryStore: ObservableObject {
@@ -17,10 +17,11 @@ final class ScanHistoryStore: ObservableObject {
         .appendingPathComponent("KhmerClip", isDirectory: true)
     static let capturesDir = dataDir.appendingPathComponent("captures", isDirectory: true)
     static let feedbackDir = dataDir.appendingPathComponent("feedback", isDirectory: true)
+    static let historyURL = dataDir.appendingPathComponent("history.json")
 
     init() {
         try? FileManager.default.createDirectory(at: Self.dataDir, withIntermediateDirectories: true)
-        fileURL = Self.dataDir.appendingPathComponent("history.json")
+        fileURL = Self.historyURL
         load()
     }
 
@@ -55,16 +56,23 @@ final class ScanHistoryStore: ObservableObject {
         FileManager.default.fileExists(atPath: Self.file(Self.feedbackDir, id, "png").path)
     }
 
-    /// Copies the capture pair into feedback/. Flagged clips outlive the history.
-    func flag(_ id: UUID) {
+    /// Copies the capture into feedback/ with the correction merged into its JSON. Reported clips outlive the history.
+    func flag(_ id: UUID, correction: String = "") {
         let fm = FileManager.default
         try? fm.createDirectory(at: Self.feedbackDir, withIntermediateDirectories: true)
-        for ext in ["png", "json"] {
-            let dest = Self.file(Self.feedbackDir, id, ext)
-            try? fm.removeItem(at: dest)
-            try? fm.copyItem(at: Self.file(Self.capturesDir, id, ext), to: dest)
-        }
+        let dest = Self.file(Self.feedbackDir, id, "png")
+        try? fm.removeItem(at: dest)
+        try? fm.copyItem(at: captureURL(id), to: dest)
+        let meta = (try? Data(contentsOf: Self.file(Self.capturesDir, id, "json"))) ?? Data()
+        try? mergeFeedback(meta, correction: correction).write(to: Self.file(Self.feedbackDir, id, "json"), options: .atomic)
         capturesVersion += 1
+    }
+
+    func captureURL(_ id: UUID) -> URL { Self.file(Self.capturesDir, id, "png") }
+
+    func captureMeta(_ id: UUID) -> [String: Any] {
+        guard let data = try? Data(contentsOf: Self.file(Self.capturesDir, id, "json")) else { return [:] }
+        return (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] ?? [:]
     }
 
     func purgeCaptures() {
@@ -104,4 +112,8 @@ final class ScanHistoryStore: ObservableObject {
         guard let data = try? JSONEncoder().encode(records) else { return }
         try? data.write(to: fileURL, options: .atomic)
     }
+}
+
+extension ReportOutbox {
+    static let shared = ReportOutbox(dir: ScanHistoryStore.dataDir.appendingPathComponent("outbox", isDirectory: true))
 }

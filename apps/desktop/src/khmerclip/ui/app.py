@@ -8,9 +8,9 @@ from functools import partial
 
 from PySide6.QtCore import QObject, QThreadPool, QTimer, QUrl, Signal, Slot
 from PySide6.QtGui import QAction, QDesktopServices, QGuiApplication, QIcon
-from PySide6.QtWidgets import QApplication, QMenu, QMessageBox, QProgressDialog, QSystemTrayIcon
+from PySide6.QtWidgets import QApplication, QDialog, QMenu, QMessageBox, QProgressDialog, QSystemTrayIcon
 
-from khmerclip import __version__, autostart, updater
+from khmerclip import __version__, autostart, crash, reports, updater
 from khmerclip.capture import portal
 from khmerclip.capture.geometry import capture_backend
 from khmerclip.capture.overlay import RegionSelector
@@ -22,6 +22,7 @@ from khmerclip.ocr import Engine, recognize, trocr_models
 from khmerclip.paths import APP_NAME, resource_dir
 from khmerclip.prefs import Prefs
 from khmerclip.single_instance import CommandServer, send_command
+from khmerclip.ui.feedback_dialog import FeedbackDialog
 from khmerclip.ui.history_window import HistoryWindow
 from khmerclip.ui.image_window import ImageOCRWindow
 from khmerclip.ui.popup import ResultPopup
@@ -155,7 +156,15 @@ class Controller(QObject):
     def handle_error(self, error: BaseException) -> None:
         if isinstance(error, Cancelled):
             return
-        message = str(error) if isinstance(error, KhmerClipError) else f"Unexpected error: {error!r}"
+        if isinstance(error, KhmerClipError):
+            message = str(error)
+        else:
+            message = f"Unexpected error: {error!r}"
+            if self.prefs.send_crash_reports:
+                try:
+                    crash.record(error, self.prefs.engine)
+                except Exception:  # a reporting failure must not hide the popup
+                    pass
         self.popup.show_message(f"Capture failed: {message}")
 
     def copy(self, text: str) -> None:
@@ -219,6 +228,7 @@ class TrayApp(QObject):
         for text, slot in (("Capture Text", controller.start_capture),
                            ("OCR Image File…", self.show_image_window),
                            ("History…", self.show_history),
+                           ("Send Feedback…", self.show_feedback),
                            ("Preferences…", self.show_prefs),
                            ("Check for Updates…", partial(self.check_updates, True))):
             action = QAction(text, self.menu)
@@ -262,8 +272,45 @@ class TrayApp(QObject):
 
     def show_history(self) -> None:
         if self.history_window is None:
-            self.history_window = HistoryWindow(self.c.history, self.c.copy)
+            self.history_window = HistoryWindow(self.c.history, self.c.copy, report=self._report)
         _present(self.history_window)
+
+    def _report(self, record: ScanRecord, correction: str) -> None:
+        """Queue a capture report (raises if it can't be built or saved), then try to send it."""
+        history = self.c.history
+        meta = history.capture_meta(record.id)
+        try:
+            payload = reports.capture_payload(history.captures_dir / f"{record.id}.png", meta,
+                                              meta.get("ocr_text", record.text), correction, self.c.prefs.engine)
+        except Exception:  # unreadable or corrupt image, not just OSError: never fail silently
+            self._report_save_failed()
+            raise  # tells the History window not to mark the row Reported
+        self._queue_and_send(payload)
+
+    def show_feedback(self) -> None:
+        dialog = FeedbackDialog()
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        message, email = dialog.values()
+        try:
+            self._queue_and_send(reports.feedback_payload(message, email, self.c.prefs.engine))
+        except Exception:
+            pass  # already told the user
+
+    def _report_save_failed(self) -> None:
+        self.c.popup.show_message("Couldn't save the report. Please try again.")
+
+    def _queue_and_send(self, payload: dict) -> None:
+        try:
+            reports.enqueue(payload)
+        except Exception:
+            self._report_save_failed()
+            raise
+
+        def done(sent) -> None:
+            self.c.popup.show_message("Thanks — your report was sent." if sent else
+                                      "Report saved. It will be sent when you're online.")
+        self.c.submit(lambda p, c: _safe_flush(), on_done=done)
 
     def show_prefs(self) -> None:
         if self.prefs_window is None:
@@ -316,6 +363,26 @@ class TrayApp(QObject):
         self.c.submit(fetch, on_done=done)
 
 
+def _safe_flush() -> int:
+    """Flush queued reports in the background; failures are never surfaced to the user."""
+    try:
+        return reports.flush()
+    except Exception:
+        return 0
+
+
+def _start_crash_reporting(prefs: Prefs) -> None:
+    try:
+        crash.install(lambda: prefs.send_crash_reports, lambda: prefs.engine)
+        if prefs.send_crash_reports:
+            crash.collect_fault_log(prefs.engine)
+        else:
+            crash.discard_fault_log()
+            reports.drop_type("crash")
+    except Exception:  # crash reporting must never prevent launch
+        pass
+
+
 def run_gui(capture: bool = False) -> int:
     if qpa := preferred_qpa(sys.platform, os.environ):
         os.environ["QT_QPA_PLATFORM"] = qpa  # must precede QApplication
@@ -329,7 +396,10 @@ def run_gui(capture: bool = False) -> int:
     server = CommandServer(parent=qapp)
     server.listen()
 
-    controller = Controller(Prefs.load(), HistoryStore())
+    prefs = Prefs.load()
+    _start_crash_reporting(prefs)
+    controller = Controller(prefs, HistoryStore())
+    controller.submit(lambda progress, cancel: _safe_flush())
     tray = TrayApp(controller)
     server.command.connect(tray.on_command)
     qapp.aboutToQuit.connect(tray.hotkeys.stop)

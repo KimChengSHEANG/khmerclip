@@ -1,14 +1,17 @@
 from PySide6.QtCore import Qt, QThreadPool
 from PySide6.QtGui import QKeySequence
-from PySide6.QtWidgets import QLabel, QMessageBox
+from PIL import Image
+from PySide6.QtWidgets import QDialog, QLabel, QMessageBox, QPushButton
 
 from helpers import FIXTURES
 from khmerclip.history import HistoryStore, ScanRecord
 from khmerclip.prefs import Prefs
+from khmerclip.ui.feedback_dialog import FeedbackDialog
 from khmerclip.ui.fonts import khmer_font
 from khmerclip.ui.history_window import HistoryWindow
 from khmerclip.ui.image_window import ImageOCRWindow
 from khmerclip.ui.popup import ResultPopup
+from khmerclip.ui.report_dialog import ReportDialog
 from khmerclip.ui.prefs_window import WAYLAND_HINT, PrefsWindow
 from khmerclip.ui.worker import Task
 
@@ -125,3 +128,63 @@ def test_image_window_open_path(qtbot, tmp_path):
     with qtbot.waitSignal(window.failed) as blocker:
         window.open_path(str(bad))
     assert "notes.txt" in blocker.args[0]
+
+
+def _store_with_capture(tmp_path):
+    store = HistoryStore(tmp_path / "h.json")
+    store.add(ScanRecord("plain")); rec = ScanRecord("ក")
+    store.add(rec, image=Image.new("RGB", (8, 4)), meta={"ocr_text": "ក"})
+    return store, rec
+
+
+def _report_button(w, row):
+    return w.list.itemWidget(w.list.item(row)).findChild(QPushButton, "report_button")
+
+
+def test_history_rows_show_report_only_for_captures(qtbot, tmp_path):
+    store, _ = _store_with_capture(tmp_path)
+    w = HistoryWindow(store, lambda t: None, report=lambda r, c: None); qtbot.addWidget(w); w.refresh()
+    assert _report_button(w, 0).text() == "Report" and _report_button(w, 1) is None
+
+
+def test_report_flow_marks_reported(qtbot, tmp_path, monkeypatch):
+    store, rec = _store_with_capture(tmp_path)
+    reported = []
+    w = HistoryWindow(store, lambda t: None, report=lambda r, c: reported.append((r.id, c)))
+    qtbot.addWidget(w); w.refresh()
+    monkeypatch.setattr(ReportDialog, "exec", lambda self: QDialog.DialogCode.Accepted)
+    monkeypatch.setattr(ReportDialog, "correction_text", lambda self: "ខ")
+    w.report_record(rec)
+    assert reported == [(rec.id, "ខ")] and store.is_flagged(rec.id)
+    button = _report_button(w, 0)
+    assert button.text() == "Reported" and not button.isEnabled()
+
+
+def test_report_failure_leaves_row_unreported(qtbot, tmp_path, monkeypatch):
+    store, rec = _store_with_capture(tmp_path)
+
+    def fail(r, c):
+        raise OSError("disk full")
+    w = HistoryWindow(store, lambda t: None, report=fail); qtbot.addWidget(w); w.refresh()
+    monkeypatch.setattr(ReportDialog, "exec", lambda self: QDialog.DialogCode.Accepted)
+    w.report_record(rec)
+    assert not store.is_flagged(rec.id) and _report_button(w, 0).text() == "Report"
+
+
+def test_report_dialog_unchanged_text_means_no_correction(qtbot, tmp_path):
+    png = tmp_path / "c.png"; Image.new("RGB", (8, 4)).save(png)
+    d = ReportDialog(png, "ក"); qtbot.addWidget(d)
+    assert d.correction_text() == ""
+    d.correction.setPlainText("ខ")
+    assert d.correction_text() == "ខ"
+
+
+def test_feedback_dialog_requires_message(qtbot):
+    d = FeedbackDialog(); qtbot.addWidget(d)
+    assert not d.send_button.isEnabled()
+    d.message.setPlainText("  ")
+    assert not d.send_button.isEnabled()
+    d.message.setPlainText("សូមបន្ថែម")
+    assert d.send_button.isEnabled()
+    d.email.setText(" a@b.c ")
+    assert d.values() == ("សូមបន្ថែម", "a@b.c")
