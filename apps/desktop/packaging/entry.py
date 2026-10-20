@@ -1,3 +1,3 @@
-from khmerclip.__main__ import main
+from khmerclipper.__main__ import main
 
 raise SystemExit(main())

@@ -1,4 +1,4 @@
-"""Where KhmerClip reads bundled resources and keeps per-user state."""
+"""Where KhmerClipper reads bundled resources and keeps per-user state."""
 
 import os
 import sys
@@ -6,7 +6,7 @@ from pathlib import Path
 
 import platformdirs
 
-APP_NAME = "KhmerClip"
+APP_NAME = "KhmerClipper"
 
 
 def resource_dir() -> Path:

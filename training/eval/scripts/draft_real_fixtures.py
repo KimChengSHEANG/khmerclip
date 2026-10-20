@@ -12,7 +12,7 @@ Multi-line captures are fine: the label is the lines joined with single spaces,
 matching what OCRBench prints.
 
 The app's "Flag as Wrong" folder works as src too (Mac: ~/Library/Application Support/
-KhmerClip/feedback, desktop: History > Feedback Folder). Each flagged <id>.png has an
+KhmerClipper/feedback, desktop: History > Feedback Folder). Each flagged <id>.png has an
 <id>.json with what the app read; that text becomes the draft (no OCRBench needed) and
 the engine/app version are kept on the row.
 """
@@ -114,9 +114,9 @@ def write_review(out: Path, rows: list[dict]) -> None:
 
 
 def coreml_recognizer(binary: Path) -> Recognizer:
-    from khmerclip_eval.runners import trocr_coreml
+    from khmerclipper_eval.runners import trocr_coreml
 
-    os.environ.setdefault("KHMERCLIP_VENDOR", str(REPO / "apps/mac/Vendor"))
+    os.environ.setdefault("KHMERCLIPPER_VENDOR", str(REPO / "apps/mac/Vendor"))
 
     def recognize(paths: Sequence[Path]) -> list[str]:
         return [text for text, _ms in trocr_coreml.recognize_many(paths, binary)]

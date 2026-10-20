@@ -1,4 +1,4 @@
-# KhmerClip for Windows and Linux
+# KhmerClipper for Windows and Linux
 
 Tray app: select a screen region → Khmer (+English) OCR → text on the clipboard. Python +
 PySide6. The macOS app lives in [`../mac`](../mac) and is separate.
@@ -10,14 +10,14 @@ PySide6. The macOS app lives in [`../mac`](../mac) and is separate.
   - **Tesseract** (`khm+eng`, bundled): the default; works offline with no setup.
   - **TrOCR** (Khmer fine-tune, ONNX): about a 1.3 GB one-time download from Hugging Face on first use.
 - Auto-copy, result popup, history (last 200), OCR Image File…, launch at login, daily update check.
-- Global hotkey (default `Ctrl+Shift+2`) on Windows and X11. **Wayland:** add a custom shortcut in your desktop's keyboard settings that runs `khmerclip --capture` (for the AppImage: `/path/to/KhmerClip-x.y.z-x86_64.AppImage --capture`).
+- Global hotkey (default `Ctrl+Shift+2`) on Windows and X11. **Wayland:** add a custom shortcut in your desktop's keyboard settings that runs `khmerclipper --capture` (for the AppImage: `/path/to/KhmerClipper-x.y.z-x86_64.AppImage --capture`).
 
 ## Install
 
-Download from [KhmerClip releases](https://github.com/KimChengSHEANG/khmerclip/releases):
+Download from [KhmerClipper releases](https://github.com/KimChengSHEANG/khmerclipper/releases):
 
-- **Windows:** `KhmerClip-<ver>-windows-x64-setup.exe`. Per-user install, no admin. Builds are unsigned, so SmartScreen warns: More info → Run anyway.
-- **Linux:** `KhmerClip-<ver>-x86_64.AppImage`. Run `chmod +x` on it, then start it. GNOME needs the AppIndicator extension for the tray icon (on by default on Ubuntu).
+- **Windows:** `KhmerClipper-<ver>-windows-x64-setup.exe`. Per-user install, no admin. Builds are unsigned, so SmartScreen warns: More info → Run anyway.
+- **Linux:** `KhmerClipper-<ver>-x86_64.AppImage`. Run `chmod +x` on it, then start it. GNOME needs the AppIndicator extension for the tray icon (on by default on Ubuntu).
 
 ## Develop
 
@@ -26,27 +26,27 @@ cd apps/desktop
 python3.12 -m venv .venv
 .venv/bin/pip install -e '.[dev]'
 .venv/bin/python tools/fetch_tessdata.py        # pinned khm/eng tessdata
-.venv/bin/python -m khmerclip                   # tray app
-.venv/bin/python -m khmerclip ocr image.png     # headless OCR
+.venv/bin/python -m khmerclipper                   # tray app
+.venv/bin/python -m khmerclipper ocr image.png     # headless OCR
 .venv/bin/python -m pytest
 ```
 
-You need a `tesseract` 5.x on `PATH`, or `KHMERCLIP_TESSERACT=/path/to/tesseract`. Options: `apt install tesseract-ocr`, `brew install tesseract`, or the UB Mannheim build on Windows.
+You need a `tesseract` 5.x on `PATH`, or `KHMERCLIPPER_TESSERACT=/path/to/tesseract`. Options: `apt install tesseract-ocr`, `brew install tesseract`, or the UB Mannheim build on Windows.
 
 ## TrOCR models
 
 1. Export: `.venv/bin/pip install -e '.[tools]'`, then `.venv/bin/python tools/export_onnx.py <checkpoint> exported/khmer`. This checks ONNX against torch.
-2. Publish (needs `huggingface-cli login`): `.venv/bin/python tools/publish_models.py exported/khmer --version khmer-v2`. This pins the HF commit and the SHA-256 values in `src/khmerclip/ocr/trocr_manifest.json`. Commit that file.
-3. To test a local export without publishing, set `KHMERCLIP_TROCR_DIR=exported/khmer`.
+2. Publish (needs `huggingface-cli login`): `.venv/bin/python tools/publish_models.py exported/khmer --version khmer-v2`. This pins the HF commit and the SHA-256 values in `src/khmerclipper/ocr/trocr_manifest.json`. Commit that file.
+3. To test a local export without publishing, set `KHMERCLIPPER_TROCR_DIR=exported/khmer`.
 
 ## Release
 
 Releases are published to this repo's GitHub Releases with the workflow's own `GITHUB_TOKEN` (no secret to set up). Each release:
 
-1. Bump `__version__` in `src/khmerclip/__init__.py` and commit.
+1. Bump `__version__` in `src/khmerclipper/__init__.py` and commit.
 2. Run `git tag desktop-v<version>` and push the tag (`git push origin desktop-v<version>`).
 3. CI tests, builds both installers, smoke-tests the frozen apps, and publishes release `v<version>`. Installed apps see it within a day.
-4. CI leaves the release as a **draft** with notes from `docs/releases/v<version>.md`. On a Mac, run `make release-mac` (signed + notarized, see `apps/mac/README.md`), `gh release upload v<version> apps/mac/dist/KhmerClip-<version>.dmg`, then publish the draft.
+4. CI leaves the release as a **draft** with notes from `docs/releases/v<version>.md`. On a Mac, run `make release-mac` (signed + notarized, see `apps/mac/README.md`), `gh release upload v<version> apps/mac/dist/KhmerClipper-<version>.dmg`, then publish the draft.
 
 Manual checklist before announcing a release:
 

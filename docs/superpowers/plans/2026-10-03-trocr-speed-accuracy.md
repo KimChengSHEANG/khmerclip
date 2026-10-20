@@ -95,7 +95,7 @@ Gate numbers for the full 200 (from `training/eval/results/baseline.md`): Tesser
 The repo already uses `.worktrees/`, which is gitignored. Run from the main checkout:
 
 ```bash
-cd /Users/kim/Sync/workspace/khmerclip
+cd /Users/kim/Sync/workspace/khmerclipper
 git worktree add .worktrees/trocr-speed-accuracy -b feat/trocr-speed-accuracy main
 ```
 
@@ -110,8 +110,8 @@ A fresh worktree is missing the checkpoint, the vendored engines, the converted 
 - `Vendor/trocr` gets rewritten by this plan: Task 5 moves the converter out of it, and Task 6 reconverts the models. Make it a real directory and APFS-clone its contents (`cp -c`, instant and no extra disk), so main's models stay untouched.
 
 ```bash
-MAIN=/Users/kim/Sync/workspace/khmerclip/apps/mac
-cd /Users/kim/Sync/workspace/khmerclip/.worktrees/trocr-speed-accuracy/apps/mac
+MAIN=/Users/kim/Sync/workspace/khmerclipper/apps/mac
+cd /Users/kim/Sync/workspace/khmerclipper/.worktrees/trocr-speed-accuracy/apps/mac
 ln -s $MAIN/raw_models raw_models
 ln -s $MAIN/.trocr-venv .trocr-venv
 mkdir -p Vendor/trocr
@@ -124,14 +124,14 @@ ls -la raw_models .trocr-venv Vendor Vendor/trocr
 
 Expected: `raw_models` and `.trocr-venv` are symlinks. `Vendor/tesseract` and `Vendor/easyocr` are symlinks. `Vendor/trocr` is a real directory containing `khmer/` (with `encoder.mlpackage`, `decoder.mlpackage`, `tokenizer.json`), `convert.py`, and `export_tokenizer.py`. `git status --short` in the worktree is empty, because everything added here is gitignored.
 
-**Compiled-model cache warning:** `TrOCREngine.ModelCache` compiles models into the shared `~/Library/Application Support/KhmerClip/TrOCRCompiled/khmer-{encoder,decoder}.mlmodelc`. It decides whether to recompile by comparing timestamps. After Task 6 converts the KV models in the worktree, a main-checkout build would load the worktree's newer compiled models. While this branch is active, either don't run main's app, or delete that `TrOCRCompiled` folder before switching back.
+**Compiled-model cache warning:** `TrOCREngine.ModelCache` compiles models into the shared `~/Library/Application Support/KhmerClipper/TrOCRCompiled/khmer-{encoder,decoder}.mlmodelc`. It decides whether to recompile by comparing timestamps. After Task 6 converts the KV models in the worktree, a main-checkout build would load the worktree's newer compiled models. While this branch is active, either don't run main's app, or delete that `TrOCRCompiled` folder before switching back.
 
 - [ ] **Step 3: Smoke check — OCRBench builds and reads in the worktree**
 
 ```bash
-cd apps/mac && xcodegen generate >/dev/null && xcodebuild -project KhmerClip.xcodeproj -scheme OCRBench \
+cd apps/mac && xcodegen generate >/dev/null && xcodebuild -project KhmerClipper.xcodeproj -scheme OCRBench \
   -configuration Release -derivedDataPath build CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO build 2>&1 | grep -E "error:|BUILD"
-KHMERCLIP_VENDOR=$PWD/Vendor build/Build/Products/Release/OCRBench --engine trocr --preload \
+KHMERCLIPPER_VENDOR=$PWD/Vendor build/Build/Products/Release/OCRBench --engine trocr --preload \
   ../../training/eval/fixtures/printed/printed-001.png
 ```
 
@@ -185,7 +185,7 @@ def test_recognize_many_ignores_stats_lines(monkeypatch: pytest.MonkeyPatch) -> 
 - [ ] **Step 2: Run it**
 
 Run: `cd training/eval && python -m pytest tests/test_trocr_coreml.py -v`
-Expected: PASS. The regex already uses `fullmatch` on `ms=`. This test pins that contract before OCRBench starts printing stats lines. If it fails, fix `_TIMING_LINE` in `src/khmerclip_eval/runners/trocr_coreml.py` before continuing.
+Expected: PASS. The regex already uses `fullmatch` on `ms=`. This test pins that contract before OCRBench starts printing stats lines. If it fails, fix `_TIMING_LINE` in `src/khmerclipper_eval/runners/trocr_coreml.py` before continuing.
 
 - [ ] **Step 3: Add run stats to `TrOCREngine.swift`**
 
@@ -257,7 +257,7 @@ In `apps/mac/Makefile`, add `ocrbench` to `.PHONY`, then add:
 # --trocr-coreml-bin build/Build/Products/Release/OCRBench). Tool targets
 # need an ad-hoc identity; an empty one fails to sign.
 ocrbench: gen $(KHMER_MODEL)
-	xcodebuild -project KhmerClip.xcodeproj -scheme OCRBench -configuration Release \
+	xcodebuild -project KhmerClipper.xcodeproj -scheme OCRBench -configuration Release \
 		-derivedDataPath build CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO build
 ```
 
@@ -268,7 +268,7 @@ Expected: `** BUILD SUCCEEDED **`
 
 ```bash
 REPO=$(git rev-parse --show-toplevel)
-export KHMERCLIP_VENDOR=$REPO/apps/mac/Vendor
+export KHMERCLIPPER_VENDOR=$REPO/apps/mac/Vendor
 BIN=$REPO/apps/mac/build/Build/Products/Release/OCRBench
 cd $REPO/training/eval
 python scripts/bench.py --engine tesseract --engine trocr-coreml --trocr-coreml-bin $BIN \
@@ -357,8 +357,8 @@ Add inside `final class TrOCRLineSplitTests`:
 - [ ] **Step 2: Run to verify it fails**
 
 ```bash
-cd apps/mac && xcodegen generate >/dev/null && xcodebuild -project KhmerClip.xcodeproj -scheme KhmerClipTests \
-  -derivedDataPath build CODE_SIGN_IDENTITY="-" test -only-testing:KhmerClipTests/TrOCRLineSplitTests 2>&1 | grep -E "error|passed|failed" | tail -8
+cd apps/mac && xcodegen generate >/dev/null && xcodebuild -project KhmerClipper.xcodeproj -scheme KhmerClipperTests \
+  -derivedDataPath build CODE_SIGN_IDENTITY="-" test -only-testing:KhmerClipperTests/TrOCRLineSplitTests 2>&1 | grep -E "error|passed|failed" | tail -8
 ```
 
 Expected: FAIL with `XCTAssertEqual failed: ("3") is not equal to ("1") - ui/ui-008.png`, plus similar failures for the other files.
@@ -478,8 +478,8 @@ final class TrOCRPreprocessTests: XCTestCase {
 - [ ] **Step 3: Run to verify it fails**
 
 ```bash
-cd apps/mac && xcodegen generate >/dev/null && xcodebuild -project KhmerClip.xcodeproj -scheme KhmerClipTests \
-  -derivedDataPath build CODE_SIGN_IDENTITY="-" test -only-testing:KhmerClipTests/TrOCRPreprocessTests 2>&1 | grep -E "error|passed|failed" | tail -5
+cd apps/mac && xcodegen generate >/dev/null && xcodebuild -project KhmerClipper.xcodeproj -scheme KhmerClipperTests \
+  -derivedDataPath build CODE_SIGN_IDENTITY="-" test -only-testing:KhmerClipperTests/TrOCRPreprocessTests 2>&1 | grep -E "error|passed|failed" | tail -5
 ```
 
 Expected: build error `type 'TrOCREngine' has no member 'resizedRGB'`.
@@ -657,9 +657,9 @@ Add `import CoreML` at the top of `TrOCRTests.swift` if it is not already there.
 - [ ] **Step 2: Run to verify failure**
 
 ```bash
-cd apps/mac && xcodegen generate >/dev/null && xcodebuild -project KhmerClip.xcodeproj -scheme KhmerClipTests \
-  -derivedDataPath build CODE_SIGN_IDENTITY="-" test -only-testing:KhmerClipTests/TrOCRDecodeGuardTests \
-  -only-testing:KhmerClipTests/TrOCREndToEndTests 2>&1 | grep -E "error|passed|failed" | tail -8
+cd apps/mac && xcodegen generate >/dev/null && xcodebuild -project KhmerClipper.xcodeproj -scheme KhmerClipperTests \
+  -derivedDataPath build CODE_SIGN_IDENTITY="-" test -only-testing:KhmerClipperTests/TrOCRDecodeGuardTests \
+  -only-testing:KhmerClipperTests/TrOCREndToEndTests 2>&1 | grep -E "error|passed|failed" | tail -8
 ```
 
 Expected: build error `type 'TrOCREngine' has no member 'blockedToken'`.
@@ -730,7 +730,7 @@ from transformers import LogitsProcessor, LogitsProcessorList, TrOCRProcessor, V
 
 REPO = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(REPO / "training/eval/src"))
-from khmerclip_eval.cer import character_error_rate  # noqa: E402
+from khmerclipper_eval.cer import character_error_rate  # noqa: E402
 
 MAX_LEN = 128   # == TrOCREngine.maxLength
 MAX_RUN = 4     # == TrOCREngine.maxRun
@@ -797,7 +797,7 @@ Expected: prints `all n=200 cer=…` plus per-subset lines. On the 40-fixture sa
 
 ```bash
 cd apps/mac && make ocrbench 2>&1 | grep BUILD
-REPO=$(git rev-parse --show-toplevel); export KHMERCLIP_VENDOR=$REPO/apps/mac/Vendor
+REPO=$(git rev-parse --show-toplevel); export KHMERCLIPPER_VENDOR=$REPO/apps/mac/Vendor
 cd $REPO/training/eval && python scripts/bench.py --engine tesseract --engine trocr-coreml \
   --trocr-coreml-bin $REPO/apps/mac/build/Build/Products/Release/OCRBench \
   --out results/stage1_parity.csv --candidate trocr-coreml --compare-to tesseract
@@ -1237,7 +1237,7 @@ git commit -m "feat(trocr): export FP16 encoder and stateful KV-cache decoder"
 
 **Interfaces:**
 - Consumes: the decoder I/O contract from Task 6 (names, shapes, dtypes); the mask contract from Task 5; `blockedToken` / `argmaxLastStep(_:excluding:)` / `maxLength` (Task 4); `RunStats` (Task 1)
-- Produces: same public API (`recognizeText`, `preload`). The env knob `KHMERCLIP_TROCR_UNITS` = `all` | `gpu` | `ane` | `cpu` (default `all`) picks the `MLComputeUnits` for both models.
+- Produces: same public API (`recognizeText`, `preload`). The env knob `KHMERCLIPPER_TROCR_UNITS` = `all` | `gpu` | `ane` | `cpu` (default `all`) picks the `MLComputeUnits` for both models.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1265,8 +1265,8 @@ Add to the `extension TrOCREndToEndTests` block from Task 4:
 - [ ] **Step 2: Run to verify it fails**
 
 ```bash
-cd apps/mac && xcodegen generate >/dev/null && xcodebuild -project KhmerClip.xcodeproj -scheme KhmerClipTests \
-  -derivedDataPath build CODE_SIGN_IDENTITY="-" test -only-testing:KhmerClipTests/TrOCREndToEndTests 2>&1 | grep -E "error|passed|failed" | tail -8
+cd apps/mac && xcodegen generate >/dev/null && xcodebuild -project KhmerClipper.xcodeproj -scheme KhmerClipperTests \
+  -derivedDataPath build CODE_SIGN_IDENTITY="-" test -only-testing:KhmerClipperTests/TrOCREndToEndTests 2>&1 | grep -E "error|passed|failed" | tail -8
 ```
 
 Expected: FAIL. The Task 6 decoder needs `position`, `attn_mask`, `write_mask` and a state, so the old loop throws a CoreML missing-feature error.
@@ -1345,11 +1345,11 @@ Replace `return try MLModel(contentsOf: compiledURL)` with:
 and add inside `ModelCache`:
 
 ```swift
-        /// Bench knob: KHMERCLIP_TROCR_UNITS=all|gpu|ane|cpu. ponytail: env
+        /// Bench knob: KHMERCLIPPER_TROCR_UNITS=all|gpu|ane|cpu. ponytail: env
         /// read, not a preference -- Task 8 picks the fastest and makes it the
         /// default here.
         private static let computeUnits: MLComputeUnits = {
-            switch ProcessInfo.processInfo.environment["KHMERCLIP_TROCR_UNITS"] {
+            switch ProcessInfo.processInfo.environment["KHMERCLIPPER_TROCR_UNITS"] {
             case "gpu": return .cpuAndGPU
             case "ane": return .cpuAndNeuralEngine
             case "cpu": return .cpuOnly
@@ -1394,16 +1394,16 @@ git commit -m "perf(trocr): KV-cache decode via CoreML state, one token per call
 
 ```bash
 cd apps/mac && make ocrbench 2>&1 | grep BUILD
-REPO=$(git rev-parse --show-toplevel); export KHMERCLIP_VENDOR=$REPO/apps/mac/Vendor
+REPO=$(git rev-parse --show-toplevel); export KHMERCLIPPER_VENDOR=$REPO/apps/mac/Vendor
 cd $REPO/training/eval
 for u in all gpu ane; do
-  KHMERCLIP_TROCR_UNITS=$u python scripts/bench.py --engine tesseract --engine trocr-coreml \
+  KHMERCLIPPER_TROCR_UNITS=$u python scripts/bench.py --engine tesseract --engine trocr-coreml \
     --trocr-coreml-bin $REPO/apps/mac/build/Build/Products/Release/OCRBench \
     --out results/stage2_kv_$u.csv --candidate trocr-coreml --compare-to tesseract | tee results/stage2_kv_$u.txt
 done
 ```
 
-Expected: each run prints aggregates plus PASS/FAIL. In `trocr_speed_accuracy.md`, record one row per setting (`2 KV fp16 units=<u>`), with stats from the Task 1 awk command run under the same `KHMERCLIP_TROCR_UNITS`. The first `ane` run includes ANE compilation, but `OCRBench` preloads before timing, so the medians stay valid.
+Expected: each run prints aggregates plus PASS/FAIL. In `trocr_speed_accuracy.md`, record one row per setting (`2 KV fp16 units=<u>`), with stats from the Task 1 awk command run under the same `KHMERCLIPPER_TROCR_UNITS`. The first `ane` run includes ANE compilation, but `OCRBench` preloads before timing, so the medians stay valid.
 
 - [ ] **Step 2: Lock the fastest setting as default**
 
@@ -1480,5 +1480,5 @@ git commit -m "docs(eval): record KV-cache CoreML TrOCR gate outcome and default
   - Task 4: `maxLength`, `maxRun`, `blockedToken(_:maxRun:)`, `argmaxLastStep(_:excluding:)`, `hf_reference.py` CSV
   - Task 5: `KVDecoderStep(model, max_len, cache_dtype)`, with inputs `input_ids, position, attn_mask, write_mask, encoder_hidden_states`
   - Task 6: `convert_encoder`, `convert_decoder`, `MAX_LEN = 128`, states `k_cache`/`v_cache`; the Swift loop in Task 7 consumes these
-  - Tasks 7 and 8: `KHMERCLIP_TROCR_UNITS`
+  - Tasks 7 and 8: `KHMERCLIPPER_TROCR_UNITS`
 - **Ordering:** Task 4 Step 6 blocks Task 5 until CoreML greedy CER is within 0.02 of `hf_reference.py` (same decode rules), so a leftover port bug cannot get mixed into the speed numbers.

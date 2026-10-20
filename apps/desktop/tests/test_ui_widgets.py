@@ -4,16 +4,16 @@ from PIL import Image
 from PySide6.QtWidgets import QDialog, QLabel, QMessageBox, QPushButton
 
 from helpers import FIXTURES
-from khmerclip.history import HistoryStore, ScanRecord
-from khmerclip.prefs import Prefs
-from khmerclip.ui.feedback_dialog import FeedbackDialog
-from khmerclip.ui.fonts import khmer_font
-from khmerclip.ui.history_window import HistoryWindow
-from khmerclip.ui.image_window import ImageOCRWindow
-from khmerclip.ui.popup import ResultPopup
-from khmerclip.ui.report_dialog import ReportDialog
-from khmerclip.ui.prefs_window import WAYLAND_HINT, PrefsWindow
-from khmerclip.ui.worker import Task
+from khmerclipper.history import HistoryStore, ScanRecord
+from khmerclipper.prefs import Prefs
+from khmerclipper.ui.feedback_dialog import FeedbackDialog
+from khmerclipper.ui.fonts import khmer_font
+from khmerclipper.ui.history_window import HistoryWindow
+from khmerclipper.ui.image_window import ImageOCRWindow
+from khmerclipper.ui.popup import ResultPopup
+from khmerclipper.ui.report_dialog import ReportDialog
+from khmerclipper.ui.prefs_window import WAYLAND_HINT, PrefsWindow
+from khmerclipper.ui.worker import Task
 
 
 def test_khmer_font_is_bundled_noto(qapp):

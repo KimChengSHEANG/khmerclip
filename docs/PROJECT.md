@@ -1,4 +1,4 @@
-# KhmerClip: Project Guide
+# KhmerClipper: Project Guide
 
 This guide covers the whole repo: the macOS app, the Windows/Linux desktop app, the three OCR models, how each model is trained, the datasets and fonts behind them, how to evaluate them, and how to build and run everything. The subproject READMEs go deeper on each piece. This page shows how the pieces fit together and flags the problems that aren't obvious from the code.
 
@@ -8,7 +8,7 @@ Last verified against the tree on 2026-10-10 (commit `21a117b`, after merging `f
 
 ## 1. What the project is
 
-KhmerClip is a menu-bar app for macOS that runs OCR on any region of the screen. It is a TextSniper-style tool built mainly for **Khmer** text and for mixed Khmer/English text. Apple's Vision framework doesn't support Khmer (`VNRecognizeTextRequest` doesn't list it), so the app ships its own OCR engines. This repo contains the app, the training code for those engines, and the Windows/Linux port (§10).
+KhmerClipper is a menu-bar app for macOS that runs OCR on any region of the screen. It is a TextSniper-style tool built mainly for **Khmer** text and for mixed Khmer/English text. Apple's Vision framework doesn't support Khmer (`VNRecognizeTextRequest` doesn't list it), so the app ships its own OCR engines. This repo contains the app, the training code for those engines, and the Windows/Linux port (§10).
 
 App features:
 - drag-select screen capture
@@ -25,12 +25,12 @@ App features:
 ### Repository layout
 
 ```
-khmerclip/
+khmerclipper/
 ├── README.md                    top-level pointer
 ├── Makefile                     `make check`: every test suite in the repo (§9.5)
-├── .python-version              pyenv env name: "khmerclip"
+├── .python-version              pyenv env name: "khmerclipper"
 ├── apps/mac/                    macOS app (Swift 5, SwiftUI/AppKit, XcodeGen)
-│   ├── project.yml              XcodeGen spec: targets KhmerClip, OCRBench, KhmerClipTests
+│   ├── project.yml              XcodeGen spec: targets KhmerClipper, OCRBench, KhmerClipperTests
 │   ├── Makefile                 gen / build / run / test / trocr-*
 │   ├── Sources/
 │   │   ├── App/                 entry point, AppDelegate (status item + wiring)
@@ -230,7 +230,7 @@ At runtime, `TrOCREngine` does the following:
 - resizes each strip to 384×384 with a PIL-exact bilinear resize, with no content crop, to match training preprocessing
 - greedy-decodes up to 128 tokens per line, with a fresh zeroed KV state per line. A repeat-run cap of 4 stops one token from looping to max length
 - re-reads a line with Tesseract (`khm+eng`) when the TrOCR line has no Khmer and every Tesseract word has confidence >= 70 (`tesseractMinConfidence`). Tesseract reads clean English UI text better; the confidence gate keeps TrOCR on low-res scans, where Tesseract adds junk. Costs ~90 ms per Latin-only line. The desktop app does the same (`trocr.latin_fallback`)
-- runs on CoreML compute units `.cpuAndGPU` by default. `KHMERCLIP_TROCR_UNITS=all|gpu|ane|cpu` overrides this for benchmarks. ANE fails to build a plan for the stateful decoder (error -14)
+- runs on CoreML compute units `.cpuAndGPU` by default. `KHMERCLIPPER_TROCR_UNITS=all|gpu|ane|cpu` overrides this for benchmarks. ANE fails to build a plan for the stateful decoder (error -14)
 - caches compiled `.mlmodelc` files and preloads the model when a capture starts
 
 ### 4.5 Current measured state
@@ -331,7 +331,7 @@ Metrics: per-fixture **CER** (via `jiwer`), averaged per subset, plus wall-clock
 | UI | 0.0199 | 72.8 |
 | Mixed | 0.0894 | 90.7 |
 
-**Ship gate** (`khmerclip_eval.summary.passes_gate`). A candidate must meet all four conditions against Tesseract on the same run:
+**Ship gate** (`khmerclipper_eval.summary.passes_gate`). A candidate must meet all four conditions against Tesseract on the same run:
 - mean CER < Tesseract
 - median latency ≤ 2× Tesseract
 - mixed CER ≤ Tesseract
@@ -358,7 +358,7 @@ python -m pip install -e '.[dev]'
 pytest
 python scripts/bench.py --engine tesseract --out results/baseline_tesseract.csv
 # CoreML gate (after building OCRBench, see mac_gate.md):
-KHMERCLIP_VENDOR=$PWD/../../apps/mac/Vendor KHMERCLIP_TROCR_UNITS=gpu python scripts/bench.py \
+KHMERCLIPPER_VENDOR=$PWD/../../apps/mac/Vendor KHMERCLIPPER_TROCR_UNITS=gpu python scripts/bench.py \
   --engine tesseract --engine trocr-coreml \
   --trocr-coreml-bin ../../apps/mac/build/Build/Products/Release/OCRBench \
   --out results/mac_gate.csv --candidate trocr-coreml --compare-to tesseract
@@ -406,23 +406,23 @@ cd apps/mac
 make run          # xcodegen generate + xcodebuild Debug + lsregister + open
 ```
 
-- **Output.** The app is built to `build/Build/Products/Debug/KhmerClip.app`. It runs from the menu bar only (`LSUIElement`), with no Dock icon.
+- **Output.** The app is built to `build/Build/Products/Debug/KhmerClipper.app`. It runs from the menu bar only (`LSUIElement`), with no Dock icon.
 - **First launch.** The app shows onboarding. Grant **Screen Recording** in System Settings → Privacy & Security.
 - **Engine.** Tesseract is the default and works with no further setup. TrOCR needs the converted models from §4.4.
 
 | Target | Purpose |
 |---|---|
-| `make gen` | Regenerate `KhmerClip.xcodeproj` from `project.yml`. The project file is generated, so edit `project.yml` instead |
+| `make gen` | Regenerate `KhmerClipper.xcodeproj` from `project.yml`. The project file is generated, so edit `project.yml` instead |
 | `make build` | Debug build, reconverting TrOCR first if the checkpoint is newer |
 | `make run` | Build, kill any running instance, re-register with LaunchServices, and open the app |
-| `make test` | Run `KhmerClipTests`: Tesseract fixture regression, TrOCR line-strip/preprocess/tokenizer/end-to-end tests, formatter, geometry |
+| `make test` | Run `KhmerClipperTests`: Tesseract fixture regression, TrOCR line-strip/preprocess/tokenizer/end-to-end tests, formatter, geometry |
 | `make clean` | Remove `build/` and the generated project |
 | `make trocr-khmer [KHMER_CKPT=…]` | Convert the Khmer checkpoint to CoreML |
 | `make trocr-test` | Converter unit tests (`tools/trocr/tests`), no checkpoint or network needed |
 | `make ocrbench` | Release `OCRBench` CLI for the eval harness |
 | `make trocr-models` | Convert small, base, large and khmer (large download, ~3.7 GB+) |
 
-To build and run in Xcode instead: run `make gen && open KhmerClip.xcodeproj`, select the **KhmerClip** scheme, and press ⌘R. Set `SIGN_ID` in the Makefile to a stable signing identity so the Screen Recording/Accessibility grant survives rebuilds.
+To build and run in Xcode instead: run `make gen && open KhmerClipper.xcodeproj`, select the **KhmerClipper** scheme, and press ⌘R. Set `SIGN_ID` in the Makefile to a stable signing identity so the Screen Recording/Accessibility grant survives rebuilds.
 
 After any change to models or the venv, **rebuild**. `Vendor/` is copied into the app bundle as folder resources at build time.
 
@@ -430,13 +430,13 @@ After any change to models or the venv, **rebuild**. `Vendor/` is copied into th
 
 | Env | Where | Used for |
 |---|---|---|
-| pyenv `khmerclip` (Python 3.12) | repo root, via `.python-version` | eval harness |
+| pyenv `khmerclipper` (Python 3.12) | repo root, via `.python-version` | eval harness |
 | `training/trocr/venv` | Ubuntu + CUDA box | TrOCR training: `pip install uv && uv pip install torch torchvision -r requirements.txt -e .` |
 | `apps/mac/.trocr-venv` | Mac, created automatically by the Makefile | CoreML conversion only (torch 2.7.0, transformers 4.57.*, coremltools) |
 | `~/khm-tesstrain/.venv` | training server, via `UV_PROJECT_ENVIRONMENT` in `training/tesseract/Makefile` | Tesseract ground-truth export |
 | throwaway uv envs (Python 3.12, uv-managed) | created by `make check` | Running each Python test suite in isolation |
 
-From the repo root, `make build` builds every app that can be built on this machine. Today that's only the macOS app (`build-mac`, the same Debug build as `make -C apps/mac build`). `make build-desktop` freezes `apps/desktop` for the current OS into `apps/desktop/dist/KhmerClip/` (PyInstaller onedir). PyInstaller can't cross-compile, so the Windows installer and Linux AppImage come from CI (§10).
+From the repo root, `make build` builds every app that can be built on this machine. Today that's only the macOS app (`build-mac`, the same Debug build as `make -C apps/mac build`). `make build-desktop` freezes `apps/desktop` for the current OS into `apps/desktop/dist/KhmerClipper/` (PyInstaller onedir). PyInstaller can't cross-compile, so the Windows installer and Linux AppImage come from CI (§10).
 
 ### 9.5 `make check` (all tests)
 
@@ -451,13 +451,13 @@ From the repo root, `make check` runs every test suite. `make -k check` keeps go
 | `check-mac-tools` | `make -C apps/mac trocr-test` |
 | `check-mac` | `make -C apps/mac test`. Reconverts the Khmer TrOCR model first if it's stale |
 
-Each Python suite runs through `uv run --isolated --no-project --managed-python --python 3.12`. A stale editable install, such as `khmerclip_eval` pointing at a worktree, or the active pyenv venv can't leak packages in. Running bare `pytest` in your pyenv env can give different results.
+Each Python suite runs through `uv run --isolated --no-project --managed-python --python 3.12`. A stale editable install, such as `khmerclipper_eval` pointing at a worktree, or the active pyenv venv can't leak packages in. Running bare `pytest` in your pyenv env can give different results.
 
 ---
 
 ## 10. Desktop app for Windows + Linux (`apps/desktop`)
 
-Spec: `docs/superpowers/specs/2026-10-03-khmerclip-desktop-windows-linux-design.md`. Plan: `docs/superpowers/plans/2026-10-03-khmerclip-desktop-windows-linux.md`. `apps/mac` is untouched by this work.
+Spec: `docs/superpowers/specs/2026-10-03-khmerclipper-desktop-windows-linux-design.md`. Plan: `docs/superpowers/plans/2026-10-03-khmerclipper-desktop-windows-linux.md`. `apps/mac` is untouched by this work.
 
 **Stack.** Python 3.12 (`<3.13`), PySide6-Essentials 6.8, onnxruntime (CPU), `platformdirs`, `pynput` (hotkeys on Windows/X11), `jeepney` (Wayland portal). One codebase for both OSes.
 
@@ -468,14 +468,14 @@ Spec: `docs/superpowers/specs/2026-10-03-khmerclip-desktop-windows-linux-design.
 | Persistence | `paths.py` (platformdirs), `prefs.py` (`prefs.json`), `history.py` (`history.json`, max 200; corrupt file → `.bak`) |
 | OCR | `ocr/tesseract.py` (subprocess, pinned `tessdata_fast`), `ocr/trocr.py` (onnxruntime greedy decode), `ocr/preprocess.py` + `ocr/tokenizer.py` (ports of the mac `TrOCREngine`/`TrOCRTokenizer`), `ocr/trocr_models.py` + committed `trocr_manifest.json` |
 | Capture | `capture/overlay.py` (Qt frozen-screenshot selector, Windows/X11), `capture/portal.py` (Wayland `org.freedesktop.portal.Screenshot`), `capture/geometry.py` (DPI-correct crop, backend choice) |
-| System | `hotkey.py` (pynput; Wayland users bind `khmerclip --capture`), `single_instance.py` (QLocalSocket command channel), `autostart.py` (HKCU Run key / XDG autostart), `updater.py` |
+| System | `hotkey.py` (pynput; Wayland users bind `khmerclipper --capture`), `single_instance.py` (QLocalSocket command channel), `autostart.py` (HKCU Run key / XDG autostart), `updater.py` |
 | UI | `ui/app.py` (controller, tray, `run_gui`), `ui/popup.py`, `ui/history_window.py`, `ui/prefs_window.py`, `ui/image_window.py`, `ui/worker.py`, `ui/fonts.py` |
 | Tools | `tools/fetch_tessdata.py`, `tools/export_onnx.py` (checkpoint → ONNX, parity-checked), `tools/publish_models.py` (HF upload + manifest pin) |
-| Packaging | `packaging/khmerclip.spec` (PyInstaller), `packaging/windows/khmerclip.iss` (Inno Setup), `packaging/linux/build_appimage.sh` |
+| Packaging | `packaging/khmerclipper.spec` (PyInstaller), `packaging/windows/khmerclipper.iss` (Inno Setup), `packaging/linux/build_appimage.sh` |
 
 **Builds.** `make build-desktop` freezes for the current OS. Windows/Linux installers come from `.github/workflows/desktop.yml`: `test` and `build` run on PRs and `workflow_dispatch`; pushing a `desktop-v<version>` tag also publishes GitHub release `v<version>` in this repo. The macOS zip is added to it by hand: `make release-mac`, then `gh release upload`. Full details in `apps/desktop/README.md`.
 
-**TrOCR model.** `trocr_manifest.json` pins fine-tune v2 (`khmer-v2`) on the public HF repo `kcsheang/khmerclip-trocr-khmer-onnx` by commit revision + SHA-256; the app downloads it on first TrOCR use. Republish with `tools/publish_models.py exported/khmer --version khmer-vN` (needs a write token for `kcsheang`). Test a local export with `KHMERCLIP_TROCR_DIR=exported/khmer`.
+**TrOCR model.** `trocr_manifest.json` pins fine-tune v2 (`khmer-v2`) on the public HF repo `kcsheang/khmerclipper-trocr-khmer-onnx` by commit revision + SHA-256; the app downloads it on first TrOCR use. Republish with `tools/publish_models.py exported/khmer --version khmer-vN` (needs a write token for `kcsheang`). Test a local export with `KHMERCLIPPER_TROCR_DIR=exported/khmer`.
 
 ```bash
 cd apps/desktop
@@ -508,7 +508,7 @@ For a fine-tune from a previous run and the synthetic data steps, see §4.2–4.
 ### Tesseract (training server, Docker, CPU)
 
 ```bash
-cd ~/Sync/workspace/khmerclip/training/tesseract
+cd ~/Sync/workspace/khmerclipper/training/tesseract
 make image check          # build + verify toolchain pins
 make download             # fetch datasets not yet in the HF cache
 make gt                   # export ground truth (DEFAULT_SOURCES, ~650k lines)
@@ -551,5 +551,5 @@ Use `CPUS=6` while a TrOCR run shares the box, and `MODEL=` for a separate run s
 | TrOCR CoreML speed plan + results | `docs/superpowers/plans/2026-10-03-trocr-speed-accuracy.md`, `training/eval/results/trocr_speed_accuracy.md` |
 | TrOCR fine-tune on new data | `docs/superpowers/plans/2026-10-03-trocr-finetune-new-data.md`, `training/eval/results/finetune_baseline.md`, `finetune_v1.md` |
 | Tesseract fine-tune pipeline + smoke result | `training/tesseract/README.md`, `training/tesseract/results/finetune.md` |
-| Desktop (Windows/Linux) spec + plan | `docs/superpowers/specs/2026-10-03-khmerclip-desktop-windows-linux-design.md`, `docs/superpowers/plans/2026-10-03-khmerclip-desktop-windows-linux.md` |
+| Desktop (Windows/Linux) spec + plan | `docs/superpowers/specs/2026-10-03-khmerclipper-desktop-windows-linux-design.md`, `docs/superpowers/plans/2026-10-03-khmerclipper-desktop-windows-linux.md` |
 | Tesseract fine-tune spec + plan | `docs/superpowers/specs/2026-10-03-tesseract-khmer-finetune-design.md`, `docs/superpowers/plans/2026-10-03-tesseract-khmer-finetune.md` |

@@ -4,7 +4,7 @@ Date: 2026-10-18 · Status: awaiting approval
 
 ## Why
 
-KhmerClip users are everyday people with no GitHub account. When a capture
+KhmerClipper users are everyday people with no GitHub account. When a capture
 comes out wrong, or the app crashes, nothing reaches the developer today:
 "Flag as Wrong" only copies the image/text pair into a local `feedback/`
 folder on the user's own machine. The developer wants wrong captures,
@@ -46,7 +46,7 @@ wrong-capture reports to double as correction data for training.
 - History layout **A**: today's list, plus a thumbnail beside each scan and a
   Report button on every row; Copy / Delete / Clear All stay.
 - "Keep capture images" becomes **on by default** in both apps
-  (`apps/desktop/src/khmerclip/prefs.py` `keep_captures`,
+  (`apps/desktop/src/khmerclipper/prefs.py` `keep_captures`,
   `apps/mac/Sources/Preferences/AppPreferences.swift` `keepCaptureImages`).
   Images stay local; they leave only when the user presses Send.
 - Both apps get the features.
@@ -55,9 +55,9 @@ wrong-capture reports to double as correction data for training.
 
 ### Report window (both apps, from History → Report)
 
-Shows: the captured image, "KhmerClip read: <text>", an optional
+Shows: the captured image, "KhmerClipper read: <text>", an optional
 "What it should say" field (Khmer font), the line "This image and text will be
-sent to the KhmerClip developer.", Cancel / Send. On success the row shows
+sent to the KhmerClipper developer.", Cancel / Send. On success the row shows
 "Reported"; on failure, a plain message and the report stays retryable.
 
 Report payload: image (PNG), recognized text, correction (may be empty), the
@@ -91,7 +91,7 @@ thumbnail and no Report button — same rule as today's flag button.
 
 ### Send Feedback…
 
-Menu item next to "History…" in the tray (`apps/desktop/src/khmerclip/ui/app.py`)
+Menu item next to "History…" in the tray (`apps/desktop/src/khmerclipper/ui/app.py`)
 and menu bar (`apps/mac/Sources/App/AppDelegate.swift`). Window: multiline
 text, optional "Your email (if you'd like a reply)", Send. Includes app
 version + OS.
@@ -146,8 +146,8 @@ next launch and on next send. *(My call.)*
 
 ### Where reports land (developer's decision)
 
-A new **private** repo, `KimChengSHEANG/khmerclip-reports`, holds all report
-issues and committed images. Not the public `khmerclip` repo. The GitHub token
+A new **private** repo, `KimChengSHEANG/khmerclipper-reports`, holds all report
+issues and committed images. Not the public `khmerclipper` repo. The GitHub token
 is scoped to that repo only. Issue bodies link the committed image by repo
 path; it renders for the developer, who has access.
 

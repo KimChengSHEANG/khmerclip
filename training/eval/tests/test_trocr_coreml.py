@@ -3,7 +3,7 @@ from subprocess import CompletedProcess
 
 import pytest
 
-from khmerclip_eval.runners import trocr_coreml
+from khmerclipper_eval.runners import trocr_coreml
 
 
 def test_recognize_invokes_ocrbench_and_strips_stdout(monkeypatch: pytest.MonkeyPatch) -> None:

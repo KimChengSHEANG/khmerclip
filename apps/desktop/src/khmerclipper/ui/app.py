@@ -10,24 +10,24 @@ from PySide6.QtCore import QObject, QThreadPool, QTimer, QUrl, Signal, Slot
 from PySide6.QtGui import QAction, QDesktopServices, QGuiApplication, QIcon
 from PySide6.QtWidgets import QApplication, QDialog, QMenu, QMessageBox, QProgressDialog, QSystemTrayIcon
 
-from khmerclip import __version__, autostart, crash, reports, updater
-from khmerclip.capture import portal
-from khmerclip.capture.geometry import capture_backend
-from khmerclip.capture.overlay import RegionSelector
-from khmerclip.errors import Cancelled, KhmerClipError
-from khmerclip.formatter import apply
-from khmerclip.history import HistoryStore, ScanRecord
-from khmerclip.hotkey import HotkeyListener, pynput_to_qt
-from khmerclip.ocr import Engine, recognize, trocr_models
-from khmerclip.paths import APP_NAME, resource_dir
-from khmerclip.prefs import Prefs
-from khmerclip.single_instance import CommandServer, send_command
-from khmerclip.ui.feedback_dialog import FeedbackDialog
-from khmerclip.ui.history_window import HistoryWindow
-from khmerclip.ui.image_window import ImageOCRWindow
-from khmerclip.ui.popup import ResultPopup
-from khmerclip.ui.prefs_window import PrefsWindow
-from khmerclip.ui.worker import Task
+from khmerclipper import __version__, autostart, crash, reports, updater
+from khmerclipper.capture import portal
+from khmerclipper.capture.geometry import capture_backend
+from khmerclipper.capture.overlay import RegionSelector
+from khmerclipper.errors import Cancelled, KhmerClipperError
+from khmerclipper.formatter import apply
+from khmerclipper.history import HistoryStore, ScanRecord
+from khmerclipper.hotkey import HotkeyListener, pynput_to_qt
+from khmerclipper.ocr import Engine, recognize, trocr_models
+from khmerclipper.paths import APP_NAME, resource_dir
+from khmerclipper.prefs import Prefs
+from khmerclipper.single_instance import CommandServer, send_command
+from khmerclipper.ui.feedback_dialog import FeedbackDialog
+from khmerclipper.ui.history_window import HistoryWindow
+from khmerclipper.ui.image_window import ImageOCRWindow
+from khmerclipper.ui.popup import ResultPopup
+from khmerclipper.ui.prefs_window import PrefsWindow
+from khmerclipper.ui.worker import Task
 
 
 def _update_progress(dialog: QProgressDialog, value: object) -> None:
@@ -91,7 +91,7 @@ class Controller(QObject):
     # --- capture -------------------------------------------------------------
     def start_capture(self) -> None:
         if self.prefs.engine == Engine.TROCR:
-            from khmerclip.ocr import trocr
+            from khmerclipper.ocr import trocr
 
             self.submit(lambda progress, cancel: trocr.preload())  # warm up while the user selects
         if capture_backend() == "portal":
@@ -116,7 +116,7 @@ class Controller(QObject):
         """True if TrOCR can run now. Otherwise explains or offers the one-time download
         (which re-runs this OCR when finished) and returns False."""
         manifest = trocr_models.load_manifest()
-        if os.environ.get("KHMERCLIP_TROCR_DIR") or trocr_models.is_installed(manifest):
+        if os.environ.get("KHMERCLIPPER_TROCR_DIR") or trocr_models.is_installed(manifest):
             return True
         if not manifest.available:
             self.popup.show_message("The TrOCR model isn't published yet. Switch to Tesseract in Preferences.")
@@ -156,7 +156,7 @@ class Controller(QObject):
     def handle_error(self, error: BaseException) -> None:
         if isinstance(error, Cancelled):
             return
-        if isinstance(error, KhmerClipError):
+        if isinstance(error, KhmerClipperError):
             message = str(error)
         else:
             message = f"Unexpected error: {error!r}"
@@ -235,7 +235,7 @@ class TrayApp(QObject):
             action.triggered.connect(lambda _checked=False, s=slot: s())
             self.menu.addAction(action)
         self.menu.addSeparator()
-        quit_action = QAction("Quit KhmerClip", self.menu)
+        quit_action = QAction("Quit KhmerClipper", self.menu)
         quit_action.triggered.connect(QApplication.quit)
         self.menu.addAction(quit_action)
 
@@ -250,7 +250,7 @@ class TrayApp(QObject):
             self.show_prefs()  # e.g. GNOME without the AppIndicator extension: keep the app reachable
         if not prefs.welcomed:
             how = (f"Press {pynput_to_qt(prefs.hotkey)}" if self.hotkey_ok
-                   else "Bind “khmerclip --capture” to a keyboard shortcut")
+                   else "Bind “khmerclipper --capture” to a keyboard shortcut")
             self.tray.showMessage(f"{APP_NAME} is running", f"{how} or use the tray icon to capture text.")
             prefs.welcomed = True
             prefs.save()

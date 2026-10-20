@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { handle } from '../src/index.js';
 
 const ID = 'a'.repeat(32);
-const REPO = 'KimChengSHEANG/khmerclip-reports';
+const REPO = 'KimChengSHEANG/khmerclipper-reports';
 
 function makeEnv(over = {}) {
   return {
@@ -34,7 +34,7 @@ function makeFetch(route = () => undefined) {
 
 function req(body, { key = 'kc-reports-1', method = 'POST', path = '/report', raw } = {}) {
   const headers = { 'content-type': 'application/json', 'CF-Connecting-IP': '1.2.3.4' };
-  if (key) headers['X-KhmerClip-Key'] = key;
+  if (key) headers['X-KhmerClipper-Key'] = key;
   return new Request('https://relay.example' + path, {
     method,
     headers,
@@ -149,7 +149,7 @@ test('capture uploads png + sidecar then opens labeled issue', async () => {
   assert.ok(c.json.body.includes('~~~\nApp 0.2.0 · macOS 15 · trocr\n~~~'));
   assert.ok(c.json.body.includes('Should say'));
   assert.equal(a.init.headers.Authorization, 'Bearer gh-token');
-  assert.equal(a.init.headers['User-Agent'], 'khmerclip-report-relay');
+  assert.equal(a.init.headers['User-Agent'], 'khmerclipper-report-relay');
 });
 
 test('capture omits Should say when correction empty', async () => {
@@ -224,7 +224,7 @@ test('github failure falls back to email with attachment', async () => {
   assert.equal(mail.url, 'https://api.resend.com/emails');
   assert.equal(mail.init.headers.Authorization, 'Bearer re-key');
   assert.deepEqual(mail.json.to, ['cheng900@gmail.com']);
-  assert.equal(mail.json.from, 'KhmerClip <onboarding@resend.dev>');
+  assert.equal(mail.json.from, 'KhmerClipper <onboarding@resend.dev>');
   assert.equal(mail.json.attachments[0].filename, `${ID}.png`);
   assert.equal(mail.json.attachments[0].content, btoa('png-bytes'));
   assert.ok(mail.json.subject.startsWith('Wrong text: '));

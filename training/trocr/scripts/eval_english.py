@@ -15,7 +15,7 @@ from PIL import Image, ImageDraw, ImageFont
 from transformers import LogitsProcessor, LogitsProcessorList, TrOCRProcessor, VisionEncoderDecoderModel
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "eval/src"))
-from khmerclip_eval.cer import character_error_rate  # noqa: E402
+from khmerclipper_eval.cer import character_error_rate  # noqa: E402
 
 STRINGS = Path(__file__).resolve().parents[2] / "eval/en_ui_strings.txt"
 FONTS = {

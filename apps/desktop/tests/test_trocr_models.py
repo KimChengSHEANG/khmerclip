@@ -3,8 +3,8 @@ import json
 
 import pytest
 
-from khmerclip.errors import EngineUnavailable
-from khmerclip.ocr import trocr_models as tm
+from khmerclipper.errors import EngineUnavailable
+from khmerclipper.ocr import trocr_models as tm
 
 
 def make_model_dir(tmp_path):

@@ -3,8 +3,8 @@ import threading
 
 import pytest
 
-from khmerclip.download import RemoteFile, download, is_present, sha256_file
-from khmerclip.errors import Cancelled, KhmerClipError
+from khmerclipper.download import RemoteFile, download, is_present, sha256_file
+from khmerclipper.errors import Cancelled, KhmerClipperError
 
 
 def _source(tmp_path, name, payload: bytes, sha=None) -> RemoteFile:
@@ -25,7 +25,7 @@ def test_download_verifies_and_installs(tmp_path):
 
 def test_download_checksum_mismatch_leaves_nothing(tmp_path):
     bad = _source(tmp_path, "m.bin", b"data", sha="0" * 64)
-    with pytest.raises(KhmerClipError, match="Checksum mismatch"):
+    with pytest.raises(KhmerClipperError, match="Checksum mismatch"):
         download([bad], tmp_path / "out")
     assert list((tmp_path / "out").iterdir()) == []
 
@@ -41,7 +41,7 @@ def test_download_cancel_raises_and_cleans_part(tmp_path):
 
 def test_download_unreachable_url_is_user_facing_error(tmp_path):
     missing = RemoteFile("x.bin", (tmp_path / "nope.bin").as_uri(), "0" * 64, 1)
-    with pytest.raises(KhmerClipError, match="x.bin"):
+    with pytest.raises(KhmerClipperError, match="x.bin"):
         download([missing], tmp_path / "out")
     assert list((tmp_path / "out").iterdir()) == []
 

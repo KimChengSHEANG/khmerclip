@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from khmerclip import crash
-from khmerclip.prefs import Prefs
+from khmerclipper import crash
+from khmerclipper.prefs import Prefs
 
 
 @pytest.fixture(autouse=True)
@@ -37,7 +37,7 @@ def test_signature_without_traceback_is_type_name():
 
 def test_signature_is_relative_to_package():
     with pytest.raises(AttributeError) as info:
-        crash.signature(5)  # raises inside khmerclip/crash.py:signature
+        crash.signature(5)  # raises inside khmerclipper/crash.py:signature
     assert crash.signature(info.value) == "AttributeError at crash.py:signature"
 
 

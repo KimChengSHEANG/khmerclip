@@ -1,6 +1,6 @@
 import sys
 
-from khmerclip.hotkey import HotkeyListener, pynput_to_qt, qt_to_pynput
+from khmerclipper.hotkey import HotkeyListener, pynput_to_qt, qt_to_pynput
 
 
 def test_qt_to_pynput_basic_and_shifted_digit():

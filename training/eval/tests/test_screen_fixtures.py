@@ -5,7 +5,7 @@ from pathlib import Path
 
 from PIL import Image
 
-from khmerclip_eval.fixtures import load_fixtures
+from khmerclipper_eval.fixtures import load_fixtures
 
 _spec = importlib.util.spec_from_file_location(
     "build_screen_fixtures", Path(__file__).parents[1] / "scripts/build_screen_fixtures.py"

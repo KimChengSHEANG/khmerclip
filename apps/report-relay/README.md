@@ -1,4 +1,4 @@
-# KhmerClip report relay
+# KhmerClipper report relay
 
 Cloudflare Worker that turns app reports (crash, capture, feedback) into issues
 in the private reports repo, falling back to email via Resend.

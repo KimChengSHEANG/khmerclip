@@ -1,7 +1,7 @@
-from khmerclip import updater
-from khmerclip.updater import Release, due, newer_release, parse_version
+from khmerclipper import updater
+from khmerclipper.updater import Release, due, newer_release, parse_version
 
-PAGE = "https://github.com/KimChengSHEANG/khmerclip/releases/tag/"
+PAGE = "https://github.com/KimChengSHEANG/khmerclipper/releases/tag/"
 
 
 def payload(tag="v0.2.0", **extra):

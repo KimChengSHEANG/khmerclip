@@ -2,7 +2,7 @@ import json
 from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
 
-from khmerclip import paths
+from khmerclipper import paths
 
 ENGINES = ("tesseract", "trocr")
 

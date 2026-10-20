@@ -9,10 +9,10 @@ import pytest
 
 from PIL import Image
 
-from khmerclip import reports
+from khmerclipper import reports
 
 URL = "https://relay.test/report"
-UNSET = "https://khmerclip-report-relay.REPLACE_ME.workers.dev/report"
+UNSET = "https://khmerclipper-report-relay.REPLACE_ME.workers.dev/report"
 
 
 def test_enqueue_and_flush_deletes_on_success(tmp_path):
@@ -117,7 +117,7 @@ def test_post_json_sends_headers_and_body(monkeypatch):
     monkeypatch.setattr(urllib.request, "urlopen", fake)
     assert reports.post_json({"id": "a", "m": "ក"}, URL) == 200
     req = seen["req"]
-    assert req.get_header("X-khmerclip-key") == reports.APP_KEY
+    assert req.get_header("X-khmerclipper-key") == reports.APP_KEY
     assert req.get_header("Content-type") == "application/json"
     assert json.loads(req.data.decode("utf-8")) == {"id": "a", "m": "ក"}
 

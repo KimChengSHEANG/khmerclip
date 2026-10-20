@@ -9,7 +9,7 @@ import traceback
 from collections.abc import Callable
 from pathlib import Path
 
-from khmerclip import reports
+from khmerclipper import reports
 
 _PACKAGE_DIR = Path(__file__).resolve().parent
 _fault_file = None  # faulthandler needs the file object to stay open for the whole process

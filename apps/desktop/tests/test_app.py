@@ -4,12 +4,12 @@ import threading
 import pytest
 from PIL import Image
 
-from khmerclip.errors import Cancelled, KhmerClipError
-from khmerclip.history import HistoryStore
-from khmerclip.ocr import trocr_models
-from khmerclip.prefs import Prefs
-from khmerclip.ui import app as app_module
-from khmerclip.ui.app import Controller, TrayApp, preferred_qpa
+from khmerclipper.errors import Cancelled, KhmerClipperError
+from khmerclipper.history import HistoryStore
+from khmerclipper.ocr import trocr_models
+from khmerclipper.prefs import Prefs
+from khmerclipper.ui import app as app_module
+from khmerclipper.ui.app import Controller, TrayApp, preferred_qpa
 
 
 @pytest.fixture
@@ -47,7 +47,7 @@ def test_empty_result_is_not_recorded(controller):
 def test_errors(controller):
     controller.handle_error(Cancelled())
     assert not controller.popup.isVisible()
-    controller.handle_error(KhmerClipError("Tesseract was not found."))
+    controller.handle_error(KhmerClipperError("Tesseract was not found."))
     assert "Tesseract was not found." in controller.popup.label.text()
 
 
@@ -76,7 +76,7 @@ def test_preferred_qpa():
 
 
 def test_trocr_unpublished_explains_instead_of_crashing(controller, monkeypatch):
-    monkeypatch.delenv("KHMERCLIP_TROCR_DIR", raising=False)
+    monkeypatch.delenv("KHMERCLIPPER_TROCR_DIR", raising=False)
     monkeypatch.setattr(trocr_models, "load_manifest", lambda path=None: trocr_models.Manifest("khmer-v1", ()))
     controller.prefs.engine = "trocr"
     controller.run_ocr(Image.new("RGB", (20, 20), "white"))
@@ -93,7 +93,7 @@ def test_tray_menu_and_commands(controller, monkeypatch):
     tray = TrayApp(controller)
     texts = [a.text() for a in tray.menu.actions() if a.text()]
     assert texts == ["Capture Text", "OCR Image File…", "History…", "Send Feedback…", "Preferences…",
-                     "Check for Updates…", "Quit KhmerClip"]
+                     "Check for Updates…", "Quit KhmerClipper"]
     tray.on_command("capture")
     assert captures == [1]
     tray.on_command("show")
@@ -124,7 +124,7 @@ def test_unexpected_error_is_recorded(controller, monkeypatch):
     monkeypatch.setattr(app_module.crash, "record", lambda exc, engine: seen.append(exc))
     controller.handle_error(ZeroDivisionError())
     assert len(seen) == 1
-    controller.handle_error(KhmerClipError("x"))
+    controller.handle_error(KhmerClipperError("x"))
     controller.handle_error(Cancelled())
     assert len(seen) == 1
     controller.prefs.send_crash_reports = False

@@ -11,10 +11,10 @@ from typing import Any
 import numpy as np
 from PIL import Image
 
-from khmerclip.errors import Cancelled, EngineUnavailable, KhmerClipError
-from khmerclip.ocr import trocr_models
-from khmerclip.ocr.preprocess import line_strips, pixel_values, split_wide
-from khmerclip.ocr.tokenizer import TrOCRTokenizer
+from khmerclipper.errors import Cancelled, EngineUnavailable, KhmerClipperError
+from khmerclipper.ocr import trocr_models
+from khmerclipper.ocr.preprocess import line_strips, pixel_values, split_wide
+from khmerclipper.ocr.tokenizer import TrOCRTokenizer
 
 # Total decoded ids incl. the start token; matches training MAX_LABEL_LEN and the mac
 # TrOCREngine.maxLength (64 cut off long Khmer lines).
@@ -46,11 +46,11 @@ def latin_fallback(strip: Image.Image, line: str) -> str:
     Lines with any Khmer stay with TrOCR. ponytail: one tesseract run per Latin-only line."""
     if contains_khmer(line):
         return line
-    from khmerclip.ocr import tesseract
+    from khmerclipper.ocr import tesseract
 
     try:
         text, min_conf = tesseract.recognize_line(strip)
-    except KhmerClipError:
+    except KhmerClipperError:
         return line
     return text if text and min_conf >= TESSERACT_MIN_CONFIDENCE else line
 
@@ -84,7 +84,7 @@ def load_session(model_dir: Path) -> Session:
 
 
 def installed_model_dir() -> Path:
-    if override := os.environ.get("KHMERCLIP_TROCR_DIR"):
+    if override := os.environ.get("KHMERCLIPPER_TROCR_DIR"):
         return Path(override)
     manifest = trocr_models.load_manifest()
     if not trocr_models.is_installed(manifest):
@@ -96,7 +96,7 @@ def preload() -> None:
     """Warm the ONNX sessions while the user drags a selection. Errors surface on recognize()."""
     try:
         load_session(installed_model_dir())
-    except KhmerClipError:
+    except KhmerClipperError:
         pass
 
 

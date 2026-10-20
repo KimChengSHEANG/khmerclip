@@ -1,7 +1,7 @@
 from PySide6.QtCore import QPoint, Qt
 from PySide6.QtGui import QColor, QPixmap
 
-from khmerclip.capture.overlay import RegionSelector
+from khmerclipper.capture.overlay import RegionSelector
 
 
 def fake_grab_at(ratio):

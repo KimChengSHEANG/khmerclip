@@ -14,7 +14,7 @@ final class ScanHistoryStore: ObservableObject {
     private let fileURL: URL
 
     static let dataDir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        .appendingPathComponent("KhmerClip", isDirectory: true)
+        .appendingPathComponent("KhmerClipper", isDirectory: true)
     static let capturesDir = dataDir.appendingPathComponent("captures", isDirectory: true)
     static let feedbackDir = dataDir.appendingPathComponent("feedback", isDirectory: true)
     static let historyURL = dataDir.appendingPathComponent("history.json")

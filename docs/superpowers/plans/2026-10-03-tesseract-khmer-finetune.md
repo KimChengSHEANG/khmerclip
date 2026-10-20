@@ -18,7 +18,7 @@
 
 - **Worktree:** all work happens on branch `feat/tesseract-finetune` in `.worktrees/tesseract-finetune` (Task 0).
   - On the Mac, every relative path and `git` command runs from that worktree root, never from the main checkout.
-  - On the server, Syncthing delivers the worktree to `~/Sync/workspace/khmerclip/.worktrees/tesseract-finetune`, and every `make` runs from its `training/tesseract`.
+  - On the server, Syncthing delivers the worktree to `~/Sync/workspace/khmerclipper/.worktrees/tesseract-finetune`, and every `make` runs from its `training/tesseract`.
 - Start model: `tessdata_best/khm.traineddata`, SHA-256 `3d2d975e67a319bf1cd67626b12fdebc1e417a4ebef9c9afee01d9927b512815`, tessdata_best commit `9ddc24e750eec0994223a9edc3fcb434a2244f3b`.
 - tesstrain commit: `405346a3a67d8e4e049341d1da6a4b752e0b8351`. Container base: `ubuntu:24.04`.
 - Server work directory: `~/khm-tesstrain`, **outside** `~/Sync`, because the repo there is Syncthing-synced. Never write ground truth, `.lstmf` files, checkpoints or a venv under `~/Sync`.
@@ -60,7 +60,7 @@ The design and this plan are already committed on `main`, so the worktree inheri
 The repo already uses `.worktrees/` (gitignored). From the main checkout:
 
 ```bash
-cd /Users/kim/Sync/workspace/khmerclip
+cd /Users/kim/Sync/workspace/khmerclipper
 git worktree add .worktrees/tesseract-finetune -b feat/tesseract-finetune main
 mkdir -p .worktrees/tesseract-finetune/apps/mac/Vendor
 cp -R apps/mac/Vendor/tesseract .worktrees/tesseract-finetune/apps/mac/Vendor/tesseract
@@ -75,7 +75,7 @@ Expected:
 - [ ] **Step 2: Confirm the server sees the worktree**
 
 ```bash
-ssh 192.168.1.25 'ls ~/Sync/workspace/khmerclip/.worktrees/tesseract-finetune/docs/superpowers/plans'
+ssh 192.168.1.25 'ls ~/Sync/workspace/khmerclipper/.worktrees/tesseract-finetune/docs/superpowers/plans'
 ```
 
 Expected: `2026-10-03-tesseract-khmer-finetune.md` is listed. If it isn't, wait for Syncthing and check again. Don't copy files by hand.
@@ -85,8 +85,8 @@ Expected: `2026-10-03-tesseract-khmer-finetune.md` is listed. If it isn't, wait 
 ### Task 1: Eval harness — `tesseract-ft` engine, `lang` param, UI gate
 
 **Files:**
-- Modify: `training/eval/src/khmerclip_eval/runners/tesseract.py`
-- Modify: `training/eval/src/khmerclip_eval/summary.py`
+- Modify: `training/eval/src/khmerclipper_eval/runners/tesseract.py`
+- Modify: `training/eval/src/khmerclipper_eval/summary.py`
 - Modify: `training/eval/scripts/bench.py`
 - Modify: `training/eval/results/mac_gate.md` (gate criteria table)
 - Test: `training/eval/tests/test_summary.py`, and create `training/eval/tests/test_tesseract_runner.py`
@@ -134,7 +134,7 @@ Create `training/eval/tests/test_tesseract_runner.py`:
 import subprocess
 from pathlib import Path
 
-from khmerclip_eval.runners import tesseract
+from khmerclipper_eval.runners import tesseract
 
 
 def _capture(monkeypatch):
@@ -252,7 +252,7 @@ Expected: two summary lines with identical `cer`, `mixed_cer` and `ui_cer` (same
 - [ ] **Step 5: Commit**
 
 ```bash
-git add training/eval/src/khmerclip_eval/runners/tesseract.py training/eval/src/khmerclip_eval/summary.py training/eval/scripts/bench.py training/eval/results/mac_gate.md training/eval/tests/test_summary.py training/eval/tests/test_tesseract_runner.py
+git add training/eval/src/khmerclipper_eval/runners/tesseract.py training/eval/src/khmerclipper_eval/summary.py training/eval/scripts/bench.py training/eval/results/mac_gate.md training/eval/tests/test_summary.py training/eval/tests/test_tesseract_runner.py
 git commit -m "feat(eval): add tesseract-ft engine and UI no-regression gate"
 ```
 
@@ -787,7 +787,7 @@ git commit -m "feat(tesseract): split tesstrain lists with SoyVitou-valid as eva
 
 **Interfaces:**
 - Consumes: the console scripts `khm-export-gt` and `khm-split-lists` (Tasks 2–3)
-- Produces make targets, used on the server from `~/Sync/workspace/khmerclip/.worktrees/tesseract-finetune/training/tesseract`:
+- Produces make targets, used on the server from `~/Sync/workspace/khmerclipper/.worktrees/tesseract-finetune/training/tesseract`:
   - `image`
   - `check`
   - `download`
@@ -918,7 +918,7 @@ directory in the Syncthing-synced clone. All generated data goes to `~/khm-tesst
 ## Run (server)
 
 ```bash
-cd ~/Sync/workspace/khmerclip/training/tesseract   # or .worktrees/tesseract-finetune/... before merge
+cd ~/Sync/workspace/khmerclipper/training/tesseract   # or .worktrees/tesseract-finetune/... before merge
 make image check          # build + verify toolchain pins
 make download             # fetch the two datasets not already in the HF cache
 make gt                   # export ground truth (DEFAULT_SOURCES, ~650k lines)
@@ -960,7 +960,7 @@ and add this bullet to the `## Training` list:
 ```bash
 git add training/tesseract/Dockerfile training/tesseract/Makefile training/tesseract/README.md README.md
 git commit -m "feat(tesseract): pinned tesstrain container and server Makefile"
-ssh 192.168.1.25 'ls -a ~/Sync/workspace/khmerclip/.worktrees/tesseract-finetune/training/tesseract'
+ssh 192.168.1.25 'ls -a ~/Sync/workspace/khmerclipper/.worktrees/tesseract-finetune/training/tesseract'
 ```
 
 Expected: `.gitignore  Dockerfile  Makefile  README.md  pyproject.toml  src  tests`. If anything is missing, wait for Syncthing and re-check. Don't copy files into `~/Sync` by hand.
@@ -968,7 +968,7 @@ Expected: `.gitignore  Dockerfile  Makefile  README.md  pyproject.toml  src  tes
 - [ ] **Step 5: Build and verify on the server**
 
 ```bash
-ssh 192.168.1.25 'cd ~/Sync/workspace/khmerclip/.worktrees/tesseract-finetune/training/tesseract && mkdir -p ~/khm-tesstrain && make image check test'
+ssh 192.168.1.25 'cd ~/Sync/workspace/khmerclipper/.worktrees/tesseract-finetune/training/tesseract && mkdir -p ~/khm-tesstrain && make image check test'
 ```
 
 Expected:
@@ -987,7 +987,7 @@ If any tool or config is missing, change the Dockerfile base to `ubuntu:22.04`. 
 - [ ] **Step 6: Download the two uncached datasets**
 
 ```bash
-ssh 192.168.1.25 'cd ~/Sync/workspace/khmerclip/.worktrees/tesseract-finetune/training/tesseract && make download && ls ~/.cache/huggingface/hub | grep -E "Darayut|KimkosalYon"'
+ssh 192.168.1.25 'cd ~/Sync/workspace/khmerclipper/.worktrees/tesseract-finetune/training/tesseract && make download && ls ~/.cache/huggingface/hub | grep -E "Darayut|KimkosalYon"'
 ```
 
 Expected: both `datasets--Darayut--…` and `datasets--KimkosalYon--…` are listed (about 0.45 GB and 5.5 GB).
@@ -1010,7 +1010,7 @@ No repo code changes. This task produces the iteration rate and the go/no-go for
 - [ ] **Step 1: Export a small ground-truth set**
 
 ```bash
-ssh 192.168.1.25 'cd ~/Sync/workspace/khmerclip/.worktrees/tesseract-finetune/training/tesseract && make gt MODEL=khm_smoke SOURCES="soyvitou-train:3000 soyvitou-valid:300 darayut:1000 mrrtmob:2000"'
+ssh 192.168.1.25 'cd ~/Sync/workspace/khmerclipper/.worktrees/tesseract-finetune/training/tesseract && make gt MODEL=khm_smoke SOURCES="soyvitou-train:3000 soyvitou-valid:300 darayut:1000 mrrtmob:2000"'
 ```
 
 Expected: four JSON stat lines. `kept` should be close to each limit. `soyvitou-train` should have `with_space` > 0, and `mrrtmob` should have `with_latin` > 0.
@@ -1018,7 +1018,7 @@ Expected: four JSON stat lines. `kept` should be close to each limit. `soyvitou-
 - [ ] **Step 2: Build dicts, `.lstmf` files and lists**
 
 ```bash
-ssh 192.168.1.25 'cd ~/Sync/workspace/khmerclip/.worktrees/tesseract-finetune/training/tesseract && make dicts lists MODEL=khm_smoke'
+ssh 192.168.1.25 'cd ~/Sync/workspace/khmerclipper/.worktrees/tesseract-finetune/training/tesseract && make dicts lists MODEL=khm_smoke'
 ```
 
 Expected:
@@ -1029,7 +1029,7 @@ Expected:
 - [ ] **Step 3: Train in the foreground for 2000 iterations and time it**
 
 ```bash
-ssh 192.168.1.25 'cd ~/Sync/workspace/khmerclip/.worktrees/tesseract-finetune/training/tesseract && time make train MODEL=khm_smoke DETACH= MAX_ITERATIONS=2000'
+ssh 192.168.1.25 'cd ~/Sync/workspace/khmerclipper/.worktrees/tesseract-finetune/training/tesseract && time make train MODEL=khm_smoke DETACH= MAX_ITERATIONS=2000'
 ```
 
 Expected:
@@ -1042,7 +1042,7 @@ Compute `RATE = 2000 / real_seconds`. This slightly understates the rate, becaus
 - [ ] **Step 4: Sanity-check that fine-tuning didn't damage the model**
 
 ```bash
-ssh 192.168.1.25 'cd ~/Sync/workspace/khmerclip/.worktrees/tesseract-finetune/training/tesseract && make evaluate MODEL=khm_smoke'
+ssh 192.168.1.25 'cd ~/Sync/workspace/khmerclipper/.worktrees/tesseract-finetune/training/tesseract && make evaluate MODEL=khm_smoke'
 ```
 
 Expected: a `START BCER eval=X` line, then up to five checkpoint lines sorted by BCER.
@@ -1122,7 +1122,7 @@ No repo code changes. This task produces checkpoints under `~/khm-tesstrain/data
 If Task 5 kept the defaults, run it as written. Otherwise add `SOURCES="soyvitou-train soyvitou-valid:2000 sokheng hanuman kiteaether darayut siemreap:100000 mrrtmob:<MRRTMOB_LIMIT>"` to the `make gt` command.
 
 ```bash
-ssh 192.168.1.25 'cd ~/Sync/workspace/khmerclip/.worktrees/tesseract-finetune/training/tesseract && nohup make gt > ~/khm-tesstrain/gt.log 2>&1 &'
+ssh 192.168.1.25 'cd ~/Sync/workspace/khmerclipper/.worktrees/tesseract-finetune/training/tesseract && nohup make gt > ~/khm-tesstrain/gt.log 2>&1 &'
 ```
 
 Check progress with `ssh 192.168.1.25 tail -3 ~/khm-tesstrain/gt.log` until all eight sources are printed. `export_stats.json` is written last. Expected:
@@ -1134,7 +1134,7 @@ If any source drops > 5% of its rows, open some of its samples before continuing
 - [ ] **Step 2: Build `.lstmf` files and lists at full count**
 
 ```bash
-ssh 192.168.1.25 'cd ~/Sync/workspace/khmerclip/.worktrees/tesseract-finetune/training/tesseract && make dicts && nohup make lists > ~/khm-tesstrain/lists.log 2>&1 &'
+ssh 192.168.1.25 'cd ~/Sync/workspace/khmerclipper/.worktrees/tesseract-finetune/training/tesseract && make dicts && nohup make lists > ~/khm-tesstrain/lists.log 2>&1 &'
 ```
 
 When `lists.log` ends with `train=… eval=…`, verify the counts:
@@ -1153,7 +1153,7 @@ If the gap is larger than 0.5%, read `lists.log` before training.
 - [ ] **Step 3: Launch the detached training**
 
 ```bash
-ssh 192.168.1.25 'cd ~/Sync/workspace/khmerclip/.worktrees/tesseract-finetune/training/tesseract && make train EPOCHS=<n from Task 5>'
+ssh 192.168.1.25 'cd ~/Sync/workspace/khmerclipper/.worktrees/tesseract-finetune/training/tesseract && make train EPOCHS=<n from Task 5>'
 ```
 
 Add `CPUS=6` if the TrOCR run is active (`nvidia-smi` shows a python training process). Expected: a container ID is printed, and `docker ps` shows `khm_ft-train`.
@@ -1191,7 +1191,7 @@ If the box reboots or the container dies with a non-zero exit, re-run Step 3 wit
 - [ ] **Step 1: Evaluate every checkpoint on the server**
 
 ```bash
-ssh 192.168.1.25 'cd ~/Sync/workspace/khmerclip/.worktrees/tesseract-finetune/training/tesseract && make evaluate'
+ssh 192.168.1.25 'cd ~/Sync/workspace/khmerclipper/.worktrees/tesseract-finetune/training/tesseract && make evaluate'
 ```
 
 Expected: a `START BCER eval=X` line, then the five best `…/eval/<name>.eval.log:BCER eval=…` lines. Record the lowest one's `<name>` as `BEST`.
@@ -1292,7 +1292,7 @@ Skip this task entirely on FAIL.
 - Only if the winning setting is `khm`, also modify:
   - `apps/mac/Sources/OCR/TesseractEngine.swift` (doc comment and `"-l", "khm+eng"`)
   - `apps/mac/Tests/OCRTests.swift:10` (regen comment)
-  - `training/eval/src/khmerclip_eval/runners/tesseract.py` (default `lang`)
+  - `training/eval/src/khmerclipper_eval/runners/tesseract.py` (default `lang`)
   - `training/eval/tests/test_tesseract_runner.py` (default assertion)
 
 **Interfaces:**
@@ -1352,7 +1352,7 @@ Append `**Shipped:** <date>, -l <lang>` to `results/finetune.md`.
 ```bash
 git add apps/mac/README.md apps/mac/Tests/Fixtures training/tesseract/results/finetune.md
 # only if the language switched:
-# git add apps/mac/Sources/OCR/TesseractEngine.swift apps/mac/Tests/OCRTests.swift training/eval/src/khmerclip_eval/runners/tesseract.py training/eval/tests/test_tesseract_runner.py
+# git add apps/mac/Sources/OCR/TesseractEngine.swift apps/mac/Tests/OCRTests.swift training/eval/src/khmerclipper_eval/runners/tesseract.py training/eval/tests/test_tesseract_runner.py
 git commit -m "feat(mac): ship fine-tuned Tesseract khm model"
 ```
 
@@ -1361,7 +1361,7 @@ git commit -m "feat(mac): ship fine-tuned Tesseract khm model"
 Use superpowers:finishing-a-development-branch to merge or PR `feat/tesseract-finetune`. `Vendor/` is gitignored, so the merge doesn't carry the model. After the merge, from the worktree root:
 
 ```bash
-MAIN=/Users/kim/Sync/workspace/khmerclip
+MAIN=/Users/kim/Sync/workspace/khmerclipper
 cp $MAIN/apps/mac/Vendor/tesseract/tessdata/khm.traineddata training/tesseract/out/khm.main-orig.traineddata
 cp training/tesseract/out/khm.traineddata $MAIN/apps/mac/Vendor/tesseract/tessdata/khm.traineddata
 shasum -a 256 $MAIN/apps/mac/Vendor/tesseract/tessdata/khm.traineddata

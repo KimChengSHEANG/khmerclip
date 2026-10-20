@@ -23,7 +23,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       QT_QPA_PLATFORM: offscreen
-      KHMERCLIP_REQUIRE_TESSERACT: "1"
+      KHMERCLIPPER_REQUIRE_TESSERACT: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -39,7 +39,7 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           choco install tesseract --no-progress -y
-          echo "KHMERCLIP_TESSERACT=C:\Program Files\Tesseract-OCR\tesseract.exe" >> "$GITHUB_ENV"
+          echo "KHMERCLIPPER_TESSERACT=C:\Program Files\Tesseract-OCR\tesseract.exe" >> "$GITHUB_ENV"
       - run: python -m pip install -e ".[dev]"
       - run: python tools/fetch_tessdata.py
       - run: python -m pytest -v
@@ -74,40 +74,40 @@ jobs:
         run: ./packaging/windows/vendor_tesseract.ps1
       - name: Version
         id: ver
-        run: echo "version=$(python -c 'import khmerclip; print(khmerclip.__version__)')" >> "$GITHUB_OUTPUT"
-      - run: pyinstaller packaging/khmerclip.spec --noconfirm
+        run: echo "version=$(python -c 'import khmerclipper; print(khmerclipper.__version__)')" >> "$GITHUB_OUTPUT"
+      - run: pyinstaller packaging/khmerclipper.spec --noconfirm
       - name: Installer + smoke test (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         env:
-          KHMERCLIP_VERSION: ${{ steps.ver.outputs.version }}
+          KHMERCLIPPER_VERSION: ${{ steps.ver.outputs.version }}
         run: |
-          # Smoke: the frozen app must OCR with its *bundled* tesseract (KHMERCLIP_TESSERACT unset here).
-          Start-Process -Wait -FilePath dist\KhmerClip\KhmerClip.exe -ArgumentList 'ocr','..\mac\Tests\Fixtures\ocr\1.png','-o','smoke.txt'
+          # Smoke: the frozen app must OCR with its *bundled* tesseract (KHMERCLIPPER_TESSERACT unset here).
+          Start-Process -Wait -FilePath dist\KhmerClipper\KhmerClipper.exe -ArgumentList 'ocr','..\mac\Tests\Fixtures\ocr\1.png','-o','smoke.txt'
           $text = Get-Content smoke.txt -Encoding utf8 -Raw
           if (-not $text.Trim()) { throw "frozen app produced no OCR text" }
           Write-Host $text
           # GUI smoke: the frozen tray app must load Qt and stay up (the ocr path never imports Qt).
-          $p = Start-Process -PassThru -FilePath dist\KhmerClip\KhmerClip.exe
+          $p = Start-Process -PassThru -FilePath dist\KhmerClipper\KhmerClipper.exe
           Start-Sleep -Seconds 15
           if ($p.HasExited) { throw "frozen GUI exited early with code $($p.ExitCode)" }
           Stop-Process -Id $p.Id -Force
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
           if (-not (Test-Path $iscc)) { choco install innosetup --no-progress -y }
-          & $iscc packaging\windows\khmerclip.iss
+          & $iscc packaging\windows\khmerclipper.iss
       - name: AppImage + smoke test (Linux)
         if: runner.os == 'Linux'
         run: |
           packaging/linux/build_appimage.sh "${{ steps.ver.outputs.version }}"
           # Prove the AppImage uses its bundled tesseract, not the runner's.
           sudo apt-get remove -y tesseract-ocr
-          APPIMAGE_EXTRACT_AND_RUN=1 "dist/KhmerClip-${{ steps.ver.outputs.version }}-x86_64.AppImage" \
+          APPIMAGE_EXTRACT_AND_RUN=1 "dist/KhmerClipper-${{ steps.ver.outputs.version }}-x86_64.AppImage" \
             ocr ../mac/Tests/Fixtures/ocr/1.png -o smoke.txt
           test -s smoke.txt && cat smoke.txt
           # GUI smoke: the tray app must load the bundled Qt xcb plugin and stay up.
           # timeout's exit 124 = still running after 15 s = pass; anything else = crash.
           set +e
-          APPIMAGE_EXTRACT_AND_RUN=1 xvfb-run -a timeout 15 "dist/KhmerClip-${{ steps.ver.outputs.version }}-x86_64.AppImage"
+          APPIMAGE_EXTRACT_AND_RUN=1 xvfb-run -a timeout 15 "dist/KhmerClipper-${{ steps.ver.outputs.version }}-x86_64.AppImage"
           code=$?
           set -e
           test "$code" -eq 124 || { echo "frozen GUI exited early with code $code"; exit 1; }
@@ -115,26 +115,26 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           packaging/linux/build_deb.sh "${{ steps.ver.outputs.version }}"
-          deb="dist/khmerclip_${{ steps.ver.outputs.version }}_amd64.deb"
+          deb="dist/khmerclipper_${{ steps.ver.outputs.version }}_amd64.deb"
           dpkg-deb --info "$deb"
           sudo apt-get install -y "./$deb"
-          # tesseract-ocr was removed above: this must use the copy bundled in /opt/khmerclip.
-          # Full path: `pip install -e .` put a dev `khmerclip` script earlier on PATH.
-          /usr/bin/khmerclip ocr ../mac/Tests/Fixtures/ocr/1.png -o smoke-deb.txt
+          # tesseract-ocr was removed above: this must use the copy bundled in /opt/khmerclipper.
+          # Full path: `pip install -e .` put a dev `khmerclipper` script earlier on PATH.
+          /usr/bin/khmerclipper ocr ../mac/Tests/Fixtures/ocr/1.png -o smoke-deb.txt
           test -s smoke-deb.txt && cat smoke-deb.txt
           set +e
-          xvfb-run -a timeout 15 /usr/bin/khmerclip
+          xvfb-run -a timeout 15 /usr/bin/khmerclipper
           code=$?
           set -e
           test "$code" -eq 124 || { echo "installed GUI exited early with code $code"; exit 1; }
-          sudo apt-get remove -y khmerclip
+          sudo apt-get remove -y khmerclipper
       - uses: actions/upload-artifact@v4
         with:
-          name: khmerclip-${{ runner.os }}
+          name: khmerclipper-${{ runner.os }}
           path: |
-            apps/desktop/dist/KhmerClip-*-setup.exe
-            apps/desktop/dist/KhmerClip-*.AppImage
-            apps/desktop/dist/khmerclip_*_amd64.deb
+            apps/desktop/dist/KhmerClipper-*-setup.exe
+            apps/desktop/dist/KhmerClipper-*.AppImage
+            apps/desktop/dist/khmerclipper_*_amd64.deb
           if-no-files-found: error
 
   release:
@@ -150,7 +150,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Tag must match __version__
         run: |
-          ver=$(python3 -c "import re, pathlib; print(re.search(r'__version__ = \"(.+?)\"', pathlib.Path('apps/desktop/src/khmerclip/__init__.py').read_text()).group(1))")
+          ver=$(python3 -c "import re, pathlib; print(re.search(r'__version__ = \"(.+?)\"', pathlib.Path('apps/desktop/src/khmerclipper/__init__.py').read_text()).group(1))")
           test "desktop-v$ver" = "$GITHUB_REF_NAME" || { echo "tag $GITHUB_REF_NAME != desktop-v$ver"; exit 1; }
           echo "VERSION=$ver" >> "$GITHUB_ENV"
       - uses: actions/download-artifact@v4
@@ -164,8 +164,8 @@ jobs:
         # attached with `gh release upload`, then the draft is published by hand.
         run: |
           notes="docs/releases/v$VERSION.md"
-          [ -f "$notes" ] || { echo "KhmerClip $VERSION" > /tmp/notes.md; notes=/tmp/notes.md; }
+          [ -f "$notes" ] || { echo "KhmerClipper $VERSION" > /tmp/notes.md; notes=/tmp/notes.md; }
           gh release create "v$VERSION" artifacts/* \
             --repo "$GITHUB_REPOSITORY" \
-            --title "KhmerClip $VERSION" \
+            --title "KhmerClipper $VERSION" \
             --notes-file "$notes" --draft

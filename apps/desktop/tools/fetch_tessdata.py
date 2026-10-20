@@ -4,8 +4,8 @@ Same files (and hashes) the mac app vendors. Run from apps/desktop:
     .venv/bin/python tools/fetch_tessdata.py
 """
 
-from khmerclip.download import RemoteFile, download
-from khmerclip.ocr.tesseract import tessdata_dir
+from khmerclipper.download import RemoteFile, download
+from khmerclipper.ocr.tesseract import tessdata_dir
 
 BASE = "https://github.com/tesseract-ocr/tessdata_fast/raw/4.1.0/"
 FILES = [

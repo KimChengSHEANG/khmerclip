@@ -1,10 +1,10 @@
 """Global capture hotkey. pynput on Windows and X11; Wayland has no app-level global
-hotkeys, so users bind `khmerclip --capture` in their desktop settings instead."""
+hotkeys, so users bind `khmerclipper --capture` in their desktop settings instead."""
 
 import re
 from collections.abc import Callable
 
-from khmerclip.capture.geometry import capture_backend
+from khmerclipper.capture.geometry import capture_backend
 
 _MODS = {"ctrl": "<ctrl>", "shift": "<shift>", "alt": "<alt>", "meta": "<cmd>"}
 _NAMED = {"space": "<space>", "print": "<print_screen>"}

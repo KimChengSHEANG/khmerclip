@@ -23,7 +23,7 @@ struct OCRBenchMain {
                 throw CLIError.usage
             }
 
-            let vendorEnv = ProcessInfo.processInfo.environment["KHMERCLIP_VENDOR"]
+            let vendorEnv = ProcessInfo.processInfo.environment["KHMERCLIPPER_VENDOR"]
             let vendor = URL(fileURLWithPath: vendorEnv ?? "Vendor", isDirectory: true)
             TesseractEngine.resourceRootOverride = vendor.appendingPathComponent(
                 "tesseract",

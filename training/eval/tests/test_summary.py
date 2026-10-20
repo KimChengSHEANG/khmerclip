@@ -1,6 +1,6 @@
 import pytest
 
-from khmerclip_eval.summary import aggregate, passes_gate
+from khmerclipper_eval.summary import aggregate, passes_gate
 
 
 def test_aggregate_median_and_cer():

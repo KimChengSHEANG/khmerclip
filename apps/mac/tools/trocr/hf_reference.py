@@ -20,7 +20,7 @@ from transformers import LogitsProcessor, LogitsProcessorList, TrOCRProcessor, V
 
 REPO = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(REPO / "training/eval/src"))
-from khmerclip_eval.cer import character_error_rate  # noqa: E402
+from khmerclipper_eval.cer import character_error_rate  # noqa: E402
 
 MAX_LEN = 128   # == TrOCREngine.maxLength
 MAX_RUN = 4     # == TrOCREngine.maxRun

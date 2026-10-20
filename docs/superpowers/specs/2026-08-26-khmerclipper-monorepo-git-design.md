@@ -1,4 +1,4 @@
-# KhmerClip monorepo git organization
+# KhmerClipper monorepo git organization
 
 **Date:** 2026-08-26  
 **Status:** approved design (pending user review of this file)  
@@ -11,19 +11,19 @@
 | History | Preserve all three histories (`git filter-repo` + unrelated-history merges) |
 | Layout | `apps/mac/`, `training/easyocr/`, `training/trocr/` |
 | Dirty trees | Commit in each source repo before rewrite |
-| Remote | New **private** GitHub repo (prefer name `khmerclip`) |
+| Remote | New **private** GitHub repo (prefer name `khmerclipper`) |
 | Approach | filter-repo rewrite into subdirectory prefixes, then merge |
 
 ## Target layout
 
 ```
-khmerclip/                    # git root, branch main
+khmerclipper/                    # git root, branch main
   README.md                   # product overview + map to subprojects
   .gitignore                  # union of the three + root junk
   docs/superpowers/specs/     # this design (and later plans)
   apps/mac/                   # was mac/
-  training/easyocr/           # was EasyOCR-KhmerClip/
-  training/trocr/             # was TrOCR-KhmerClip/
+  training/easyocr/           # was EasyOCR-KhmerClipper/
+  training/trocr/             # was TrOCR-KhmerClipper/
 ```
 
 ### Ignore / never commit
@@ -41,11 +41,11 @@ Must stay out of git:
 
 ### Nested repos
 
-After the monorepo is the active checkout, there is a single `.git` at `khmerclip/`. Nested `.git` directories from the old three projects are not kept in the final tree.
+After the monorepo is the active checkout, there is a single `.git` at `khmerclipper/`. Nested `.git` directories from the old three projects are not kept in the final tree.
 
 ## Merge procedure
 
-Work in a **scratch directory** (e.g. `/tmp/khmerclip-merge`) until verified, then replace the workspace.
+Work in a **scratch directory** (e.g. `/tmp/khmerclipper-merge`) until verified, then replace the workspace.
 
 ### Prerequisites
 
@@ -55,7 +55,7 @@ Work in a **scratch directory** (e.g. `/tmp/khmerclip-merge`) until verified, th
 
 ### Steps
 
-1. **Commit dirty work** in `mac/` and `TrOCR-KhmerClip/` so uncommitted edits are in history before rewrite.
+1. **Commit dirty work** in `mac/` and `TrOCR-KhmerClipper/` so uncommitted edits are in history before rewrite.
 2. **Copy/clone** each repo into scratch; run `git filter-repo --to-subdirectory-filter <prefix>`:
    - mac → `apps/mac/`
    - EasyOCR → `training/easyocr/`
@@ -66,8 +66,8 @@ Work in a **scratch directory** (e.g. `/tmp/khmerclip-merge`) until verified, th
    - `git log --follow` on at least one file under each prefix
    - large artifact dirs still ignored / not staged
    - no nested `.git` in the working tree
-6. **Swap** verified tree into `khmerclip/` (keep pre-merge folders as backup until confirmed).
-7. **GitHub:** create private repo and push, e.g. `gh repo create khmerclip --private --source=. --remote=origin` then `git push -u origin main` (or create empty remote then push). If name taken, pick a close variant once, then ask.
+6. **Swap** verified tree into `khmerclipper/` (keep pre-merge folders as backup until confirmed).
+7. **GitHub:** create private repo and push, e.g. `gh repo create khmerclipper --private --source=. --remote=origin` then `git push -u origin main` (or create empty remote then push). If name taken, pick a close variant once, then ask.
 
 ### Risk notes
 
@@ -80,7 +80,7 @@ Work in a **scratch directory** (e.g. `/tmp/khmerclip-merge`) until verified, th
 
 Short overview:
 
-- KhmerClip = macOS menu-bar OCR app (Khmer + mixed Khmer/English)
+- KhmerClipper = macOS menu-bar OCR app (Khmer + mixed Khmer/English)
 - `apps/mac` = app
 - `training/easyocr` and `training/trocr` = training pipelines that feed app engines
 - Link to each subfolder README for build/train details
@@ -88,7 +88,7 @@ Short overview:
 
 ### Path updates
 
-Minimal only: fix Makefiles / READMEs / scripts that hardcode old folder names (`mac/`, `EasyOCR-KhmerClip/`, `TrOCR-KhmerClip/`) when those refs break after the move. No drive-by refactors.
+Minimal only: fix Makefiles / READMEs / scripts that hardcode old folder names (`mac/`, `EasyOCR-KhmerClipper/`, `TrOCR-KhmerClipper/`) when those refs break after the move. No drive-by refactors.
 
 ### Cleanup
 

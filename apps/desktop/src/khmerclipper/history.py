@@ -6,7 +6,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
-from khmerclip import paths
+from khmerclipper import paths
 
 
 def _now() -> str:

@@ -2,7 +2,7 @@ from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
-from khmerclip.ui.fonts import khmer_font
+from khmerclipper.ui.fonts import khmer_font
 
 PREVIEW_CHARS = 1500
 

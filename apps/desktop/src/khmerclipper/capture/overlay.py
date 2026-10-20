@@ -11,7 +11,7 @@ from PySide6.QtCore import QBuffer, QIODevice, QObject, QRect, Qt, Signal
 from PySide6.QtGui import QColor, QGuiApplication, QImage, QPainter, QPen, QPixmap, QRegion, QScreen
 from PySide6.QtWidgets import QWidget
 
-from khmerclip.capture.geometry import normalize_drag, to_physical
+from khmerclipper.capture.geometry import normalize_drag, to_physical
 
 
 def qimage_to_pil(image: QImage) -> Image.Image:

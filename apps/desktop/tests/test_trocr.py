@@ -7,9 +7,9 @@ import pytest
 from PIL import Image, ImageDraw
 
 from helpers import FIXTURES
-from khmerclip.errors import Cancelled
-from khmerclip.ocr import trocr
-from khmerclip.ocr.tokenizer import TrOCRTokenizer
+from khmerclipper.errors import Cancelled
+from khmerclipper.ocr import trocr
+from khmerclipper.ocr.tokenizer import TrOCRTokenizer
 
 TOKENIZER = TrOCRTokenizer({"kind": "bpe", "bos_id": 0, "eos_id": 2, "pad_id": 1, "unk_id": 3,
                             "decoder_start_id": 0, "literal_ids": [4, 5],
@@ -103,14 +103,14 @@ def test_contains_khmer():
     (("", 0.0), "Warrantly 11 months"),
 ])
 def test_latin_fallback_uses_confident_tesseract(monkeypatch, tess, expected):
-    from khmerclip.ocr import tesseract
+    from khmerclipper.ocr import tesseract
     monkeypatch.setattr(tesseract, "recognize_line", lambda img: tess)
     assert trocr.latin_fallback(Image.new("RGB", (10, 10)), "Warrantly 11 months") == expected
 
 
 def test_latin_fallback_keeps_khmer_and_survives_missing_tesseract(monkeypatch):
-    from khmerclip.errors import EngineUnavailable
-    from khmerclip.ocr import tesseract
+    from khmerclipper.errors import EngineUnavailable
+    from khmerclipper.ocr import tesseract
 
     def boom(img):
         raise EngineUnavailable("no tesseract")
@@ -119,7 +119,7 @@ def test_latin_fallback_keeps_khmer_and_survives_missing_tesseract(monkeypatch):
     assert trocr.latin_fallback(Image.new("RGB", (10, 10)), "កខ") == "កខ"
 
 
-@pytest.mark.skipif(not os.environ.get("KHMERCLIP_TROCR_DIR"), reason="set KHMERCLIP_TROCR_DIR to an exported model")
+@pytest.mark.skipif(not os.environ.get("KHMERCLIPPER_TROCR_DIR"), reason="set KHMERCLIPPER_TROCR_DIR to an exported model")
 def test_real_model_reads_fixture():
     with Image.open(FIXTURES / "1.png") as img:
         text = trocr.recognize(img)

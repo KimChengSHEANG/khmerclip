@@ -4,12 +4,12 @@ import sys
 import pytest
 from PIL import Image
 
-import khmerclip.ocr as ocr
-from khmerclip.__main__ import main
+import khmerclipper.ocr as ocr
+from khmerclipper.__main__ import main
 
 
 def test_dispatch_routes_by_engine(monkeypatch):
-    from khmerclip.ocr import tesseract, trocr
+    from khmerclipper.ocr import tesseract, trocr
     monkeypatch.setattr(tesseract, "recognize", lambda image: "tess")
     monkeypatch.setattr(trocr, "recognize", lambda image, progress=None, cancel=None: "tr")
     img = Image.new("RGB", (4, 4))
@@ -40,10 +40,10 @@ def test_cli_prints_to_stdout(tmp_path, monkeypatch, capsys):
 
 def test_cli_missing_file_exits_1(tmp_path, capsys):
     assert main(["ocr", str(tmp_path / "nope.png")]) == 1
-    assert "khmerclip:" in capsys.readouterr().err
+    assert "khmerclipper:" in capsys.readouterr().err
 
 
 def test_cli_ocr_path_does_not_import_qt():
-    code = "import sys, khmerclip.__main__, khmerclip.ocr.tesseract, khmerclip.ocr.trocr; print('PySide6' in sys.modules)"
+    code = "import sys, khmerclipper.__main__, khmerclipper.ocr.tesseract, khmerclipper.ocr.trocr; print('PySide6' in sys.modules)"
     out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True).stdout
     assert out.strip() == "False"

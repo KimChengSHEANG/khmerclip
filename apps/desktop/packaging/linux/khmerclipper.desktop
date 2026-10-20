@@ -1,8 +1,8 @@
 [Desktop Entry]
 Type=Application
-Name=KhmerClip
+Name=KhmerClipper
 Comment=Khmer OCR screen capture
-Exec=KhmerClip
-Icon=khmerclip
+Exec=KhmerClipper
+Icon=khmerclipper
 Categories=Utility;
 Terminal=false

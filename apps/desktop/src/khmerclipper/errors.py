@@ -1,8 +1,8 @@
-class KhmerClipError(Exception):
+class KhmerClipperError(Exception):
     """A failure whose str() is shown to the user as-is."""
 
 
-class EngineUnavailable(KhmerClipError):
+class EngineUnavailable(KhmerClipperError):
     """The chosen OCR engine can't run (binary/model missing)."""
 
 

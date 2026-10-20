@@ -2,7 +2,7 @@ import json
 
 from PIL import Image
 
-from khmerclip.history import HistoryStore, ScanRecord
+from khmerclipper.history import HistoryStore, ScanRecord
 
 
 def test_add_puts_newest_first_and_persists(tmp_path):

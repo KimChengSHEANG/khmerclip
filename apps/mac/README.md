@@ -1,4 +1,4 @@
-# KhmerClip
+# KhmerClipper
 
 Khmer OCR menu bar app for macOS — grab-select any text on screen, get instant Khmer (and mixed Khmer/English) text extraction. A TextSniper clone with Khmer support as the primary focus.
 
@@ -14,14 +14,14 @@ Khmer OCR menu bar app for macOS — grab-select any text on screen, get instant
   Vision (`VNRecognizeTextRequest`) does not support Khmer at all (verified on macOS 26 / Xcode 26.6 — not in `supportedRecognitionLanguages`), so none of the engines use Vision for text.
 - **Auto-copy to clipboard** on every successful capture.
 - **Result HUD** — transient floating panel after capture.
-- **Scan history** — persisted to `~/Library/Application Support/KhmerClip/history.json`, with copy/speak/translate/delete per entry.
+- **Scan history** — persisted to `~/Library/Application Support/KhmerClipper/history.json`, with copy/speak/translate/delete per entry.
 - **Text-to-speech** — `AVSpeechSynthesizer`, Khmer voice preferred.
 - **Translate** — Apple's on-device Translation framework, opened from history.
 - **Global hotkeys** — customizable (Carbon `RegisterEventHotKey`), for text capture.
 - **Launch at login** — `SMAppService`.
 - **Preferences window** — hotkey recorder, behavior toggles.
 - **Onboarding window** — shown once on first launch (menu bar → "Welcome / Permissions…" to re-open): explains the app, live-checks Screen Recording access via `CGPreflightScreenCaptureAccess()`, and links straight to the System Settings pane.
-- **Check for Updates…** — opens the latest [GitHub release](https://github.com/KimChengSHEANG/khmerclip/releases/latest).
+- **Check for Updates…** — opens the latest [GitHub release](https://github.com/KimChengSHEANG/khmerclipper/releases/latest).
 - **Menu bar only app** (`LSUIElement`), no dock icon, custom app icon.
 
 ## OCR engines
@@ -94,31 +94,31 @@ Operator checklist:
 
 ### Accuracy note (Tesseract, historical)
 
-Rendered `"សួស្តី​ពិភពលោក! KhmerClip ២០២៦"` through CoreText (proper Khmer shaping), compiled the Tesseract OCR call chain into a standalone test binary, and got an exact match. A naive PIL-rendered image (no Khmer glyph reordering) produced garbage — not representative of real on-screen text.
+Rendered `"សួស្តី​ពិភពលោក! KhmerClipper ២០២៦"` through CoreText (proper Khmer shaping), compiled the Tesseract OCR call chain into a standalone test binary, and got an exact match. A naive PIL-rendered image (no Khmer glyph reordering) produced garbage — not representative of real on-screen text.
 
 ## Runtime verification performed
 
 This environment has no window manager by default for the sandboxed shell tool, but running Bash with the sandbox disabled gave real WindowServer/Accessibility access, so the actual built `.app` was driven end-to-end rather than just compiled:
 
-- Launched the built `.app`, used Accessibility (`System Events`) to `AXPress` the real status item, and confirmed its menu contents match the code exactly (`Capture Text, Preserve Linebreaks, History…, Preferences…, Welcome / Permissions…, Check for Updates…, Quit KhmerClip`).
+- Launched the built `.app`, used Accessibility (`System Events`) to `AXPress` the real status item, and confirmed its menu contents match the code exactly (`Capture Text, Preserve Linebreaks, History…, Preferences…, Welcome / Permissions…, Check for Updates…, Quit KhmerClipper`).
 - Clicked "Capture Text", then posted a synthetic `CGEvent` mouse drag. Confirmed via Accessibility + `log show` that this created a full-screen overlay window at the exact correct frame, dismissed it on mouse-up, and triggered a real `SCShareableContent`/ScreenCaptureKit call (visible in the unified log, no permission errors), followed by a result window appearing.
 - Verified the Tesseract OCR call chain against a real CoreText-rendered Khmer+English+numeral string via a standalone compile — see "Accuracy note" above.
 - Compiled the app icon through `actool` with zero warnings and confirmed the resulting `.icns` renders correctly (rounded-square masking applied by the OS, as expected for a full-bleed source image).
-- (Historical) Verified a Vision `fr-FR` path when the app still had a non-Khmer engine option — exact match on `"Bonjour le monde! KhmerClip 2026"`. Vision is not used for Khmer; the current app routes text capture through Tesseract / TrOCR per Preferences.
+- (Historical) Verified a Vision `fr-FR` path when the app still had a non-Khmer engine option — exact match on `"Bonjour le monde! KhmerClipper 2026"`. Vision is not used for Khmer; the current app routes text capture through Tesseract / TrOCR per Preferences.
 - Launched the onboarding window for real and confirmed `CGPreflightScreenCaptureAccess()` reflects live state (screenshot-verified: warning icon + explanatory text render correctly).
 
 What's still unconfirmed: the *exact string* a live capture returns landing in the clipboard/HUD/history in one continuous human-driven run (UI-automation timing made this fiddly to script reliably — clicks and drags each independently proved to work, but chaining all of them through AppleScript in one shot raced against SwiftUI's async accessibility tree). Functionally this is very low risk: it's the same `recognize(image:mode:)` method already proven correct, called from wiring that's each been independently proven to fire.
 
 ## Code signing, notarization & distribution
 
-`make release-mac` (repo root) runs `tools/release.sh`: a Release build, every Mach-O inside the app (the vendored `tesseract` and its dylibs, then the app) signed with the hardened runtime, a drag-to-Applications `dist/KhmerClip-<version>.dmg`, then notarization and stapling.
+`make release-mac` (repo root) runs `tools/release.sh`: a Release build, every Mach-O inside the app (the vendored `tesseract` and its dylibs, then the app) signed with the hardened runtime, a drag-to-Applications `dist/KhmerClipper-<version>.dmg`, then notarization and stapling.
 
 ```bash
 # once: a Developer ID Application certificate in the keychain (Xcode → Settings → Accounts → Manage Certificates),
 # and notarytool credentials (prompts for an app-specific password from appleid.apple.com)
-xcrun notarytool store-credentials khmerclip --apple-id <apple-id> --team-id <TEAMID>
+xcrun notarytool store-credentials khmerclipper --apple-id <apple-id> --team-id <TEAMID>
 
-SIGN_ID="Developer ID Application: <Name> (<TEAMID>)" NOTARY_PROFILE=khmerclip make release-mac
+SIGN_ID="Developer ID Application: <Name> (<TEAMID>)" NOTARY_PROFILE=khmerclipper make release-mac
 ```
 
 Without `SIGN_ID` the dmg is ad-hoc signed and Gatekeeper blocks it on other Macs.
@@ -138,7 +138,7 @@ Vendor/
 Resources/
   Assets.xcassets/       # AppIcon.appiconset
 Sources/
-  App/                   # KhmerClipApp entry point + AppDelegate (status item, wiring)
+  App/                   # KhmerClipperApp entry point + AppDelegate (status item, wiring)
   Capture/               # selection overlay, window-picker, ScreenCaptureKit, clipboard, HUD
   OCR/                   # TesseractEngine, TrOCREngine, OCRDispatcher
   Barcode/               # Vision barcode/QR detection
@@ -163,7 +163,7 @@ raw_models/              # local HF checkpoints (gitignored), e.g. TrOCR-khmer/
 
 - **macOS 15+** (deployment target)
 - **Xcode 16+** with Command Line Tools (`xcode-select --install`)
-- **[XcodeGen](https://github.com/yonaskolb/XcodeGen)** — generates `KhmerClip.xcodeproj` from `project.yml`:
+- **[XcodeGen](https://github.com/yonaskolb/XcodeGen)** — generates `KhmerClipper.xcodeproj` from `project.yml`:
   ```bash
   brew install xcodegen
   ```
@@ -173,23 +173,23 @@ No Python needed unless you set up TrOCR models.
 ### Clone and build
 
 ```bash
-git clone <repo-url> khmerclip
-cd khmerclip/apps/mac
+git clone <repo-url> khmerclipper
+cd khmerclipper/apps/mac
 
 make run    # gen + build + open Debug .app
 ```
 
-`make run` outputs to `build/Build/Products/Debug/KhmerClip.app`. Menu bar icon appears (no Dock icon — `LSUIElement`). First launch shows onboarding; grant **Screen Recording** when prompted (System Settings → Privacy & Security → Screen Recording).
+`make run` outputs to `build/Build/Products/Debug/KhmerClipper.app`. Menu bar icon appears (no Dock icon — `LSUIElement`). First launch shows onboarding; grant **Screen Recording** when prompted (System Settings → Privacy & Security → Screen Recording).
 
 ### Makefile targets
 
 | Target | What it does |
 |--------|----------------|
-| `make gen` | `xcodegen generate` — regenerate `KhmerClip.xcodeproj` after editing `project.yml` |
-| `make build` | `gen` + `xcodebuild` Debug build → `build/Build/Products/Debug/KhmerClip.app` |
-| `make run` | `build`, kill any running KhmerClip, register with LaunchServices, `open` the `.app` |
-| `make test` | `gen` + run `KhmerClipTests` (Tesseract OCR fixture regression) |
-| `make clean` | Remove `build/` and `KhmerClip.xcodeproj` |
+| `make gen` | `xcodegen generate` — regenerate `KhmerClipper.xcodeproj` after editing `project.yml` |
+| `make build` | `gen` + `xcodebuild` Debug build → `build/Build/Products/Debug/KhmerClipper.app` |
+| `make run` | `build`, kill any running KhmerClipper, register with LaunchServices, `open` the `.app` |
+| `make test` | `gen` + run `KhmerClipperTests` (Tesseract OCR fixture regression) |
+| `make clean` | Remove `build/` and `KhmerClipper.xcodeproj` |
 | `make trocr-khmer` | Convert `raw_models/TrOCR-khmer` → CoreML in `Vendor/trocr/khmer/` |
 | `make trocr-models` | Convert all TrOCR size tiers (large download) |
 
@@ -197,10 +197,10 @@ make run    # gen + build + open Debug .app
 
 ```bash
 make gen
-open KhmerClip.xcodeproj
+open KhmerClipper.xcodeproj
 ```
 
-Select the **KhmerClip** scheme, pick **My Mac**, press **⌘R**. Built app lands in Xcode's DerivedData (or `build/` if you set `-derivedDataPath build` like the Makefile).
+Select the **KhmerClipper** scheme, pick **My Mac**, press **⌘R**. Built app lands in Xcode's DerivedData (or `build/` if you set `-derivedDataPath build` like the Makefile).
 
 ### OCR before first capture
 
@@ -220,7 +220,7 @@ After any vendor model or venv change, **rebuild** (`make build` or `make run`) 
 ### Run built app manually
 
 ```bash
-open build/Build/Products/Debug/KhmerClip.app
+open build/Build/Products/Debug/KhmerClipper.app
 ```
 
 Or double-click in Finder. `make run` is preferred — it re-registers the app with LaunchServices (avoids `open` returning -600 on fresh builds).

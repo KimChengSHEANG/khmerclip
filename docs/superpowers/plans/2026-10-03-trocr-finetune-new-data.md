@@ -6,15 +6,15 @@
 
 **Architecture:** Extend `trocr_khmer.data_sources` with pinned-file dataset specs (fixes eval leakage, adds new HF datasets, local parquet and image folders), per-source holdout + weighted resampling + long-row filtering. Add a raqm-shaped synthetic line renderer (`trocr_khmer.synth`) that pre-renders seeded parquet shards across 33 Google Fonts Khmer files. `train.py` learns to start a *fresh* Trainer from a previous run's `final/` (reusing its Khmer tokenizer unchanged), with fine-tune LR/warmup and early stopping.
 
-**Tech Stack:** Python 3.12 (pyenv venv `khmerclip` on the 3090 box), PyTorch 2.12 + CUDA, transformers 4.57 (<5), datasets 5.0, Pillow 12.3 with libraqm, fontTools (new), pytest 9.
+**Tech Stack:** Python 3.12 (pyenv venv `khmerclipper` on the 3090 box), PyTorch 2.12 + CUDA, transformers 4.57 (<5), datasets 5.0, Pillow 12.3 with libraqm, fontTools (new), pytest 9.
 
 **Spec:** [docs/superpowers/specs/2026-08-27-khmer-ocr-accuracy-speed-design.md](../specs/2026-08-27-khmer-ocr-accuracy-speed-design.md) (parent design; its pass/fail gate and Mac CoreML flow still apply). This plan's own goals/constraints are below — there is no separate spec for this follow-up.
 
 ## Context the engineer needs (read first)
 
-- **Where training runs:** `ssh kim@192.168.1.25`, repo at `/home/kim/Sync/workspace/khmerclip`, trainer at `training/trocr`. Python: `~/.pyenv/versions/khmerclip/bin/python` (has torch, transformers, datasets, pytest, editable `trocr_khmer` and `khmerclip_eval`). RTX 3090 24GB, 12 cores, 31GB RAM, ~366GB free disk.
+- **Where training runs:** `ssh kim@192.168.1.25`, repo at `/home/kim/Sync/workspace/khmerclipper`, trainer at `training/trocr`. Python: `~/.pyenv/versions/khmerclipper/bin/python` (has torch, transformers, datasets, pytest, editable `trocr_khmer` and `khmerclipper_eval`). RTX 3090 24GB, 12 cores, 31GB RAM, ~366GB free disk.
 - **Worktree:** all work happens on branch `feat/trocr-finetune-data` in the worktree `.worktrees/trocr-finetune-data` (Task 0). Every relative path and `git` command in this plan runs from that worktree root, never from the main checkout.
-- **Code sync:** the repo lives under `~/Sync` on both machines (Syncthing). Syncthing **ignores** `experiments/`, `cache/`, `__pycache__`, `.venv`. Edit on the Mac; Task 1 adds `training/trocr/scripts/remote.sh`, which rsyncs this checkout's `training/trocr` + `training/eval` to the **same path on the box** (`/home/kim/Sync/workspace/khmerclip/.worktrees/trocr-finetune-data/training`) and runs a command there with `PYTHONPATH=src:../eval/src`. Use it for every test/run so you never race Syncthing. The box's main checkout stays untouched; its `experiments/` (old checkpoints + the new run) is reached through a symlink (Task 1 Step 1b).
+- **Code sync:** the repo lives under `~/Sync` on both machines (Syncthing). Syncthing **ignores** `experiments/`, `cache/`, `__pycache__`, `.venv`. Edit on the Mac; Task 1 adds `training/trocr/scripts/remote.sh`, which rsyncs this checkout's `training/trocr` + `training/eval` to the **same path on the box** (`/home/kim/Sync/workspace/khmerclipper/.worktrees/trocr-finetune-data/training`) and runs a command there with `PYTHONPATH=src:../eval/src`. Use it for every test/run so you never race Syncthing. The box's main checkout stays untouched; its `experiments/` (old checkpoints + the new run) is reached through a symlink (Task 1 Step 1b).
 - **What "the last trained model" is:** a single long run `experiments/checkpoint-3` (resumed from checkpoint-1 → 2 → 3; all 5 datasets, 3,513,080 steps, 10 epochs, lr 5e-5). Its mid-train CER was **best (0.0381) at step 72,000**, then drifted to ~0.38 at the end. Because `load_best_model_at_end=True`, `experiments/checkpoint-3/final/model.safetensors` is byte-identical (sha256 `04c0ac11…`) to `experiments/checkpoint-1/checkpoint-72000`. The literal last step is `experiments/checkpoint-3/checkpoint-3513080` (sha256 `71c48269…`). Task 1 measures both; default init is `final/`.
 - **Do not use `--resume_from_checkpoint`** to fine-tune: it restores global_step 3.5M of max_steps 3,513,080 plus the old optimizer/LR schedule, so the Trainer considers itself done. Fine-tuning = `--model_name <dir>` with a fresh Trainer (Task 4).
 - **Leakage found:** `SoyVitou/62k-images-khmer-printed-dataset` exposes `trainset/validset/testset.parquet` but the hub card groups all 62,680 rows under `train`, so the old `soyvitou` alias trained on `testset.parquet` — the source of the 100 printed eval fixtures. Baseline printed-fixture CER for the old model is therefore optimistic. Task 2 pins soyvitou to train+valid. Keep fixtures frozen.
@@ -33,7 +33,7 @@
 
 ## Global Constraints
 
-- Remote host `kim@192.168.1.25`; remote repo `/home/kim/Sync/workspace/khmerclip`; remote worktree mirror `/home/kim/Sync/workspace/khmerclip/.worktrees/trocr-finetune-data`; remote python `~/.pyenv/versions/khmerclip/bin/python`.
+- Remote host `kim@192.168.1.25`; remote repo `/home/kim/Sync/workspace/khmerclipper`; remote worktree mirror `/home/kim/Sync/workspace/khmerclipper/.worktrees/trocr-finetune-data`; remote python `~/.pyenv/versions/khmerclipper/bin/python`.
 - Branch `feat/trocr-finetune-data` in worktree `.worktrees/trocr-finetune-data`; nothing is committed to `main` until the branch is finished (Task 9 Step 10).
 - Remote commands must import the worktree's code: always `PYTHONPATH=src:../eval/src` (built into `remote.sh` and the tmux commands).
 - `transformers>=4.40.0,<5` stays pinned (pyproject); do not upgrade torch/transformers/datasets.
@@ -69,7 +69,7 @@
 The repo already uses `.worktrees/` (gitignored). From the main checkout:
 
 ```bash
-cd /Users/kim/Sync/workspace/khmerclip
+cd /Users/kim/Sync/workspace/khmerclipper
 git status --short   # expect only: ?? docs/superpowers/plans/2026-10-03-trocr-finetune-new-data.md
 git worktree add .worktrees/trocr-finetune-data -b feat/trocr-finetune-data main
 mkdir -p .worktrees/trocr-finetune-data/docs/superpowers/plans
@@ -99,7 +99,7 @@ git commit -m "docs: plan for TrOCR fine-tune on new Khmer data"
 - Modify: `training/trocr/.gitignore` (add `cache/`)
 
 **Interfaces:**
-- Produces: `training/trocr/scripts/remote.sh '<command>'` — rsyncs code, runs `<command>` in remote `training/trocr` with the khmerclip venv first on `PATH`. `python ../eval/scripts/subset_cer.py <csv>` prints per-subset CER. `experiments/last-step/` on the box: loadable model dir for the literal last step.
+- Produces: `training/trocr/scripts/remote.sh '<command>'` — rsyncs code, runs `<command>` in remote `training/trocr` with the khmerclipper venv first on `PATH`. `python ../eval/scripts/subset_cer.py <csv>` prints per-subset CER. `experiments/last-step/` on the box: loadable model dir for the literal last step.
 
 - [ ] **Step 1: Write `remote.sh`**
 
@@ -111,7 +111,7 @@ git commit -m "docs: plan for TrOCR fine-tune on new Khmer data"
 set -euo pipefail
 HOST=${TROCR_HOST:-kim@192.168.1.25}
 cd "$(dirname "$0")/../.."  # -> training/ of this checkout (main or a worktree)
-# Mirror the same path under ~/Sync on the box, e.g. .../khmerclip/.worktrees/trocr-finetune-data/training,
+# Mirror the same path under ~/Sync on the box, e.g. .../khmerclipper/.worktrees/trocr-finetune-data/training,
 # so a worktree never overwrites the main checkout there (Syncthing would carry that back to main).
 REMOTE_TRAINING=/home/kim/${PWD#"$HOME"/}
 ssh "$HOST" "mkdir -p $REMOTE_TRAINING"
@@ -120,17 +120,17 @@ rsync -a \
   --exclude venv --exclude .venv --exclude '*.egg-info' \
   trocr eval "$HOST:$REMOTE_TRAINING/"
 # PYTHONPATH beats the venv's editable trocr_khmer install, which points at main's src.
-ssh "$HOST" "cd $REMOTE_TRAINING/trocr && export PATH=\$HOME/.pyenv/versions/khmerclip/bin:\$PATH && export PYTHONPATH=src:../eval/src && $1"
+ssh "$HOST" "cd $REMOTE_TRAINING/trocr && export PATH=\$HOME/.pyenv/versions/khmerclipper/bin:\$PATH && export PYTHONPATH=src:../eval/src && $1"
 ```
 
 Run: `chmod +x training/trocr/scripts/remote.sh && training/trocr/scripts/remote.sh 'python -c "import torch, trocr_khmer; print(torch.cuda.is_available(), trocr_khmer.__file__)"'`
-Expected: `True /home/kim/Sync/workspace/khmerclip/.worktrees/trocr-finetune-data/training/trocr/src/trocr_khmer/__init__.py` — a path under `main`'s `training/trocr/src` means PYTHONPATH isn't taking effect; fix before continuing.
+Expected: `True /home/kim/Sync/workspace/khmerclipper/.worktrees/trocr-finetune-data/training/trocr/src/trocr_khmer/__init__.py` — a path under `main`'s `training/trocr/src` means PYTHONPATH isn't taking effect; fix before continuing.
 
 - [ ] **Step 1b: Link the existing checkpoints into the remote worktree**
 
 `experiments/` (the old runs, and where the new run lands) stays in the main checkout on the box; symlink it so every relative `experiments/...` path in this plan works from the worktree. Syncthing ignores `experiments`, so the link stays box-local.
 
-Run: `training/trocr/scripts/remote.sh 'ln -sfn /home/kim/Sync/workspace/khmerclip/training/trocr/experiments experiments && ls experiments && python -m pytest tests -q'`
+Run: `training/trocr/scripts/remote.sh 'ln -sfn /home/kim/Sync/workspace/khmerclipper/training/trocr/experiments experiments && ls experiments && python -m pytest tests -q'`
 Expected: `checkpoint-1  checkpoint-2  checkpoint-3`, then the existing tests pass (clean baseline for the branch).
 
 - [ ] **Step 2: Ignore generated data in git**
@@ -1513,7 +1513,7 @@ from datasets import load_dataset
 ds = load_dataset(\"parquet\", data_files=\"cache/synth/preview/*.parquet\", split=\"train\")
 for i, r in enumerate(ds): r[\"image\"].save(f\"cache/synth/preview/{i:02d}.png\")
 print(ds.to_pandas()[[\"text\", \"font\", \"kind\", \"style\", \"italic\"]].to_string())"'
-mkdir -p "$TMPDIR/synth-preview" && scp 'kim@192.168.1.25:/home/kim/Sync/workspace/khmerclip/.worktrees/trocr-finetune-data/training/trocr/cache/synth/preview/*.png' "$TMPDIR/synth-preview/"
+mkdir -p "$TMPDIR/synth-preview" && scp 'kim@192.168.1.25:/home/kim/Sync/workspace/khmerclipper/.worktrees/trocr-finetune-data/training/trocr/cache/synth/preview/*.png' "$TMPDIR/synth-preview/"
 ```
 
 Then open/Read 10+ of the PNGs alongside the printed table.
@@ -1523,10 +1523,10 @@ Expected: 40 rows across several fonts/kinds/styles. **Check by eye**: subscript
 - [ ] **Step 3: Render the real shards (detached)**
 
 ```bash
-ssh kim@192.168.1.25 "tmux new -d -s synth 'cd /home/kim/Sync/workspace/khmerclip/.worktrees/trocr-finetune-data/training/trocr && export PATH=\$HOME/.pyenv/versions/khmerclip/bin:\$PATH && export PYTHONPATH=src:../eval/src && rm -rf cache/synth/preview && python scripts/render_synth.py --part val --count 3000 --seed 2 --out cache/synth/val && python scripts/render_synth.py --part train --count 400000 --seed 1 --out cache/synth/train 2>&1 | tee cache/synth/render.log'"
+ssh kim@192.168.1.25 "tmux new -d -s synth 'cd /home/kim/Sync/workspace/khmerclipper/.worktrees/trocr-finetune-data/training/trocr && export PATH=\$HOME/.pyenv/versions/khmerclipper/bin:\$PATH && export PYTHONPATH=src:../eval/src && rm -rf cache/synth/preview && python scripts/render_synth.py --part val --count 3000 --seed 2 --out cache/synth/val && python scripts/render_synth.py --part train --count 400000 --seed 1 --out cache/synth/train 2>&1 | tee cache/synth/render.log'"
 ```
 
-Check later with `ssh kim@192.168.1.25 'tail -3 /home/kim/Sync/workspace/khmerclip/.worktrees/trocr-finetune-data/training/trocr/cache/synth/render.log'` — expected to end with `shard 39: 400000/400000`. Continue with Steps 4–6 while it runs (they use the CPU lightly / the GPU only for eval).
+Check later with `ssh kim@192.168.1.25 'tail -3 /home/kim/Sync/workspace/khmerclipper/.worktrees/trocr-finetune-data/training/trocr/cache/synth/render.log'` — expected to end with `shard 39: 400000/400000`. Continue with Steps 4–6 while it runs (they use the CPU lightly / the GPU only for eval).
 
 - [ ] **Step 4: Write `data_stats.py`**
 
@@ -1665,7 +1665,7 @@ Expected: nine `train …/eval …` lines, `Added 0 Khmer tokens`, run completes
 - [ ] **Step 3: Launch the real run in tmux**
 
 ```bash
-ssh kim@192.168.1.25 "tmux new -d -s finetune 'cd /home/kim/Sync/workspace/khmerclip/.worktrees/trocr-finetune-data/training/trocr && export PATH=\$HOME/.pyenv/versions/khmerclip/bin:\$PATH && export PYTHONPATH=src:../eval/src && rm -rf experiments/smoke-mix experiments/smoke-ft experiments/smoke-full && python scripts/train.py \
+ssh kim@192.168.1.25 "tmux new -d -s finetune 'cd /home/kim/Sync/workspace/khmerclipper/.worktrees/trocr-finetune-data/training/trocr && export PATH=\$HOME/.pyenv/versions/khmerclipper/bin:\$PATH && export PYTHONPATH=src:../eval/src && rm -rf experiments/smoke-mix experiments/smoke-ft experiments/smoke-full && python scripts/train.py \
   --model_name experiments/checkpoint-3/final \
   --datasets handwriting:60000 synth:400000 darayut:100000 siemreap:100000 soyvitou:60000 sokheng:80000 hanuman:80000 kiteaether:60000 mrrtmob:200000 \
   --augment --epochs 3 --lr 2e-5 --warmup_steps 1000 \
@@ -1680,12 +1680,12 @@ Why these numbers: ~1.14M rows/epoch ≈ 35.6k steps at batch 32; 3 epochs ≈ 1
 After ~30 min:
 
 ```bash
-ssh kim@192.168.1.25 'cd /home/kim/Sync/workspace/khmerclip/.worktrees/trocr-finetune-data/training/trocr && grep -o "Writing this run to .*" experiments/finetune.log && grep -o "eval_cer.\{0,12\}" experiments/finetune.log | tail -3'
+ssh kim@192.168.1.25 'cd /home/kim/Sync/workspace/khmerclipper/.worktrees/trocr-finetune-data/training/trocr && grep -o "Writing this run to .*" experiments/finetune.log && grep -o "eval_cer.\{0,12\}" experiments/finetune.log | tail -3'
 ```
 
 Expected: the run dir (e.g. `experiments/checkpoint-4`) and finite eval_cer values not climbing toward 1.0. If the first eval_cer is ≥ 0.5, kill it (`ssh kim@192.168.1.25 tmux kill-session -t finetune`) and debug — the init weights did not carry over.
 
-Optional live view: `ssh -L 6006:localhost:6006 kim@192.168.1.25 '~/.pyenv/versions/khmerclip/bin/tensorboard --logdir /home/kim/Sync/workspace/khmerclip/.worktrees/trocr-finetune-data/training/trocr/experiments/checkpoint-4'`, then browse `http://localhost:6006`.
+Optional live view: `ssh -L 6006:localhost:6006 kim@192.168.1.25 '~/.pyenv/versions/khmerclipper/bin/tensorboard --logdir /home/kim/Sync/workspace/khmerclipper/.worktrees/trocr-finetune-data/training/trocr/experiments/checkpoint-4'`, then browse `http://localhost:6006`.
 
 - [ ] **Step 5: When done**
 
@@ -1743,7 +1743,7 @@ Proceed to Task 9 either way: it puts the new model in the Mac app so you can tr
 
 ### Task 9: Copy the model to the Mac, build and run the app
 
-Runs on **this Mac** in the **main checkout** `/Users/kim/Sync/workspace/khmerclip/apps/mac` — not the worktree. `raw_models/`, `Vendor/` and `.trocr-venv/` are gitignored and Syncthing-ignored, so they exist only in main. The branch changes nothing under `apps/mac`, so building from main is correct. Result docs are edited and committed in the worktree.
+Runs on **this Mac** in the **main checkout** `/Users/kim/Sync/workspace/khmerclipper/apps/mac` — not the worktree. `raw_models/`, `Vendor/` and `.trocr-venv/` are gitignored and Syncthing-ignored, so they exist only in main. The branch changes nothing under `apps/mac`, so building from main is correct. Result docs are edited and committed in the worktree.
 
 **Files:**
 - Replace (gitignored, main checkout): `apps/mac/raw_models/TrOCR-khmer/` ← box `experiments/checkpoint-4/final/`
@@ -1753,14 +1753,14 @@ Runs on **this Mac** in the **main checkout** `/Users/kim/Sync/workspace/khmercl
 
 **Interfaces:**
 - Consumes: `experiments/checkpoint-4/final` on the box (Task 7; use the real N). Main-checkout Makefile targets: `make trocr-khmer` (convert `KHMER_CKPT=raw_models/TrOCR-khmer` → `Vendor/trocr/khmer`), `make build`, `make test`, `make run`. Existing `.trocr-venv` (coremltools 9.0, transformers 4.57.6).
-- Produces: `build/Build/Products/Debug/KhmerClip.app` running the fine-tuned model; Mac CoreML CER/latency vs Tesseract.
+- Produces: `build/Build/Products/Debug/KhmerClipper.app` running the fine-tuned model; Mac CoreML CER/latency vs Tesseract.
 
 - [ ] **Step 1: Back up the current model**
 
 The current local checkpoint is the old step-72k model (sha256 `04c0ac11…`, same as `checkpoint-3/final`). Keep it and its CoreML conversion for rollback. Put the CoreML backup in `raw_models/`, not `Vendor/`: the whole `Vendor/trocr` folder is bundled into the app.
 
 ```bash
-cd /Users/kim/Sync/workspace/khmerclip/apps/mac
+cd /Users/kim/Sync/workspace/khmerclipper/apps/mac
 shasum -a 256 raw_models/TrOCR-khmer/model.safetensors | cut -c1-16   # expect 04c0ac11e85d3665
 mv raw_models/TrOCR-khmer raw_models/TrOCR-khmer-v0-step72k
 cp -R Vendor/trocr/khmer raw_models/khmer-coreml-v0-step72k
@@ -1771,10 +1771,10 @@ Expected: the hash prints `04c0ac11e85d3665`. If it doesn't, stop and ask what m
 - [ ] **Step 2: Copy the fine-tuned checkpoint from the box**
 
 ```bash
-cd /Users/kim/Sync/workspace/khmerclip/apps/mac
-rsync -avL kim@192.168.1.25:/home/kim/Sync/workspace/khmerclip/training/trocr/experiments/checkpoint-4/final/ raw_models/TrOCR-khmer/
+cd /Users/kim/Sync/workspace/khmerclipper/apps/mac
+rsync -avL kim@192.168.1.25:/home/kim/Sync/workspace/khmerclipper/training/trocr/experiments/checkpoint-4/final/ raw_models/TrOCR-khmer/
 shasum -a 256 raw_models/TrOCR-khmer/model.safetensors | cut -d' ' -f1
-ssh kim@192.168.1.25 'sha256sum /home/kim/Sync/workspace/khmerclip/training/trocr/experiments/checkpoint-4/final/model.safetensors' | cut -d' ' -f1
+ssh kim@192.168.1.25 'sha256sum /home/kim/Sync/workspace/khmerclipper/training/trocr/experiments/checkpoint-4/final/model.safetensors' | cut -d' ' -f1
 ```
 
 Expected: `model.safetensors` (~1.27GB), `config.json`, `generation_config.json`, the tokenizer files and `preprocessor_config.json` are copied, and the two hashes are identical and **not** `04c0ac11…`.
@@ -1782,7 +1782,7 @@ Expected: `model.safetensors` (~1.27GB), `config.json`, `generation_config.json`
 - [ ] **Step 3: Convert to CoreML**
 
 ```bash
-cd /Users/kim/Sync/workspace/khmerclip/apps/mac
+cd /Users/kim/Sync/workspace/khmerclipper/apps/mac
 make trocr-khmer
 ls -la Vendor/trocr/khmer
 ```
@@ -1792,22 +1792,22 @@ Expected: the conversion finishes without error, and `encoder.mlpackage`, `decod
 - [ ] **Step 4: Build and test**
 
 ```bash
-cd /Users/kim/Sync/workspace/khmerclip/apps/mac
+cd /Users/kim/Sync/workspace/khmerclipper/apps/mac
 make build
 make test
 ```
 
-Expected: `** BUILD SUCCEEDED **`, then `** TEST SUCCEEDED **`. The app is at `build/Build/Products/Debug/KhmerClip.app`.
+Expected: `** BUILD SUCCEEDED **`, then `** TEST SUCCEEDED **`. The app is at `build/Build/Products/Debug/KhmerClipper.app`.
 
 - [ ] **Step 5: Smoke the new model through OCRBench**
 
 Build the bench tool, then OCR one printed and one UI fixture with the CoreML TrOCR path:
 
 ```bash
-cd /Users/kim/Sync/workspace/khmerclip/apps/mac
-xcodebuild -project KhmerClip.xcodeproj -scheme OCRBench -configuration Debug -derivedDataPath build \
+cd /Users/kim/Sync/workspace/khmerclipper/apps/mac
+xcodebuild -project KhmerClipper.xcodeproj -scheme OCRBench -configuration Debug -derivedDataPath build \
   CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="" PROVISIONING_PROFILE_SPECIFIER="" DEVELOPMENT_TEAM="" build
-export KHMERCLIP_VENDOR=/Users/kim/Sync/workspace/khmerclip/apps/mac/Vendor
+export KHMERCLIPPER_VENDOR=/Users/kim/Sync/workspace/khmerclipper/apps/mac/Vendor
 build/Build/Products/Debug/OCRBench --engine trocr --preload \
   ../../training/eval/fixtures/printed/printed-001.png ../../training/eval/fixtures/ui/ui-001.png
 ```
@@ -1817,9 +1817,9 @@ Expected: readable Khmer for both images, close to their `text` in `training/eva
 - [ ] **Step 6: Run the app**
 
 ```bash
-cd /Users/kim/Sync/workspace/khmerclip/apps/mac
+cd /Users/kim/Sync/workspace/khmerclipper/apps/mac
 make run
-pgrep -x KhmerClip
+pgrep -x KhmerClipper
 ```
 
 Expected: `make run` quits any old instance and launches the new build; `pgrep` prints a PID. Then check by hand:
@@ -1832,11 +1832,11 @@ Expected: `make run` quits any old instance and launches the new build; `pgrep` 
 The eval harness must be installed in the Mac Python you use (`cd training/eval && python -m pip install -e .`, per `mac_gate.md` Prerequisites).
 
 ```bash
-cd /Users/kim/Sync/workspace/khmerclip/training/eval
-export KHMERCLIP_VENDOR=/Users/kim/Sync/workspace/khmerclip/apps/mac/Vendor
+cd /Users/kim/Sync/workspace/khmerclipper/training/eval
+export KHMERCLIPPER_VENDOR=/Users/kim/Sync/workspace/khmerclipper/apps/mac/Vendor
 python scripts/bench.py \
   --engine tesseract --engine trocr-coreml \
-  --trocr-coreml-bin /Users/kim/Sync/workspace/khmerclip/apps/mac/build/Build/Products/Debug/OCRBench \
+  --trocr-coreml-bin /Users/kim/Sync/workspace/khmerclipper/apps/mac/build/Build/Products/Debug/OCRBench \
   --out "$TMPDIR/mac_gate_finetune_v1.csv" \
   --candidate trocr-coreml --compare-to tesseract
 ```
@@ -1845,7 +1845,7 @@ Expected: one aggregate line per engine (`n=200 cer=… median_ms=… mixed_cer=
 
 - [ ] **Step 8: Record results (in the worktree)**
 
-In the worktree (`/Users/kim/Sync/workspace/khmerclip/.worktrees/trocr-finetune-data`):
+In the worktree (`/Users/kim/Sync/workspace/khmerclipper/.worktrees/trocr-finetune-data`):
 - `training/eval/results/mac_gate.md`: set **Status** to the Step 7 outcome, fill the Results table from the Step 7 aggregates, and note the model ("TrOCR fine-tune v1, checkpoint-4, sha256 <first 16 of Step 2 hash>"). Apply that file's Step 4a/4b/4c default-engine policy. Step 4c edits `apps/mac/Sources/Preferences/AppPreferences.swift` in the worktree.
 - `training/eval/results/finetune_v1.md`: add a "Mac CoreML" section with the same numbers and one line from Step 6's manual check.
 
@@ -1861,7 +1861,7 @@ git commit -m "docs(eval): Mac CoreML gate for TrOCR fine-tune v1"
 Do this if Task 8 failed, Step 5 output was garbage, or the Step 7 CER is worse than the old model's:
 
 ```bash
-cd /Users/kim/Sync/workspace/khmerclip/apps/mac
+cd /Users/kim/Sync/workspace/khmerclipper/apps/mac
 rm -rf raw_models/TrOCR-khmer-v1 && mv raw_models/TrOCR-khmer raw_models/TrOCR-khmer-v1
 mv raw_models/TrOCR-khmer-v0-step72k raw_models/TrOCR-khmer
 rm -rf Vendor/trocr/khmer && cp -R raw_models/khmer-coreml-v0-step72k Vendor/trocr/khmer
@@ -1875,7 +1875,7 @@ Expected: the app runs the old model again (`shasum` of `raw_models/TrOCR-khmer/
 Pass or fail, the code and results are worth keeping: merge or PR `feat/trocr-finetune-data` per that skill. After the worktree is removed, delete its box-side mirror (code only — `experiments` there is a symlink, so the checkpoints in main's `experiments/` are untouched):
 
 ```bash
-ssh kim@192.168.1.25 'rm -rf /home/kim/Sync/workspace/khmerclip/.worktrees/trocr-finetune-data'
+ssh kim@192.168.1.25 'rm -rf /home/kim/Sync/workspace/khmerclipper/.worktrees/trocr-finetune-data'
 ```
 
 Run it only after confirming `ls -la …/trocr-finetune-data/training/trocr/experiments` on the box shows a symlink (`->`), and only once the worktree is gone from the Mac (otherwise Syncthing would push it back).

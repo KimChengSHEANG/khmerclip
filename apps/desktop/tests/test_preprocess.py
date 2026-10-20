@@ -1,8 +1,8 @@
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
-from khmerclip.ocr.preprocess import content_crop, ink_mask, line_strips, pixel_values
-from khmerclip.paths import resource_dir
+from khmerclipper.ocr.preprocess import content_crop, ink_mask, line_strips, pixel_values
+from khmerclipper.paths import resource_dir
 
 
 def bars(size, rows, bg="white", fg="black"):
@@ -105,7 +105,7 @@ def wide(size, boxes, fg="black", bg="white"):
 
 
 def test_split_wide_gap_and_join_rule():
-    from khmerclip.ocr.preprocess import split_wide
+    from khmerclipper.ocr.preprocess import split_wide
 
     assert [s for s, _ in split_wide(wide((400, 24), [(0, 2, 189, 21), (210, 2, 399, 21)]), 10)] == ["", " "]
     assert [s for s, _ in split_wide(wide((400, 24), [(0, 2, 198, 21), (201, 2, 399, 21)]), 10)] == ["", ""]
@@ -115,7 +115,7 @@ def test_split_wide_gap_and_join_rule():
 
 
 def test_split_wide_ignores_blank_tail_and_neighbour_marks():
-    from khmerclip.ocr.preprocess import split_wide
+    from khmerclipper.ocr.preprocess import split_wide
 
     assert len(split_wide(wide((400, 24), [(0, 6, 69, 18), (80, 6, 150, 18)]), 10)) == 1
     pieces = split_wide(wide((600, 24), [(0, 6, 140, 18), (160, 6, 300, 18), (420, 0, 440, 2), (520, 21, 540, 23)]), 8)

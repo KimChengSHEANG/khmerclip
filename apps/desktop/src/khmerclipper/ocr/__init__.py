@@ -16,9 +16,9 @@ def recognize(image: Image.Image, engine: "Engine | str", progress: Callable[[st
               cancel: threading.Event | None = None) -> str:
     engine = Engine(engine)
     if engine is Engine.TROCR:
-        from khmerclip.ocr import trocr
+        from khmerclipper.ocr import trocr
 
         return trocr.recognize(image, progress=progress, cancel=cancel)
-    from khmerclip.ocr import tesseract
+    from khmerclipper.ocr import tesseract
 
     return tesseract.recognize(image)

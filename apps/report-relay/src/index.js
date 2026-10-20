@@ -1,4 +1,4 @@
-// KhmerClip report relay: files app reports as GitHub issues in the private
+// KhmerClipper report relay: files app reports as GitHub issues in the private
 // reports repo, falling back to email (Resend) if GitHub is unavailable.
 
 const MAX_BODY = 3_000_000;
@@ -24,7 +24,7 @@ class TooLarge extends Error {}
 export async function handle(request, env, fetchFn) {
   const url = new URL(request.url);
   if (request.method !== 'POST' || url.pathname !== '/report') return json(404, { error: 'not found' });
-  if (request.headers.get('X-KhmerClip-Key') !== env.APP_KEY) return json(401, { error: 'unauthorized' });
+  if (request.headers.get('X-KhmerClipper-Key') !== env.APP_KEY) return json(401, { error: 'unauthorized' });
 
   const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
   const { success } = await env.RATE_LIMITER.limit({ key: ip });
@@ -60,7 +60,7 @@ export async function handle(request, env, fetchFn) {
       method: 'POST',
       headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: 'KhmerClip <onboarding@resend.dev>',
+        from: 'KhmerClipper <onboarding@resend.dev>',
         to: [env.EMAIL_TO],
         subject: title,
         text: body,
@@ -123,7 +123,7 @@ function render(r, repo) {
     const parts = [
       head,
       `![capture](https://github.com/${repo}/blob/main/reports/${r.id}.png?raw=true)`,
-      'KhmerClip read:',
+      'KhmerClipper read:',
       fence(r.ocr_text),
     ];
     if (r.correction !== '') parts.push('Should say:', fence(r.correction));
@@ -155,7 +155,7 @@ async function fileOnGithub(r, title, body, env, fetchFn) {
       method,
       headers: {
         Authorization: `Bearer ${env.GITHUB_TOKEN}`,
-        'User-Agent': 'khmerclip-report-relay',
+        'User-Agent': 'khmerclipper-report-relay',
         Accept: 'application/vnd.github+json',
         'Content-Type': 'application/json',
       },

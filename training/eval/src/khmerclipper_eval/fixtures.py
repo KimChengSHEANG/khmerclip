@@ -1,4 +1,4 @@
-# training/eval/src/khmerclip_eval/fixtures.py
+# training/eval/src/khmerclipper_eval/fixtures.py
 from __future__ import annotations
 
 import json

@@ -10,10 +10,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from khmerclip_eval.cer import character_error_rate
-from khmerclip_eval.fixtures import load_fixtures
-from khmerclip_eval.runners import tesseract as tess_runner
-from khmerclip_eval.summary import aggregate, passes_gate
+from khmerclipper_eval.cer import character_error_rate
+from khmerclipper_eval.fixtures import load_fixtures
+from khmerclipper_eval.runners import tesseract as tess_runner
+from khmerclipper_eval.summary import aggregate, passes_gate
 
 REPO = ROOT.parents[1]
 DEFAULT_FIXTURES = ROOT / "fixtures"
@@ -61,7 +61,7 @@ def main() -> None:
     rows: list[dict] = []
     for engine in args.engine:
         if engine == "trocr-coreml":
-            from khmerclip_eval.runners import trocr_coreml
+            from khmerclipper_eval.runners import trocr_coreml
 
             if not args.trocr_coreml_bin:
                 raise SystemExit("--trocr-coreml-bin required")
@@ -90,7 +90,7 @@ def main() -> None:
             from PIL import Image
 
             sys.path.insert(0, str(REPO / "apps/desktop/src"))
-            from khmerclip.ocr import trocr as desktop_trocr
+            from khmerclipper.ocr import trocr as desktop_trocr
 
             if not args.trocr_model_dir:
                 raise SystemExit("--trocr-model-dir required")
@@ -111,7 +111,7 @@ def main() -> None:
             elif engine == "trocr-pipeline":
                 from PIL import Image
 
-                from khmerclip_eval import pipeline
+                from khmerclipper_eval import pipeline
 
                 if not args.trocr_model_dir:
                     raise SystemExit("--trocr-model-dir required")
@@ -119,7 +119,7 @@ def main() -> None:
                     Image.open(item.image_path), args.trocr_model_dir, **parse_variant(args.variant)
                 )
             elif engine == "trocr-hf":
-                from khmerclip_eval.runners import trocr_hf
+                from khmerclipper_eval.runners import trocr_hf
 
                 if not args.trocr_model_dir:
                     raise SystemExit("--trocr-model-dir required")

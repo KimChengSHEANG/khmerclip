@@ -6,9 +6,9 @@ import sys
 from collections.abc import Mapping
 from pathlib import Path
 
-from khmerclip.paths import atomic_write_text
+from khmerclipper.paths import atomic_write_text
 
-APP_ID = "KhmerClip"
+APP_ID = "KhmerClipper"
 RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
 
 
@@ -21,7 +21,7 @@ def launch_command(env: Mapping[str, str] | None = None, executable: str | None 
         return [env["APPIMAGE"]]
     if frozen:
         return [executable]
-    return [executable, "-m", "khmerclip"]
+    return [executable, "-m", "khmerclipper"]
 
 
 def _desktop_quote(arg: str) -> str:
@@ -34,14 +34,14 @@ def _desktop_quote(arg: str) -> str:
 
 
 def desktop_entry(command: list[str]) -> str:
-    return ("[Desktop Entry]\nType=Application\nName=KhmerClip\n"
+    return ("[Desktop Entry]\nType=Application\nName=KhmerClipper\n"
             f"Exec={' '.join(_desktop_quote(a) for a in command)}\n"
             "Terminal=false\nX-GNOME-Autostart-enabled=true\n")
 
 
 def autostart_file(config_home: Path | None = None) -> Path:
     base = config_home or Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config")
-    return base / "autostart" / "khmerclip.desktop"
+    return base / "autostart" / "khmerclipper.desktop"
 
 
 def set_enabled(enabled: bool, platform: str | None = None, config_home: Path | None = None,

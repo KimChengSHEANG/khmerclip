@@ -14,23 +14,23 @@ run:
 # `make build` builds every app that can be built on this machine.
 build: build-mac
 
-# Debug KhmerClip.app -> apps/mac/build/Build/Products/Debug/. Release/notarized
+# Debug KhmerClipper.app -> apps/mac/build/Build/Products/Debug/. Release/notarized
 # archive steps are in apps/mac/README.md.
 build-mac:
 	$(MAKE) -C apps/mac build
 
-# Signed + notarized apps/mac/dist/KhmerClip-<ver>.dmg (Tesseract + TrOCR). Needs SIGN_ID
+# Signed + notarized apps/mac/dist/KhmerClipper-<ver>.dmg (Tesseract + TrOCR). Needs SIGN_ID
 # ("Developer ID Application: ...") and NOTARY_PROFILE; without them it's ad-hoc signed.
 # See apps/mac/tools/release.sh.
 release-mac:
 	apps/mac/tools/release.sh
 
-# Frozen app for THIS OS -> apps/desktop/dist/KhmerClip/. PyInstaller can't cross-compile:
+# Frozen app for THIS OS -> apps/desktop/dist/KhmerClipper/. PyInstaller can't cross-compile:
 # the Windows installer and Linux AppImage come from .github/workflows/desktop.yml
 # (run it manually, or push a desktop-v<version> tag to publish a release).
 build-desktop:
 	cd apps/desktop && $(UVT) '.[dev]' python tools/fetch_tessdata.py
-	cd apps/desktop && $(UVT) '.[dev]' pyinstaller packaging/khmerclip.spec --noconfirm
+	cd apps/desktop && $(UVT) '.[dev]' pyinstaller packaging/khmerclipper.spec --noconfirm
 
 check: check-eval check-tesseract check-trocr check-desktop check-mac-tools check-mac check-relay
 	@echo "make check: all suites passed"

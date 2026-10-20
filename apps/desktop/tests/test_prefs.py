@@ -1,6 +1,6 @@
 import json
 
-from khmerclip.prefs import Prefs
+from khmerclipper.prefs import Prefs
 
 
 def test_missing_file_gives_defaults(tmp_path):

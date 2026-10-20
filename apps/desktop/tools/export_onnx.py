@@ -1,7 +1,7 @@
 """Export a TrOCR checkpoint to encoder.onnx + decoder.onnx + tokenizer.json.
 
 Mirrors the mac app's Vendor/trocr/convert.py (CoreML) and export_tokenizer.py, but emits
-ONNX for khmerclip.ocr.trocr. Needs the `tools` extra:
+ONNX for khmerclipper.ocr.trocr. Needs the `tools` extra:
     .venv/bin/pip install -e '.[tools]'
     .venv/bin/python tools/export_onnx.py <checkpoint dir or HF id> exported/khmer
 """

@@ -5,7 +5,7 @@ import Foundation
 struct ReportOutbox {
     let dir: URL
 
-    static let unsetURL = URL(string: "https://khmerclip-report-relay.REPLACE_ME.workers.dev/report")!
+    static let unsetURL = URL(string: "https://khmerclipper-report-relay.REPLACE_ME.workers.dev/report")!
     static var reportURL = unsetURL
     static let appKey = "kc-reports-1"
     /// A crash loop must not flood the outbox (or the relay).
@@ -80,9 +80,9 @@ struct ReportOutbox {
             request.httpMethod = "POST"
             request.httpBody = try JSONSerialization.data(withJSONObject: payload)
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.setValue(appKey, forHTTPHeaderField: "X-KhmerClip-Key")
+            request.setValue(appKey, forHTTPHeaderField: "X-KhmerClipper-Key")
             let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev"
-            request.setValue("KhmerClip/\(version)", forHTTPHeaderField: "User-Agent")
+            request.setValue("KhmerClipper/\(version)", forHTTPHeaderField: "User-Agent")
             let (_, response) = try await URLSession.shared.data(for: request)
             return (response as? HTTPURLResponse)?.statusCode ?? 0
         } catch {

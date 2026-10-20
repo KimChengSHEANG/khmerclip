@@ -13,7 +13,7 @@ This gate compares on-device CoreML TrOCR (`trocr-coreml` via `OCRBench`) agains
 
 ```bash
 export REPO=$(git rev-parse --show-toplevel)
-export KHMERCLIP_VENDOR=$REPO/apps/mac/Vendor
+export KHMERCLIPPER_VENDOR=$REPO/apps/mac/Vendor
 ```
 
 ---
@@ -31,7 +31,7 @@ make ocrbench
 Release `OCRBench` lands at `build/Build/Products/Release/OCRBench`. For a one-off Debug build:
 
 ```bash
-xcodebuild -project KhmerClip.xcodeproj -scheme OCRBench -configuration Debug \
+xcodebuild -project KhmerClipper.xcodeproj -scheme OCRBench -configuration Debug \
   -derivedDataPath build \
   CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO \
   build
@@ -40,7 +40,7 @@ xcodebuild -project KhmerClip.xcodeproj -scheme OCRBench -configuration Debug \
 Smoke-test TrOCR before the full bench:
 
 ```bash
-export KHMERCLIP_VENDOR="$REPO/apps/mac/Vendor"
+export KHMERCLIPPER_VENDOR="$REPO/apps/mac/Vendor"
 "$REPO/apps/mac/build/Build/Products/Release/OCRBench" \
   --engine trocr --preload \
   "$REPO/training/eval/fixtures/printed/printed-001.png"
@@ -54,8 +54,8 @@ Full fixture bench (`trocr-coreml` vs `tesseract`), same run for gate numbers:
 
 ```bash
 cd "$REPO/training/eval"
-export KHMERCLIP_VENDOR="$REPO/apps/mac/Vendor"
-KHMERCLIP_TROCR_UNITS=gpu python scripts/bench.py \
+export KHMERCLIPPER_VENDOR="$REPO/apps/mac/Vendor"
+KHMERCLIPPER_TROCR_UNITS=gpu python scripts/bench.py \
   --engine tesseract \
   --engine trocr-coreml \
   --trocr-coreml-bin "$REPO/apps/mac/build/Build/Products/Release/OCRBench" \
@@ -67,7 +67,7 @@ KHMERCLIP_TROCR_UNITS=gpu python scripts/bench.py \
 The script prints per-engine aggregates and a final `PASS` or `FAIL` from `passes_gate()`.
 TrOCR is preloaded before the timed loop; each CSV `ms` is per-image `recognizeText` time.
 
-### Gate criteria (`khmerclip_eval.summary.passes_gate`)
+### Gate criteria (`khmerclipper_eval.summary.passes_gate`)
 
 TrOCR CoreML **passes** only if all of the following hold vs Tesseract on the same run:
 
@@ -117,9 +117,9 @@ self.ocrEngine = (defaults.string(forKey: Keys.ocrEngine)).flatMap(OCREngineKind
 
 **Artifacts:** `$TMPDIR/mac_gate_finetune_v1.csv` (local only; summary in this file)
 
-**Smoke (OCRBench):** `printed-001` and `ui-001` produced readable Khmer (`ui-001` → `បើកឯកសារ`). **App:** `make run` + `pgrep -x KhmerClip` OK (PID observed); manual region clips not verified in automation.
+**Smoke (OCRBench):** `printed-001` and `ui-001` produced readable Khmer (`ui-001` → `បើកឯកសារ`). **App:** `make run` + `pgrep -x KhmerClipper` OK (PID observed); manual region clips not verified in automation.
 
-## Results (Task 8 — 2026-10-03, chosen run `KHMERCLIP_TROCR_UNITS=gpu`)
+## Results (Task 8 — 2026-10-03, chosen run `KHMERCLIPPER_TROCR_UNITS=gpu`)
 
 | Engine | n | Mean CER | Median ms | Mixed CER |
 | --- | ---: | ---: | ---: | ---: |

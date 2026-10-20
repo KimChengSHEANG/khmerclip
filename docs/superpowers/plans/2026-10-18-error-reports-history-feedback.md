@@ -12,13 +12,13 @@
 
 ## Global Constraints
 
-- Reports repo: `KimChengSHEANG/khmerclip-reports` (private). Never the public `khmerclip` repo.
+- Reports repo: `KimChengSHEANG/khmerclipper-reports` (private). Never the public `khmerclipper` repo.
 - Fallback email: `cheng900@gmail.com`.
 - GitHub token lives only as a Worker secret, scoped to the reports repo (Issues + Contents: read/write). Never in an app.
 - Labels: `crash`, `capture`, `feedback`.
 - Limits (relay rejects with 413; apps pre-shrink images): PNG ≤ 2,000,000 bytes decoded; each text field ≤ 65,536 chars; email ≤ 254 chars; request body ≤ 3,000,000 bytes.
-- Header `X-KhmerClip-Key: kc-reports-1` on every report (not a secret; filters bots only).
-- Report URL constant in each app starts as `https://khmerclip-report-relay.REPLACE_ME.workers.dev/report`. While a URL contains `REPLACE_ME`, apps queue but never send. Task 10 sets the real URL.
+- Header `X-KhmerClipper-Key: kc-reports-1` on every report (not a secret; filters bots only).
+- Report URL constant in each app starts as `https://khmerclipper-report-relay.REPLACE_ME.workers.dev/report`. While a URL contains `REPLACE_ME`, apps queue but never send. Task 10 sets the real URL.
 - Crash reports never contain an image or scanned text. The home directory is replaced with `~` in all crash text.
 - "Keep capture images" default → on (new installs only; no migration). New pref "Send crash reports automatically", default on.
 - History layout A: thumbnail + text + Report button per row; Copy / Delete / Clear All remain.
@@ -65,17 +65,17 @@ Responses: `200 {"ok":true,"via":"github"|"email"}` → client deletes the outbo
 
 **Interfaces:**
 - Produces: `export async function handle(request, env, fetchFn)` → `Response`; `export default { fetch: (req, env) => handle(req, env, fetch) }`.
-- `env`: `GITHUB_TOKEN`, `RESEND_API_KEY` (secrets); `APP_KEY="kc-reports-1"`, `REPORTS_REPO="KimChengSHEANG/khmerclip-reports"`, `EMAIL_TO="cheng900@gmail.com"` (vars); `RATE_LIMITER` (rate-limit binding, 10 requests / 60 s, keyed by `CF-Connecting-IP`).
-- `wrangler.toml`: `name = "khmerclip-report-relay"`, `main = "src/index.js"`, `compatibility_date = "2026-10-01"`, `[vars]` above, a ratelimit binding named `RATE_LIMITER` with `limit = 10, period = 60` (use the binding syntax current `wrangler` documents).
+- `env`: `GITHUB_TOKEN`, `RESEND_API_KEY` (secrets); `APP_KEY="kc-reports-1"`, `REPORTS_REPO="KimChengSHEANG/khmerclipper-reports"`, `EMAIL_TO="cheng900@gmail.com"` (vars); `RATE_LIMITER` (rate-limit binding, 10 requests / 60 s, keyed by `CF-Connecting-IP`).
+- `wrangler.toml`: `name = "khmerclipper-report-relay"`, `main = "src/index.js"`, `compatibility_date = "2026-10-01"`, `[vars]` above, a ratelimit binding named `RATE_LIMITER` with `limit = 10, period = 60` (use the binding syntax current `wrangler` documents).
 
 Behavior:
-- Only `POST /report`; otherwise 404. Wrong or missing `X-KhmerClip-Key` → 401. `await env.RATE_LIMITER.limit({key: ip})` returns `{success:false}` → 429. Body or any field over its limit → 413. Unknown `type`, a missing required field for the type, or `id` not matching `/^[0-9a-f]{32}$/` → 400.
-- GitHub (`https://api.github.com`; headers `Authorization: Bearer <token>`, `User-Agent: khmerclip-report-relay`, `Accept: application/vnd.github+json`):
+- Only `POST /report`; otherwise 404. Wrong or missing `X-KhmerClipper-Key` → 401. `await env.RATE_LIMITER.limit({key: ip})` returns `{success:false}` → 429. Body or any field over its limit → 413. Unknown `type`, a missing required field for the type, or `id` not matching `/^[0-9a-f]{32}$/` → 400.
+- GitHub (`https://api.github.com`; headers `Authorization: Bearer <token>`, `User-Agent: khmerclipper-report-relay`, `Accept: application/vnd.github+json`):
   - capture: `PUT /repos/{repo}/contents/reports/{id}.png` (base64 content), then `PUT …/contents/reports/{id}.json` (sidecar `{ocr_text, correction, meta, app_version, os, engine}`). A 422 on either means "already uploaded"; continue. Then `POST /repos/{repo}/issues`.
   - crash: `fp = sha256hex(app_version + "\n" + signature).slice(0, 16)`. `GET /search/issues?q=repo:{repo} is:issue is:open label:crash "fp:{fp}"` (URL-encoded). If `total_count > 0` → `POST …/issues/{items[0].number}/comments` with body `+1 · {app_version} · {os}`. Otherwise create the issue with `<!-- fp:{fp} -->` in its body. Search-index lag can let a near-simultaneous duplicate through; that's an accepted ceiling.
   - Titles (variable part single-line, truncated to 60 chars): `Wrong text: {ocr_text}`, `Crash: {signature}`, `Feedback: {message}`. Labels `[type]`.
-  - Body: a line `App {app_version} · {os} · {engine}`. Every user-supplied string goes inside a fence of `~` characters one longer than the longest `~` run in that string (minimum 3). Capture bodies embed `![capture](https://github.com/{repo}/blob/main/reports/{id}.png?raw=true)` and show "KhmerClip read" / "Should say" fences ("Should say" only when `correction` isn't empty). Feedback shows `Reply to:` plus a fenced email only when the email isn't empty. Crash bodies fence `details`.
-- If any GitHub call (other than a tolerated 422) returns non-2xx or throws → `POST https://api.resend.com/emails` with `{from: "KhmerClip <onboarding@resend.dev>", to: [EMAIL_TO], subject: title, text: body, attachments: capture ? [{filename: "{id}.png", content: image_png_b64}] : []}`. Resend 2xx → `200 via:"email"`; otherwise 502.
+  - Body: a line `App {app_version} · {os} · {engine}`. Every user-supplied string goes inside a fence of `~` characters one longer than the longest `~` run in that string (minimum 3). Capture bodies embed `![capture](https://github.com/{repo}/blob/main/reports/{id}.png?raw=true)` and show "KhmerClipper read" / "Should say" fences ("Should say" only when `correction` isn't empty). Feedback shows `Reply to:` plus a fenced email only when the email isn't empty. Crash bodies fence `details`.
+- If any GitHub call (other than a tolerated 422) returns non-2xx or throws → `POST https://api.resend.com/emails` with `{from: "KhmerClipper <onboarding@resend.dev>", to: [EMAIL_TO], subject: title, text: body, attachments: capture ? [{filename: "{id}.png", content: image_png_b64}] : []}`. Resend 2xx → `200 via:"email"`; otherwise 502.
 
 - [ ] **Step 1: Write the failing tests** in `test/index.test.js` using a fake `fetchFn` that records `(url, init)` and returns scripted `Response`s, and a fake `env` whose `RATE_LIMITER.limit` returns `{success:true}` unless the test overrides it:
 
@@ -108,12 +108,12 @@ test('both fail → 502')
 ### Task 2: Desktop report outbox
 
 **Files:**
-- Create: `apps/desktop/src/khmerclip/reports.py`
+- Create: `apps/desktop/src/khmerclipper/reports.py`
 - Test: `apps/desktop/tests/test_reports.py`
 
 **Interfaces:**
-- Produces (module `khmerclip.reports`):
-  - `REPORT_URL = "https://khmerclip-report-relay.REPLACE_ME.workers.dev/report"`, `APP_KEY = "kc-reports-1"`, `MAX_PNG_BYTES = 2_000_000`
+- Produces (module `khmerclipper.reports`):
+  - `REPORT_URL = "https://khmerclipper-report-relay.REPLACE_ME.workers.dev/report"`, `APP_KEY = "kc-reports-1"`, `MAX_PNG_BYTES = 2_000_000`
   - `outbox_dir() -> Path` → `paths.data_dir() / "outbox"`
   - `base_fields(engine: str) -> dict` → `{"id": uuid4().hex, "app_version": __version__, "os": platform.platform(), "engine": engine}`
   - `scrub_home(text: str) -> str` — replaces `str(Path.home())` with `~`
@@ -125,7 +125,7 @@ test('both fail → 502')
   - `post_json(payload: dict, url: str = REPORT_URL, timeout: float = 20) -> int` — HTTP status; network failure → `0`
   - `flush(outbox: Path | None = None, post: Callable[[dict], int] | None = None, url: str = REPORT_URL) -> int` — number sent. Returns 0 at once if `"REPLACE_ME" in url`. `post` defaults to `lambda d: post_json(d, url)`. Deletes on 200/400/401/413, keeps otherwise. Deletes files that aren't valid JSON.
 
-- [ ] **Step 1: Write the failing tests** (`URL = "https://relay.test/report"`, `UNSET = "https://khmerclip-report-relay.REPLACE_ME.workers.dev/report"`):
+- [ ] **Step 1: Write the failing tests** (`URL = "https://relay.test/report"`, `UNSET = "https://khmerclipper-report-relay.REPLACE_ME.workers.dev/report"`):
 
 ```python
 def test_enqueue_and_flush_deletes_on_success(tmp_path):
@@ -169,7 +169,7 @@ def test_capture_payload_downscales_large_png(tmp_path):
 ```
 
 - [ ] **Step 2: Run to verify fail** — `cd apps/desktop && uv run --extra dev pytest tests/test_reports.py -q` → FAIL (no module).
-- [ ] **Step 3: Implement `khmerclip/reports.py`.** Downscale: halve both dimensions with `Image.LANCZOS` until the PNG fits. `post_json` uses `urllib.request` like `updater.fetch_latest`, with headers `Content-Type: application/json`, `X-KhmerClip-Key`, `User-Agent: KhmerClip/<version>`. `HTTPError` → its `.code`; any other `OSError` → 0.
+- [ ] **Step 3: Implement `khmerclipper/reports.py`.** Downscale: halve both dimensions with `Image.LANCZOS` until the PNG fits. `post_json` uses `urllib.request` like `updater.fetch_latest`, with headers `Content-Type: application/json`, `X-KhmerClipper-Key`, `User-Agent: KhmerClipper/<version>`. `HTTPError` → its `.code`; any other `OSError` → 0.
 - [ ] **Step 4: Run to verify pass** — same command → PASS.
 - [ ] **Step 5: Commit** — `git commit -m "feat(desktop): report outbox with retrying flush"`
 
@@ -178,16 +178,16 @@ def test_capture_payload_downscales_large_png(tmp_path):
 ### Task 3: Desktop crash capture and prefs
 
 **Files:**
-- Create: `apps/desktop/src/khmerclip/crash.py`
-- Modify: `apps/desktop/src/khmerclip/prefs.py` (`keep_captures: bool = True`; add `send_crash_reports: bool = True`)
-- Modify: `apps/desktop/src/khmerclip/ui/prefs_window.py` (`CHECKS` += `("send_crash_reports", "Send crash reports automatically")`)
-- Modify: `apps/desktop/src/khmerclip/ui/app.py` (`run_gui` installs, collects, and flushes; `Controller.handle_error` records unexpected errors)
+- Create: `apps/desktop/src/khmerclipper/crash.py`
+- Modify: `apps/desktop/src/khmerclipper/prefs.py` (`keep_captures: bool = True`; add `send_crash_reports: bool = True`)
+- Modify: `apps/desktop/src/khmerclipper/ui/prefs_window.py` (`CHECKS` += `("send_crash_reports", "Send crash reports automatically")`)
+- Modify: `apps/desktop/src/khmerclipper/ui/app.py` (`run_gui` installs, collects, and flushes; `Controller.handle_error` records unexpected errors)
 - Test: `apps/desktop/tests/test_crash.py`. Update `tests/test_app.py::test_keep_captures_saves_image_with_ocr_details`: the default is now on, so set `controller.prefs.keep_captures = False` before the "off" assertion and change its comment.
 
 **Interfaces:**
 - Consumes: `reports.crash_payload`, `reports.enqueue`, `reports.flush`, `reports.drop_type`, `reports.outbox_dir`.
-- Produces (module `khmerclip.crash`):
-  - `signature(exc: BaseException) -> str` → `"{type(exc).__name__} at {path}:{func}"` for the innermost traceback frame. `path` is relative to the `khmerclip` package dir when inside it, otherwise the basename. With no traceback, it's just the type name.
+- Produces (module `khmerclipper.crash`):
+  - `signature(exc: BaseException) -> str` → `"{type(exc).__name__} at {path}:{func}"` for the innermost traceback frame. `path` is relative to the `khmerclipper` package dir when inside it, otherwise the basename. With no traceback, it's just the type name.
   - `record(exc: BaseException, engine: str, outbox: Path | None = None) -> Path` — `details` = `"".join(traceback.format_exception(exc))`
   - `install(enabled: Callable[[], bool], engine: Callable[[], str], outbox: Path | None = None) -> None` — wraps `sys.excepthook` and `threading.excepthook`. Each records only when `enabled()`, then calls the previous hook; a failure while recording never masks the original. Enables `faulthandler` into `(outbox or reports.outbox_dir()).parent / "fault.log"`, keeping the file object referenced at module level.
   - `collect_fault_log(engine: str, outbox: Path | None = None) -> None` — if `fault.log` beside the outbox is non-empty, enqueue `crash_payload("Native crash", text, engine)` and truncate the file.
@@ -195,7 +195,7 @@ def test_capture_payload_downscales_large_png(tmp_path):
   1. `crash.install(lambda: prefs.send_crash_reports, lambda: prefs.engine)`
   2. If `send_crash_reports`, run `crash.collect_fault_log(prefs.engine)`. Otherwise, truncate the log and run `reports.drop_type("crash")`.
   3. After the controller exists, run `controller.submit(lambda p, c: reports.flush())`.
-- `Controller.handle_error`: in the non-`KhmerClipError` branch, call `crash.record(error, self.prefs.engine)` when `self.prefs.send_crash_reports`.
+- `Controller.handle_error`: in the non-`KhmerClipperError` branch, call `crash.record(error, self.prefs.engine)` when `self.prefs.send_crash_reports`.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -233,7 +233,7 @@ def test_prefs_defaults():
     p = Prefs()
     assert p.keep_captures is True and p.send_crash_reports is True
 ```
-  In `test_app.py`, add `test_unexpected_error_is_recorded(controller, monkeypatch)`: monkeypatch `app_module.crash.record` to append to a list. `controller.handle_error(ZeroDivisionError())` records once. `handle_error(KhmerClipError("x"))` and `handle_error(Cancelled())` record nothing. With `send_crash_reports = False`, `ZeroDivisionError` records nothing.
+  In `test_app.py`, add `test_unexpected_error_is_recorded(controller, monkeypatch)`: monkeypatch `app_module.crash.record` to append to a list. `controller.handle_error(ZeroDivisionError())` records once. `handle_error(KhmerClipperError("x"))` and `handle_error(Cancelled())` record nothing. With `send_crash_reports = False`, `ZeroDivisionError` records nothing.
   (`crash.install` replaces global hooks, so the test's `monkeypatch` restores them.)
 
 - [ ] **Step 2: Run to verify fail** — `uv run --extra dev pytest tests/test_crash.py tests/test_app.py -q` → FAIL.
@@ -246,16 +246,16 @@ def test_prefs_defaults():
 ### Task 4: Desktop History layout A and Report dialog
 
 **Files:**
-- Create: `apps/desktop/src/khmerclip/ui/report_dialog.py`
-- Modify: `apps/desktop/src/khmerclip/ui/history_window.py`
-- Modify: `apps/desktop/src/khmerclip/history.py`: `flag(record_id, correction: str = "")` writes `correction` into the copied `feedback/<id>.json`; add `capture_meta(record_id) -> dict` (parsed `captures/<id>.json`, `{}` if missing or unreadable). The class docstring says `feedback/` now marks a scan as "Reported".
-- Modify: `apps/desktop/src/khmerclip/ui/app.py` (`TrayApp.show_history` passes a `report` callback)
+- Create: `apps/desktop/src/khmerclipper/ui/report_dialog.py`
+- Modify: `apps/desktop/src/khmerclipper/ui/history_window.py`
+- Modify: `apps/desktop/src/khmerclipper/history.py`: `flag(record_id, correction: str = "")` writes `correction` into the copied `feedback/<id>.json`; add `capture_meta(record_id) -> dict` (parsed `captures/<id>.json`, `{}` if missing or unreadable). The class docstring says `feedback/` now marks a scan as "Reported".
+- Modify: `apps/desktop/src/khmerclipper/ui/app.py` (`TrayApp.show_history` passes a `report` callback)
 - Test: `apps/desktop/tests/test_ui_widgets.py`, `apps/desktop/tests/test_history.py`
 
 **Interfaces:**
 - Consumes: `reports.capture_payload`, `reports.enqueue`, `reports.flush`; `HistoryStore.has_capture/is_flagged/flag/capture_meta/captures_dir`.
 - Produces:
-  - `ReportDialog(QDialog)(image_path: Path, ocr_text: str)` with attributes `correction: QPlainTextEdit` (prefilled with `ocr_text`, `khmer_font`) and `send_button`. `correction_text() -> str` returns `""` when the stripped text equals the stripped `ocr_text`, otherwise the stripped text. The dialog shows the image (scaled to at most 480 px wide), the label `KhmerClip read`, the text, the label `What it should say`, the exact line `This image and text will be sent to the KhmerClip developer.`, and Cancel / Send.
+  - `ReportDialog(QDialog)(image_path: Path, ocr_text: str)` with attributes `correction: QPlainTextEdit` (prefilled with `ocr_text`, `khmer_font`) and `send_button`. `correction_text() -> str` returns `""` when the stripped text equals the stripped `ocr_text`, otherwise the stripped text. The dialog shows the image (scaled to at most 480 px wide), the label `KhmerClipper read`, the text, the label `What it should say`, the exact line `This image and text will be sent to the KhmerClipper developer.`, and Cancel / Send.
   - `HistoryWindow(store, copy, report: Callable[[ScanRecord, str], None] | None = None)`. Each list row is a widget set via `setItemWidget`: a 72×40 thumbnail `QLabel` (only when `has_capture`), the text preview, and a `QPushButton` with object name `report_button`. It reads `Report`, or reads `Reported` and is disabled when `is_flagged`. There's no button when there's no capture. Remove the "Flag as Wrong" and "Feedback Folder" buttons. Selection, Copy, Delete, Clear All, and double-click-to-copy keep working.
   - `HistoryWindow.report_record(record: ScanRecord) -> None` opens `ReportDialog`. When accepted: `store.flag(record.id, correction)`, then `report(record, correction)`, then `refresh()`.
   - `TrayApp._report(record, correction)`: `meta = history.capture_meta(record.id)`. Enqueue `reports.capture_payload(history.captures_dir / f"{record.id}.png", meta, meta.get("ocr_text", record.text), correction, prefs.engine)`, then `self.c.submit(lambda p, c: reports.flush(), on_done=…)`. The popup shows `Thanks — your report was sent.` when flush returned ≥ 1, otherwise `Report saved. It will be sent when you're online.`
@@ -306,9 +306,9 @@ def test_report_dialog_unchanged_text_means_no_correction(qtbot, tmp_path):
 ### Task 5: Desktop Send Feedback
 
 **Files:**
-- Create: `apps/desktop/src/khmerclip/ui/feedback_dialog.py`
-- Modify: `apps/desktop/src/khmerclip/ui/app.py` (menu item `Send Feedback…` right after `History…`; `TrayApp.show_feedback`)
-- Test: `apps/desktop/tests/test_ui_widgets.py`. In `tests/test_app.py`, update the menu-text assertion to `["Capture Text", "OCR Image File…", "History…", "Send Feedback…", "Preferences…", "Check for Updates…", "Quit KhmerClip"]`.
+- Create: `apps/desktop/src/khmerclipper/ui/feedback_dialog.py`
+- Modify: `apps/desktop/src/khmerclipper/ui/app.py` (menu item `Send Feedback…` right after `History…`; `TrayApp.show_feedback`)
+- Test: `apps/desktop/tests/test_ui_widgets.py`. In `tests/test_app.py`, update the menu-text assertion to `["Capture Text", "OCR Image File…", "History…", "Send Feedback…", "Preferences…", "Check for Updates…", "Quit KhmerClipper"]`.
 
 **Interfaces:**
 - Produces: `FeedbackDialog(QDialog)()` with:
@@ -332,7 +332,7 @@ def test_report_dialog_unchanged_text_means_no_correction(qtbot, tmp_path):
 - Create: `apps/mac/Sources/Reports/Report.swift`
 - Create: `apps/mac/Sources/Reports/ReportOutbox.swift`
 - Create: `apps/mac/Tests/ReportTests.swift`
-- Modify: `apps/mac/project.yml` (add both new source files to `KhmerClipTests.sources`)
+- Modify: `apps/mac/project.yml` (add both new source files to `KhmerClipperTests.sources`)
 
 **Interfaces:**
 - Produces:
@@ -343,7 +343,7 @@ def test_report_dialog_unchanged_text_means_no_correction(qtbot, tmp_path):
     - Also `static func scrubHome(_ s: String) -> String` (replaces `NSHomeDirectory()` with `~`) and `static let maxPNGBytes = 2_000_000`.
     - `id` = `UUID().uuidString.replacingOccurrences(of: "-", with: "").lowercased()`. `app_version` comes from `Bundle.main` `CFBundleShortVersionString` (fallback `"dev"`). `os` = `"macOS " + ProcessInfo.processInfo.operatingSystemVersionString`.
   - `struct ReportOutbox { let dir: URL }` with:
-    - `static let unsetURL = URL(string: "https://khmerclip-report-relay.REPLACE_ME.workers.dev/report")!`, `static var reportURL = unsetURL`, `static let appKey = "kc-reports-1"`
+    - `static let unsetURL = URL(string: "https://khmerclipper-report-relay.REPLACE_ME.workers.dev/report")!`, `static var reportURL = unsetURL`, `static let appKey = "kc-reports-1"`
     - `func enqueue(_ payload: [String: Any]) throws -> URL`
     - `func dropType(_ type: String)`
     - `func flush(url: URL = ReportOutbox.reportURL, post: ([String: Any]) async -> Int) async -> Int` — same delete/keep rules as the wire format; returns 0 without calling `post` when `url.absoluteString.contains("REPLACE_ME")`
@@ -385,7 +385,7 @@ def test_report_dialog_unchanged_text_means_no_correction(qtbot, tmp_path):
 - `pendingURL` = `ScanHistoryStore.dataDir.appendingPathComponent("crash-pending.txt")`. AppDelegate order at launch: `collect` → `install` → `Task { _ = await ReportOutbox.shared.flush(post: { await ReportOutbox.post($0, to: ReportOutbox.reportURL) }) }`.
 
 - [ ] **Step 1: Failing tests**:
-  - `testCollectTurnsPendingFileIntoOneCrash`: write `"Signal 11\n0 KhmerClip \(NSHomeDirectory())/x"`. Expect one outbox file with `signature == "Signal 11"` and the home directory scrubbed, and the pending file gone.
+  - `testCollectTurnsPendingFileIntoOneCrash`: write `"Signal 11\n0 KhmerClipper \(NSHomeDirectory())/x"`. Expect one outbox file with `signature == "Signal 11"` and the home directory scrubbed, and the pending file gone.
   - `testCollectDisabledDropsCrashes`: pre-enqueue one crash and one feedback, write a pending file, then `enabled: false`. Only the feedback remains, and the pending file is gone.
 - [ ] **Step 2: Run to verify fail** — `make -C apps/mac test`.
 - [ ] **Step 3: Implement** the reporter, the prefs, the toggle, and the AppDelegate wiring.
@@ -403,12 +403,12 @@ def test_report_dialog_unchanged_text_means_no_correction(qtbot, tmp_path):
   - `flag(_ id: UUID, correction: String = "")` writes the merged feedback JSON
   - `captureURL(_ id: UUID) -> URL`
   - `captureMeta(_ id: UUID) -> [String: Any]`
-- Create: `apps/mac/Sources/History/FeedbackMerge.swift` with `func mergeFeedback(_ data: Data, correction: String) -> Data`, which `ScanHistoryStore.flag` calls. Add it to `KhmerClipTests.sources` in `apps/mac/project.yml` so the store itself stays out of the test target.
+- Create: `apps/mac/Sources/History/FeedbackMerge.swift` with `func mergeFeedback(_ data: Data, correction: String) -> Data`, which `ScanHistoryStore.flag` calls. Add it to `KhmerClipperTests.sources` in `apps/mac/project.yml` so the store itself stays out of the test target.
 
 **Interfaces:**
 - Consumes: `Report.capture`, `ReportOutbox.shared`, `ReportOutbox.post`, `ReportOutbox.reportURL`.
 - Produces:
-  - `struct ReportView: View { let imageURL: URL; let ocrText: String; let onSend: (String) -> Void; let onCancel: () -> Void }`. It shows the image (`NSImage(contentsOf:)`, max width 480), `KhmerClip read` with the text, `What it should say` with a `TextEditor` prefilled with `ocrText`, the exact line `This image and text will be sent to the KhmerClip developer.`, and Cancel / Send. `onSend` receives `""` when the trimmed edit equals the trimmed `ocrText`.
+  - `struct ReportView: View { let imageURL: URL; let ocrText: String; let onSend: (String) -> Void; let onCancel: () -> Void }`. It shows the image (`NSImage(contentsOf:)`, max width 480), `KhmerClipper read` with the text, `What it should say` with a `TextEditor` prefilled with `ocrText`, the exact line `This image and text will be sent to the KhmerClipper developer.`, and Cancel / Send. `onSend` receives `""` when the trimmed edit equals the trimmed `ocrText`.
   - `HistoryView` rows are an `HStack` of:
     - a 72×40 thumbnail (when `store.hasCapture`)
     - the existing date/text column
@@ -448,11 +448,11 @@ This needs the developer's accounts. The executor prepares each command and paus
 
 **Files:**
 - Modify: `apps/report-relay/README.md` (the steps below, as a checklist)
-- Modify: `apps/desktop/src/khmerclip/reports.py` (`REPORT_URL`), `apps/mac/Sources/Reports/ReportOutbox.swift` (`reportURL`)
+- Modify: `apps/desktop/src/khmerclipper/reports.py` (`REPORT_URL`), `apps/mac/Sources/Reports/ReportOutbox.swift` (`reportURL`)
 
-- [ ] **Step 1:** The developer creates the private repo: `gh repo create KimChengSHEANG/khmerclip-reports --private --add-readme`, then `gh label create crash -R KimChengSHEANG/khmerclip-reports` (and the same for `capture` and `feedback`).
+- [ ] **Step 1:** The developer creates the private repo: `gh repo create KimChengSHEANG/khmerclipper-reports --private --add-readme`, then `gh label create crash -R KimChengSHEANG/khmerclipper-reports` (and the same for `capture` and `feedback`).
 - [ ] **Step 2:** The developer creates a fine-grained PAT limited to that repo (Issues RW, Contents RW) and a Resend API key on the account for `cheng900@gmail.com`.
 - [ ] **Step 3:** In `apps/report-relay`, run `npx wrangler login`, `npx wrangler secret put GITHUB_TOKEN`, `npx wrangler secret put RESEND_API_KEY`, and `npx wrangler deploy`, then note the `*.workers.dev` URL.
-- [ ] **Step 4: Smoke test** — `curl -s -X POST <url>/report -H 'X-KhmerClip-Key: kc-reports-1' -H 'Content-Type: application/json' -d '{"type":"feedback","id":"'$(uuidgen | tr -d - | tr A-F a-f)'","app_version":"dev","os":"curl","engine":"none","message":"relay smoke test","email":""}'` → `{"ok":true,"via":"github"}`, and a `feedback` issue appears in the private repo.
+- [ ] **Step 4: Smoke test** — `curl -s -X POST <url>/report -H 'X-KhmerClipper-Key: kc-reports-1' -H 'Content-Type: application/json' -d '{"type":"feedback","id":"'$(uuidgen | tr -d - | tr A-F a-f)'","app_version":"dev","os":"curl","engine":"none","message":"relay smoke test","email":""}'` → `{"ok":true,"via":"github"}`, and a `feedback` issue appears in the private repo.
 - [ ] **Step 5:** Put the deployed URL into both constants. Run `make check-desktop` and `make -C apps/mac test`. The unconfigured-URL tests pass an explicit `REPLACE_ME` URL, so they keep passing.
 - [ ] **Step 6: Commit** — `git commit -m "feat: point apps at the deployed report relay"`

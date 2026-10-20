@@ -3,11 +3,11 @@ from pathlib import Path
 
 import pytest
 
-from khmerclip.capture import portal
+from khmerclipper.capture import portal
 
 
 def test_request_path_follows_portal_convention():
-    assert portal.request_path(":1.42", "khmerclipab12") == "/org/freedesktop/portal/desktop/request/1_42/khmerclipab12"
+    assert portal.request_path(":1.42", "khmerclipperab12") == "/org/freedesktop/portal/desktop/request/1_42/khmerclipperab12"
 
 
 def test_uri_from_response_success_and_cancel():

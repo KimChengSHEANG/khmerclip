@@ -1,7 +1,7 @@
 import subprocess
 from pathlib import Path
 
-from khmerclip_eval.runners import tesseract
+from khmerclipper_eval.runners import tesseract
 
 
 def _capture(monkeypatch):

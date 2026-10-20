@@ -24,7 +24,7 @@ struct ReportView: View {
                     .scaledToFit()
                     .frame(maxWidth: 480)
             }
-            Text("KhmerClip read").font(.headline)
+            Text("KhmerClipper read").font(.headline)
             Text(ocrText)
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -32,7 +32,7 @@ struct ReportView: View {
             TextEditor(text: $correction)
                 .frame(height: 80)
                 .border(Color.secondary.opacity(0.4))
-            Text("This image and text will be sent to the KhmerClip developer.")
+            Text("This image and text will be sent to the KhmerClipper developer.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
             HStack {

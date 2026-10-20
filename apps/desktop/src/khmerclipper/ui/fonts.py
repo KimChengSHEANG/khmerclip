@@ -3,7 +3,7 @@ text widget uses the bundled Noto Sans Khmer first."""
 
 from PySide6.QtGui import QFont, QFontDatabase
 
-from khmerclip.paths import resource_dir
+from khmerclipper.paths import resource_dir
 
 FONT_FILE = "fonts/NotoSansKhmer-Regular.ttf"
 _family: str | None = None

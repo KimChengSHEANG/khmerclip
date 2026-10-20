@@ -17,7 +17,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var preserveLinebreaksMenuItem: NSMenuItem!
     private var keepCapturesSubscription: AnyCancellable?
     /// "Check for Updates…" opens the GitHub release page; the app never updates itself.
-    static let releasesURL = URL(string: "https://github.com/KimChengSHEANG/khmerclip/releases/latest")!
+    static let releasesURL = URL(string: "https://github.com/KimChengSHEANG/khmerclipper/releases/latest")!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         let crashPending = ScanHistoryStore.dataDir.appendingPathComponent("crash-pending.txt")
@@ -47,7 +47,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func setUpStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        statusItem.button?.image = NSImage(systemSymbolName: "text.viewfinder", accessibilityDescription: "KhmerClip")
+        statusItem.button?.image = NSImage(systemSymbolName: "text.viewfinder", accessibilityDescription: "KhmerClipper")
 
         let menu = NSMenu()
         menu.delegate = self
@@ -62,7 +62,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(.separator())
         menu.addItem(withTitle: "Check for Updates…", action: #selector(openReleases), keyEquivalent: "")
         menu.addItem(.separator())
-        let quitItem = menu.addItem(withTitle: "Quit KhmerClip", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        let quitItem = menu.addItem(withTitle: "Quit KhmerClipper", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         quitItem.target = NSApp
 
         for item in menu.items where item.target == nil {
@@ -173,7 +173,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         NotificationCenter.default.post(name: .settingsOpenerRequest, object: nil)
     }
 
-    // KhmerClip has no Dock icon and lives entirely in the status bar; closing/hiding
+    // KhmerClipper has no Dock icon and lives entirely in the status bar; closing/hiding
     // its windows (including the hidden Settings-opener window) must never quit it.
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         false

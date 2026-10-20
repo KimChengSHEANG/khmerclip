@@ -1,6 +1,6 @@
 # Stable signing identity keeps the Accessibility (TCC) grant across rebuilds.
 SIGN_ID = 
-APP      = build/Build/Products/Debug/KhmerClip.app
+APP      = build/Build/Products/Debug/KhmerClipper.app
 
 .PHONY: gen build test run clean trocr-models trocr-khmer trocr-test ocrbench
 
@@ -60,11 +60,11 @@ Vendor/trocr/khmer/tokenizer.json: $(KHMER_SRC) $(if $(KHMER_SRC),$(wildcard too
 # --trocr-coreml-bin build/Build/Products/Release/OCRBench). Tool targets
 # need an ad-hoc identity; an empty one fails to sign.
 ocrbench: gen $(KHMER_MODEL)
-	xcodebuild -project KhmerClip.xcodeproj -scheme OCRBench -configuration Release \
+	xcodebuild -project KhmerClipper.xcodeproj -scheme OCRBench -configuration Release \
 		-derivedDataPath build CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO build
 
 test: gen $(KHMER_MODEL)
-	xcodebuild -project KhmerClip.xcodeproj -scheme KhmerClipTests -configuration Debug \
+	xcodebuild -project KhmerClipper.xcodeproj -scheme KhmerClipperTests -configuration Debug \
 		-derivedDataPath build \
 		CODE_SIGN_STYLE=Manual \
 		CODE_SIGN_IDENTITY="$(SIGN_ID)" \
@@ -72,7 +72,7 @@ test: gen $(KHMER_MODEL)
 		test
 
 build: gen $(KHMER_MODEL)
-	xcodebuild -project KhmerClip.xcodeproj -scheme KhmerClip -configuration Debug \
+	xcodebuild -project KhmerClipper.xcodeproj -scheme KhmerClipper -configuration Debug \
 		-derivedDataPath build \
 		CODE_SIGN_STYLE=Manual \
 		CODE_SIGN_IDENTITY="$(SIGN_ID)" \
@@ -80,8 +80,8 @@ build: gen $(KHMER_MODEL)
 		build
 
 run: build
-	@pkill -x KhmerClip 2>/dev/null || true
-	@while pgrep -x KhmerClip >/dev/null; do sleep 0.1; done
+	@pkill -x KhmerClipper 2>/dev/null || true
+	@while pgrep -x KhmerClipper >/dev/null; do sleep 0.1; done
 	@/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$(APP)"
 	@sleep 0.5   # let lsregister commit before `open`, else LaunchServices returns -600
 	@for i in 1 2 3 4 5; do \
@@ -89,4 +89,4 @@ run: build
 	done
 
 clean:
-	rm -rf build KhmerClip.xcodeproj
+	rm -rf build KhmerClipper.xcodeproj

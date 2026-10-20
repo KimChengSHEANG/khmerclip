@@ -3,7 +3,7 @@ from pathlib import Path
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QDialog, QDialogButtonBox, QLabel, QPlainTextEdit, QVBoxLayout
 
-from khmerclip.ui.fonts import khmer_font
+from khmerclipper.ui.fonts import khmer_font
 
 MAX_IMAGE_WIDTH = 480
 
@@ -22,7 +22,7 @@ class ReportDialog(QDialog):
             pixmap = pixmap.scaledToWidth(MAX_IMAGE_WIDTH)
         image.setPixmap(pixmap)
         layout.addWidget(image)
-        layout.addWidget(QLabel("KhmerClip read"))
+        layout.addWidget(QLabel("KhmerClipper read"))
         read = QLabel(ocr_text)
         read.setFont(khmer_font(12))
         read.setWordWrap(True)
@@ -31,7 +31,7 @@ class ReportDialog(QDialog):
         self.correction = QPlainTextEdit(ocr_text)
         self.correction.setFont(khmer_font(12))
         layout.addWidget(self.correction)
-        layout.addWidget(QLabel("This image and text will be sent to the KhmerClip developer."))
+        layout.addWidget(QLabel("This image and text will be sent to the KhmerClipper developer."))
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Cancel)
         self.send_button = buttons.addButton("Send", QDialogButtonBox.ButtonRole.AcceptRole)
         buttons.accepted.connect(self.accept)

@@ -1,10 +1,10 @@
-name = "khmerclip-report-relay"
+name = "khmerclipper-report-relay"
 main = "src/index.js"
 compatibility_date = "2026-10-01"
 
 [vars]
 APP_KEY = "kc-reports-1"
-REPORTS_REPO = "KimChengSHEANG/khmerclip-reports"
+REPORTS_REPO = "KimChengSHEANG/khmerclipper-reports"
 EMAIL_TO = "cheng900@gmail.com"
 
 # Secrets (set with `wrangler secret put`): GITHUB_TOKEN, RESEND_API_KEY

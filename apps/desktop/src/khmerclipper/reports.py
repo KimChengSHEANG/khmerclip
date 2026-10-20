@@ -16,9 +16,9 @@ from pathlib import Path
 
 from PIL import Image
 
-from khmerclip import __version__, paths
+from khmerclipper import __version__, paths
 
-REPORT_URL = "https://khmerclip-report-relay.REPLACE_ME.workers.dev/report"
+REPORT_URL = "https://khmerclipper-report-relay.REPLACE_ME.workers.dev/report"
 APP_KEY = "kc-reports-1"
 MAX_PNG_BYTES = 2_000_000  # relay limit
 TARGET_PNG_BYTES = 1_500_000  # keeps the base64 request body under the relay's 3 MB cap
@@ -116,8 +116,8 @@ def drop_type(kind: str, outbox: Path | None = None) -> None:
 def post_json(payload: dict, url: str = REPORT_URL, timeout: float = 20) -> int:
     request = urllib.request.Request(
         url, data=json.dumps(payload, ensure_ascii=False).encode("utf-8"), method="POST",
-        headers={"Content-Type": "application/json", "X-KhmerClip-Key": APP_KEY,
-                 "User-Agent": f"KhmerClip/{__version__}"})
+        headers={"Content-Type": "application/json", "X-KhmerClipper-Key": APP_KEY,
+                 "User-Agent": f"KhmerClipper/{__version__}"})
     try:
         with urllib.request.urlopen(request, timeout=timeout) as resp:
             return resp.status

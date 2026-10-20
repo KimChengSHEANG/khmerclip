@@ -1,4 +1,4 @@
-from khmerclip.formatter import apply
+from khmerclipper.formatter import apply
 
 
 def test_preserve_returns_text_unchanged():

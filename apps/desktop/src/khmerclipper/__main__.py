@@ -1,4 +1,4 @@
-"""Entry point: `khmerclip` (tray app), `khmerclip --capture`, `khmerclip ocr IMAGE`."""
+"""Entry point: `khmerclipper` (tray app), `khmerclipper --capture`, `khmerclipper ocr IMAGE`."""
 
 import argparse
 import sys
@@ -6,7 +6,7 @@ from pathlib import Path
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="khmerclip", description="Khmer OCR screen capture")
+    parser = argparse.ArgumentParser(prog="khmerclipper", description="Khmer OCR screen capture")
     parser.add_argument("--capture", action="store_true",
                         help="start a capture (signals the running instance; bind this to a desktop shortcut on Wayland)")
     sub = parser.add_subparsers(dest="command")
@@ -20,21 +20,21 @@ def build_parser() -> argparse.ArgumentParser:
 
 def _err(message: object) -> None:
     if sys.stderr:  # None in the windowed (no console) Windows build
-        print(f"khmerclip: {message}", file=sys.stderr)
+        print(f"khmerclipper: {message}", file=sys.stderr)
 
 
 def _ocr(args: argparse.Namespace) -> int:
     from PIL import Image
 
-    import khmerclip.ocr as ocr
-    from khmerclip.errors import KhmerClipError
-    from khmerclip.formatter import apply
+    import khmerclipper.ocr as ocr
+    from khmerclipper.errors import KhmerClipperError
+    from khmerclipper.formatter import apply
 
     try:
         with Image.open(args.image) as img:
             img.load()
             text = ocr.recognize(img, args.engine)
-    except (OSError, KhmerClipError) as e:
+    except (OSError, KhmerClipperError) as e:
         _err(e)
         return 1
     text = apply(text, preserve_linebreaks=not args.flatten)
@@ -51,7 +51,7 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.command == "ocr":
         return _ocr(args)
-    from khmerclip.ui.app import run_gui  # Qt is imported only for the GUI
+    from khmerclipper.ui.app import run_gui  # Qt is imported only for the GUI
 
     return run_gui(capture=args.capture)
 

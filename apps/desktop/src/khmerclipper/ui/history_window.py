@@ -5,9 +5,9 @@ from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (QDialog, QHBoxLayout, QLabel, QListWidget, QListWidgetItem, QMessageBox,
                                QPushButton, QVBoxLayout, QWidget)
 
-from khmerclip.history import HistoryStore, ScanRecord
-from khmerclip.ui.fonts import khmer_font
-from khmerclip.ui.report_dialog import ReportDialog
+from khmerclipper.history import HistoryStore, ScanRecord
+from khmerclipper.ui.fonts import khmer_font
+from khmerclipper.ui.report_dialog import ReportDialog
 
 PREVIEW_CHARS = 300
 THUMB_SIZE = QSize(72, 40)
@@ -17,7 +17,7 @@ class HistoryWindow(QWidget):
     def __init__(self, store: HistoryStore, copy: Callable[[str], None],
                  report: Callable[[ScanRecord, str], None] | None = None):
         super().__init__()
-        self.setWindowTitle("KhmerClip History")
+        self.setWindowTitle("KhmerClipper History")
         self.resize(480, 420)
         self.store, self._copy, self._report = store, copy, report
         self.list = QListWidget()

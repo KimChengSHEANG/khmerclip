@@ -1,4 +1,4 @@
-from khmerclip.capture.geometry import capture_backend, normalize_drag, to_physical
+from khmerclipper.capture.geometry import capture_backend, normalize_drag, to_physical
 
 
 def test_normalize_drag_any_direction():

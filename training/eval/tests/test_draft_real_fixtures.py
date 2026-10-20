@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from khmerclip_eval.fixtures import load_fixtures
+from khmerclipper_eval.fixtures import load_fixtures
 
 _spec = importlib.util.spec_from_file_location(
     "draft_real_fixtures", Path(__file__).parents[1] / "scripts/draft_real_fixtures.py"

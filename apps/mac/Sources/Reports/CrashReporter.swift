@@ -75,7 +75,7 @@ enum CrashReporter {
     /// Fingerprint of a pending crash, stable across runs so the relay can dedup it:
     /// "Signal N at <symbol>" (first app frame outside this handler), or "<name>: <reason>"
     /// with addresses and numbers masked.
-    static func signature(fromPending text: String, image: String = "KhmerClip") -> String {
+    static func signature(fromPending text: String, image: String = "KhmerClipper") -> String {
         let lines = text.split(separator: "\n", omittingEmptySubsequences: true).map(String.init)
         guard let first = lines.first else { return "" }
         guard first.hasPrefix("Signal ") else {

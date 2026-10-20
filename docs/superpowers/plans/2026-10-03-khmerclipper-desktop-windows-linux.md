@@ -1,25 +1,25 @@
-# KhmerClip Desktop (Windows + Linux) Implementation Plan
+# KhmerClipper Desktop (Windows + Linux) Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Ship KhmerClip for Windows and Linux: a tray app that captures a screen region, runs Khmer(+English) OCR (Tesseract or TrOCR/ONNX), and puts the text on the clipboard. Build and publish installers from GitHub Actions.
+**Goal:** Ship KhmerClipper for Windows and Linux: a tray app that captures a screen region, runs Khmer(+English) OCR (Tesseract or TrOCR/ONNX), and puts the text on the clipboard. Build and publish installers from GitHub Actions.
 
-**Architecture:** New Python package `khmerclip` at `apps/desktop/`. The headless core (OCR engines, preprocessing, persistence, downloader, updater) never imports Qt, so it runs in pytest and the `khmerclip ocr` CLI on any OS. A thin PySide6 GUI layer adds the tray, capture overlay or Wayland portal, popups and windows. PyInstaller freezes it. Inno Setup (Windows) and an AppImage (Linux) package it. Both bundle Tesseract plus pinned `tessdata_fast`. TrOCR models download on first use from a pinned Hugging Face revision.
+**Architecture:** New Python package `khmerclipper` at `apps/desktop/`. The headless core (OCR engines, preprocessing, persistence, downloader, updater) never imports Qt, so it runs in pytest and the `khmerclipper ocr` CLI on any OS. A thin PySide6 GUI layer adds the tray, capture overlay or Wayland portal, popups and windows. PyInstaller freezes it. Inno Setup (Windows) and an AppImage (Linux) package it. Both bundle Tesseract plus pinned `tessdata_fast`. TrOCR models download on first use from a pinned Hugging Face revision.
 
 **Tech Stack:** Python 3.12, PySide6-Essentials 6.8, onnxruntime, numpy, Pillow, platformdirs, pynput (Win/X11 hotkeys), jeepney (Wayland portal), pytest + pytest-qt, PyInstaller, Inno Setup 6, linuxdeploy + appimagetool, GitHub Actions. Dev-only export tools: torch 2.7, transformers 4.57, onnx, huggingface_hub.
 
-**Spec:** `docs/superpowers/specs/2026-10-03-khmerclip-desktop-windows-linux-design.md`
+**Spec:** `docs/superpowers/specs/2026-10-03-khmerclipper-desktop-windows-linux-design.md`
 
 ## Global Constraints
 
 - All new code lives under `apps/desktop/` plus `.github/workflows/desktop.yml` and one row in the root `README.md`. Do not modify `apps/mac/` (read-only reference; its OCR fixtures at `apps/mac/Tests/Fixtures/ocr/*.png|.txt` are reused by tests).
 - Python `>=3.12,<3.13`; `PySide6-Essentials~=6.8.0`; `onnxruntime>=1.20,<2`.
-- App name `KhmerClip`. Version is single-sourced: `apps/desktop/src/khmerclip/__init__.py` → `__version__ = "0.1.0"`. Release tag in this repo: `desktop-v<version>`. Release tag in the releases repo: `v<version>`.
+- App name `KhmerClipper`. Version is single-sourced: `apps/desktop/src/khmerclipper/__init__.py` → `__version__ = "0.1.0"`. Release tag in this repo: `desktop-v<version>`. Release tag in the releases repo: `v<version>`.
 - Default engine `"tesseract"`. Default hotkey `"<ctrl>+<shift>+2"` (pynput syntax).
 - Tessdata: `tessdata_fast` tag `4.1.0`. `khm.traineddata` sha256 `47f110575341b322052f3becbefee61a3ecf1ef549352b5d4d33d28afe30d099`, size 1446926. `eng.traineddata` sha256 `7d4322bd2a7749724879683fc3912cb542f19906c83bcc1a52132556427170b2`, size 4113088. Tesseract args: `-l khm+eng --psm 6`.
-- Model repo (public HF): `KimChengSHEANG/khmerclip-trocr-khmer-onnx`. Releases repo (public GitHub): `KimChengSHEANG/khmerclip-releases`. Update feed: `https://api.github.com/repos/KimChengSHEANG/khmerclip-releases/releases/latest`.
+- Model repo (public HF): `KimChengSHEANG/khmerclipper-trocr-khmer-onnx`. Releases repo (public GitHub): `KimChengSHEANG/khmerclipper-releases`. Update feed: `https://api.github.com/repos/KimChengSHEANG/khmerclipper-releases/releases/latest`.
 - Every text file read or write passes `encoding="utf-8"` explicitly, because the Windows default code page mangles Khmer. JSON is written with `ensure_ascii=False`.
-- Qt is imported only in `capture/overlay.py`, `single_instance.py` and `ui/*`. Core modules and `khmerclip ocr` must import without Qt.
+- Qt is imported only in `capture/overlay.py`, `single_instance.py` and `ui/*`. Core modules and `khmerclipper ocr` must import without Qt.
 - Run everything from `apps/desktop/` with the venv: `.venv/bin/python -m pytest` (Windows: `.venv\Scripts\python -m pytest`).
 - **Work only in the execution worktree** `.claude/worktrees/desktop-windows-linux` on branch `feat/desktop-windows-linux`, created in Task 0. Task 1 starts only after Task 0 Step 4 passes.
 - **Git in a worktree session:** call `/usr/bin/git` (absolute path). The rtk hook rewrites plain `git`, and the worktree guard refuses the rewritten command. Run git from the worktree root. Do not chain git with `;` or `&&`.
@@ -29,7 +29,7 @@
 
 1. **Windows non-ASCII paths and code pages.** A Khmer Windows username puts resources under a non-ASCII path, and Tesseract opens `--tessdata-dir` through the ANSI code page. Expect OCR to still work: use the 8.3 short path. Expect output to be UTF-8 regardless of the system code page. → Task 4 `test_ascii_path_for_non_ascii_dir` (Windows CI) and the Windows fixture test.
 2. **Fractional display scaling (125%/150%) and multiple monitors.** Expect the cropped image to be exactly the region the user dragged on any screen. → Task 9 `test_to_physical_*` at 1.25 and 1.5, and Task 10 `test_overlay_crop_uses_pixmap_to_widget_ratio`.
-3. **Wayland session (Ubuntu default).** Expect capture to go through the portal, no silent half-working X11 hotkey, and the prefs window to explain how to bind `khmerclip --capture`. → Task 9 `test_capture_backend_*` and Task 11 `test_listener_refuses_on_wayland`.
+3. **Wayland session (Ubuntu default).** Expect capture to go through the portal, no silent half-working X11 hotkey, and the prefs window to explain how to bind `khmerclipper --capture`. → Task 9 `test_capture_backend_*` and Task 11 `test_listener_refuses_on_wayland`.
 4. **Frozen Linux build spawning Tesseract.** PyInstaller's `LD_LIBRARY_PATH` leaks into the child process. Expect the bundled Tesseract to load its own libraries. → Task 4 `test_subprocess_env_*` and Task 17's AppImage smoke test run with system Tesseract removed.
 5. **Interrupted, corrupt or disk-full model download (1.3 GB).** Expect no half-written model file, a clear error, and a retry that resumes cleanly. → Task 3 `test_download_*` (checksum mismatch, cancel, unreachable URL, skip-existing).
 
@@ -47,11 +47,11 @@ apps/desktop/
     fonts/NotoSansKhmer-Regular.ttf # bundled Khmer font (OFL)
     fonts/OFL.txt
     tesseract/                      # gitignored; tessdata/ fetched, Windows exe+dlls vendored in CI
-  src/khmerclip/
+  src/khmerclipper/
     __init__.py                     # __version__
     __main__.py                     # CLI: GUI (default), --capture, `ocr IMAGE`
     paths.py                        # resource/data/config dirs, atomic_write_text
-    errors.py                       # KhmerClipError, EngineUnavailable, Cancelled
+    errors.py                       # KhmerClipperError, EngineUnavailable, Cancelled
     formatter.py                    # preserve/flatten line breaks
     prefs.py                        # Prefs dataclass <-> prefs.json
     history.py                      # ScanRecord, HistoryStore <-> history.json
@@ -88,11 +88,11 @@ apps/desktop/
     publish_models.py               # upload to HF, write trocr_manifest.json
   packaging/
     entry.py                        # PyInstaller entry script
-    khmerclip.spec                  # PyInstaller onedir spec
+    khmerclipper.spec                  # PyInstaller onedir spec
     windows/vendor_tesseract.ps1    # copy choco Tesseract exe+dlls into resources/tesseract
-    windows/khmerclip.iss           # Inno Setup per-user installer
+    windows/khmerclipper.iss           # Inno Setup per-user installer
     linux/AppRun
-    linux/khmerclip.desktop
+    linux/khmerclipper.desktop
     linux/build_appimage.sh
   tests/
     helpers.py                      # FIXTURES path, normalize(), cer()
@@ -122,7 +122,7 @@ Invoke `superpowers:using-git-worktrees` and follow its Step 0 detection. If the
 
 - [ ] **Step 2: Create the worktree from the plan's branch**
 
-Do not rely on a harness default base. `EnterWorktree` branches from `origin/main`, which is behind local `main` and lacks this plan. Create it explicitly, from the **main checkout root** (`/Users/kim/Sync/workspace/khmerclip`):
+Do not rely on a harness default base. `EnterWorktree` branches from `origin/main`, which is behind local `main` and lacks this plan. Create it explicitly, from the **main checkout root** (`/Users/kim/Sync/workspace/khmerclipper`):
 
 ```bash
 /usr/bin/git worktree add .claude/worktrees/desktop-windows-linux -b feat/desktop-windows-linux worktree-cross-platform-builds
@@ -137,7 +137,7 @@ Expected: `ignored`.
 
 - [ ] **Step 3: Switch the session into it**
 
-Native tool (preferred): `EnterWorktree` with `path: "/Users/kim/Sync/workspace/khmerclip/.claude/worktrees/desktop-windows-linux"`. Without the native tool, `cd` into that path and stay there for every later task.
+Native tool (preferred): `EnterWorktree` with `path: "/Users/kim/Sync/workspace/khmerclipper/.claude/worktrees/desktop-windows-linux"`. Without the native tool, `cd` into that path and stay there for every later task.
 
 - [ ] **Step 4: Verify the base**
 
@@ -145,7 +145,7 @@ From the new worktree root, run each command separately:
 ```bash
 /usr/bin/git branch --show-current
 /usr/bin/git log --oneline -3
-ls docs/superpowers/plans/2026-10-03-khmerclip-desktop-windows-linux.md
+ls docs/superpowers/plans/2026-10-03-khmerclipper-desktop-windows-linux.md
 ls apps
 ```
 Expected:
@@ -167,24 +167,24 @@ No baseline suite exists for `apps/desktop` yet; Task 1 creates it. The mac app'
 **Files:**
 - Create: `apps/desktop/pyproject.toml`
 - Create: `apps/desktop/.gitignore`
-- Create: `apps/desktop/src/khmerclip/__init__.py`
-- Create: `apps/desktop/src/khmerclip/paths.py`
-- Create: `apps/desktop/src/khmerclip/errors.py`
-- Create: `apps/desktop/src/khmerclip/formatter.py`
+- Create: `apps/desktop/src/khmerclipper/__init__.py`
+- Create: `apps/desktop/src/khmerclipper/paths.py`
+- Create: `apps/desktop/src/khmerclipper/errors.py`
+- Create: `apps/desktop/src/khmerclipper/formatter.py`
 - Create: `apps/desktop/resources/icon.png` (copied), `apps/desktop/resources/fonts/NotoSansKhmer-Regular.ttf`, `apps/desktop/resources/fonts/OFL.txt` (downloaded)
 - Create: `apps/desktop/tests/helpers.py`, `apps/desktop/tests/conftest.py`
 - Test: `apps/desktop/tests/test_formatter.py`, `apps/desktop/tests/test_paths.py`
 
 **Interfaces:**
 - Produces:
-  - `khmerclip.__version__: str`
-  - `khmerclip.paths.APP_NAME = "KhmerClip"`
+  - `khmerclipper.__version__: str`
+  - `khmerclipper.paths.APP_NAME = "KhmerClipper"`
   - `resource_dir() -> Path`
   - `data_dir() -> Path`
   - `config_dir() -> Path`
   - `atomic_write_text(path: Path, text: str) -> None`
-  - `khmerclip.errors`: `KhmerClipError(Exception)`, `EngineUnavailable(KhmerClipError)`, `Cancelled(Exception)`
-  - `khmerclip.formatter.apply(text: str, preserve_linebreaks: bool) -> str`
+  - `khmerclipper.errors`: `KhmerClipperError(Exception)`, `EngineUnavailable(KhmerClipperError)`, `Cancelled(Exception)`
+  - `khmerclipper.formatter.apply(text: str, preserve_linebreaks: bool) -> str`
   - `tests/helpers.py`: `FIXTURES: Path`, `normalize(s: str) -> str`, `cer(hyp: str, ref: str) -> float`
 
 - [ ] **Step 1: Create the project files and dev venv**
@@ -196,7 +196,7 @@ requires = ["setuptools>=69"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "khmerclip"
+name = "khmerclipper"
 dynamic = ["version"]
 description = "Khmer OCR screen capture for Windows and Linux"
 requires-python = ">=3.12,<3.13"
@@ -215,16 +215,16 @@ dev = ["pytest>=8", "pytest-qt>=4.4", "pyinstaller>=6.10"]
 tools = ["torch==2.7.0", "transformers==4.57.*", "onnx>=1.16", "huggingface_hub>=0.25"]
 
 [project.scripts]
-khmerclip = "khmerclip.__main__:main"
+khmerclipper = "khmerclipper.__main__:main"
 
 [tool.setuptools.dynamic]
-version = { attr = "khmerclip.__version__" }
+version = { attr = "khmerclipper.__version__" }
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
-khmerclip = ["ocr/*.json"]
+khmerclipper = ["ocr/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -241,9 +241,9 @@ exported/
 *.AppImage
 ```
 
-`apps/desktop/src/khmerclip/__init__.py`:
+`apps/desktop/src/khmerclipper/__init__.py`:
 ```python
-"""KhmerClip for Windows and Linux."""
+"""KhmerClipper for Windows and Linux."""
 
 __version__ = "0.1.0"
 ```
@@ -295,7 +295,7 @@ def cer(hyp: str, ref: str) -> float:
 
 `apps/desktop/tests/test_formatter.py`:
 ```python
-from khmerclip.formatter import apply
+from khmerclipper.formatter import apply
 
 
 def test_preserve_returns_text_unchanged():
@@ -314,7 +314,7 @@ def test_flatten_of_blank_text_is_empty():
 
 `apps/desktop/tests/test_paths.py`:
 ```python
-from khmerclip import paths
+from khmerclipper import paths
 
 
 def test_resource_dir_contains_bundled_font_and_icon():
@@ -333,13 +333,13 @@ def test_atomic_write_text_writes_utf8_and_leaves_no_temp(tmp_path):
 - [ ] **Step 3: Run tests to verify they fail**
 
 Run: `.venv/bin/python -m pytest tests/test_formatter.py tests/test_paths.py -v`
-Expected: FAIL with `ModuleNotFoundError: No module named 'khmerclip.formatter'` (and `khmerclip.paths`).
+Expected: FAIL with `ModuleNotFoundError: No module named 'khmerclipper.formatter'` (and `khmerclipper.paths`).
 
 - [ ] **Step 4: Implement paths, errors, formatter**
 
-`apps/desktop/src/khmerclip/paths.py`:
+`apps/desktop/src/khmerclipper/paths.py`:
 ```python
-"""Where KhmerClip reads bundled resources and keeps per-user state."""
+"""Where KhmerClipper reads bundled resources and keeps per-user state."""
 
 import os
 import sys
@@ -347,7 +347,7 @@ from pathlib import Path
 
 import platformdirs
 
-APP_NAME = "KhmerClip"
+APP_NAME = "KhmerClipper"
 
 
 def resource_dir() -> Path:
@@ -379,13 +379,13 @@ def atomic_write_text(path: Path, text: str) -> None:
     os.replace(tmp, path)
 ```
 
-`apps/desktop/src/khmerclip/errors.py`:
+`apps/desktop/src/khmerclipper/errors.py`:
 ```python
-class KhmerClipError(Exception):
+class KhmerClipperError(Exception):
     """A failure whose str() is shown to the user as-is."""
 
 
-class EngineUnavailable(KhmerClipError):
+class EngineUnavailable(KhmerClipperError):
     """The chosen OCR engine can't run (binary/model missing)."""
 
 
@@ -393,7 +393,7 @@ class Cancelled(Exception):
     """The user cancelled a running OCR or download."""
 ```
 
-`apps/desktop/src/khmerclip/formatter.py`:
+`apps/desktop/src/khmerclipper/formatter.py`:
 ```python
 def apply(text: str, preserve_linebreaks: bool) -> str:
     """Port of OCRTextFormatter.swift: optionally flatten visual wrapping into one paragraph."""
@@ -411,7 +411,7 @@ Expected: 5 passed.
 
 ```bash
 /usr/bin/git add apps/desktop
-/usr/bin/git commit -m "feat(desktop): scaffold Windows/Linux khmerclip package"
+/usr/bin/git commit -m "feat(desktop): scaffold Windows/Linux khmerclipper package"
 ```
 
 ---
@@ -419,8 +419,8 @@ Expected: 5 passed.
 ### Task 2: Preferences and scan history
 
 **Files:**
-- Create: `apps/desktop/src/khmerclip/prefs.py`
-- Create: `apps/desktop/src/khmerclip/history.py`
+- Create: `apps/desktop/src/khmerclipper/prefs.py`
+- Create: `apps/desktop/src/khmerclipper/history.py`
 - Test: `apps/desktop/tests/test_prefs.py`, `apps/desktop/tests/test_history.py`
 
 **Interfaces:**
@@ -438,7 +438,7 @@ Expected: 5 passed.
 ```python
 import json
 
-from khmerclip.prefs import Prefs
+from khmerclipper.prefs import Prefs
 
 
 def test_missing_file_gives_defaults(tmp_path):
@@ -482,7 +482,7 @@ def test_wrong_typed_fields_fall_back_individually(tmp_path):
 ```python
 import json
 
-from khmerclip.history import HistoryStore, ScanRecord
+from khmerclipper.history import HistoryStore, ScanRecord
 
 
 def test_add_puts_newest_first_and_persists(tmp_path):
@@ -532,17 +532,17 @@ def test_wrong_shape_is_quarantined(tmp_path):
 - [ ] **Step 2: Run tests to verify they fail**
 
 Run: `.venv/bin/python -m pytest tests/test_prefs.py tests/test_history.py -v`
-Expected: FAIL with `ModuleNotFoundError: No module named 'khmerclip.prefs'`.
+Expected: FAIL with `ModuleNotFoundError: No module named 'khmerclipper.prefs'`.
 
 - [ ] **Step 3: Implement**
 
-`apps/desktop/src/khmerclip/prefs.py`:
+`apps/desktop/src/khmerclipper/prefs.py`:
 ```python
 import json
 from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
 
-from khmerclip import paths
+from khmerclipper import paths
 
 ENGINES = ("tesseract", "trocr")
 
@@ -586,7 +586,7 @@ class Prefs:
         paths.atomic_write_text(self.path, json.dumps(data, indent=2, ensure_ascii=False))
 ```
 
-`apps/desktop/src/khmerclip/history.py`:
+`apps/desktop/src/khmerclipper/history.py`:
 ```python
 import json
 import os
@@ -595,7 +595,7 @@ from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
-from khmerclip import paths
+from khmerclipper import paths
 
 
 def _now() -> str:
@@ -657,7 +657,7 @@ Expected: 9 passed.
 - [ ] **Step 5: Commit**
 
 ```bash
-/usr/bin/git add apps/desktop/src/khmerclip/prefs.py apps/desktop/src/khmerclip/history.py apps/desktop/tests/test_prefs.py apps/desktop/tests/test_history.py
+/usr/bin/git add apps/desktop/src/khmerclipper/prefs.py apps/desktop/src/khmerclipper/history.py apps/desktop/tests/test_prefs.py apps/desktop/tests/test_history.py
 /usr/bin/git commit -m "feat(desktop): add JSON-backed preferences and scan history"
 ```
 
@@ -666,16 +666,16 @@ Expected: 9 passed.
 ### Task 3: Verified file downloader
 
 **Files:**
-- Create: `apps/desktop/src/khmerclip/download.py`
+- Create: `apps/desktop/src/khmerclipper/download.py`
 - Test: `apps/desktop/tests/test_download.py`
 
 **Interfaces:**
-- Consumes: `errors.KhmerClipError`, `errors.Cancelled`
+- Consumes: `errors.KhmerClipperError`, `errors.Cancelled`
 - Produces:
   - `RemoteFile(name: str, url: str, sha256: str, size: int)` (frozen dataclass)
   - `sha256_file(path: Path) -> str`
   - `is_present(files: Sequence[RemoteFile], dest_dir: Path) -> bool`
-  - `download(files: Sequence[RemoteFile], dest_dir: Path, progress: Callable[[int, int], None] | None = None, cancel: threading.Event | None = None, chunk_size: int = 1 << 20) -> None`. Raises `KhmerClipError` on network/disk/checksum failure. Raises `Cancelled` when `cancel` is set. Never leaves `*.part` or unverified files behind.
+  - `download(files: Sequence[RemoteFile], dest_dir: Path, progress: Callable[[int, int], None] | None = None, cancel: threading.Event | None = None, chunk_size: int = 1 << 20) -> None`. Raises `KhmerClipperError` on network/disk/checksum failure. Raises `Cancelled` when `cancel` is set. Never leaves `*.part` or unverified files behind.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -686,8 +686,8 @@ import threading
 
 import pytest
 
-from khmerclip.download import RemoteFile, download, is_present, sha256_file
-from khmerclip.errors import Cancelled, KhmerClipError
+from khmerclipper.download import RemoteFile, download, is_present, sha256_file
+from khmerclipper.errors import Cancelled, KhmerClipperError
 
 
 def _source(tmp_path, name, payload: bytes, sha=None) -> RemoteFile:
@@ -708,7 +708,7 @@ def test_download_verifies_and_installs(tmp_path):
 
 def test_download_checksum_mismatch_leaves_nothing(tmp_path):
     bad = _source(tmp_path, "m.bin", b"data", sha="0" * 64)
-    with pytest.raises(KhmerClipError, match="Checksum mismatch"):
+    with pytest.raises(KhmerClipperError, match="Checksum mismatch"):
         download([bad], tmp_path / "out")
     assert list((tmp_path / "out").iterdir()) == []
 
@@ -724,7 +724,7 @@ def test_download_cancel_raises_and_cleans_part(tmp_path):
 
 def test_download_unreachable_url_is_user_facing_error(tmp_path):
     missing = RemoteFile("x.bin", (tmp_path / "nope.bin").as_uri(), "0" * 64, 1)
-    with pytest.raises(KhmerClipError, match="x.bin"):
+    with pytest.raises(KhmerClipperError, match="x.bin"):
         download([missing], tmp_path / "out")
     assert list((tmp_path / "out").iterdir()) == []
 
@@ -748,11 +748,11 @@ def test_sha256_file(tmp_path):
 - [ ] **Step 2: Run tests to verify they fail**
 
 Run: `.venv/bin/python -m pytest tests/test_download.py -v`
-Expected: FAIL with `ModuleNotFoundError: No module named 'khmerclip.download'`.
+Expected: FAIL with `ModuleNotFoundError: No module named 'khmerclipper.download'`.
 
 - [ ] **Step 3: Implement**
 
-`apps/desktop/src/khmerclip/download.py`:
+`apps/desktop/src/khmerclipper/download.py`:
 ```python
 """Download pinned files with SHA-256 verification (tessdata, TrOCR models)."""
 
@@ -764,8 +764,8 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
-from khmerclip import __version__
-from khmerclip.errors import Cancelled, KhmerClipError
+from khmerclipper import __version__
+from khmerclipper.errors import Cancelled, KhmerClipperError
 
 
 @dataclass(frozen=True)
@@ -807,7 +807,7 @@ def download(
             continue
         part = final.with_name(final.name + ".part")
         digest = hashlib.sha256()
-        request = urllib.request.Request(f.url, headers={"User-Agent": f"KhmerClip/{__version__}"})
+        request = urllib.request.Request(f.url, headers={"User-Agent": f"KhmerClipper/{__version__}"})
         try:
             with urllib.request.urlopen(request, timeout=30) as resp, open(part, "wb") as out:
                 while block := resp.read(chunk_size):
@@ -819,12 +819,12 @@ def download(
                     if progress:
                         progress(done, total)
             if digest.hexdigest() != f.sha256:
-                raise KhmerClipError(f"Checksum mismatch for {f.name}; the download was corrupted. Try again.")
+                raise KhmerClipperError(f"Checksum mismatch for {f.name}; the download was corrupted. Try again.")
             os.replace(part, final)
-        except (Cancelled, KhmerClipError):
+        except (Cancelled, KhmerClipperError):
             raise
         except OSError as e:  # URLError, HTTPError, disk full, permission denied
-            raise KhmerClipError(f"Downloading {f.name} failed: {e}") from e
+            raise KhmerClipperError(f"Downloading {f.name} failed: {e}") from e
         finally:
             part.unlink(missing_ok=True)
 ```
@@ -837,7 +837,7 @@ Expected: 6 passed.
 - [ ] **Step 5: Commit**
 
 ```bash
-/usr/bin/git add apps/desktop/src/khmerclip/download.py apps/desktop/tests/test_download.py
+/usr/bin/git add apps/desktop/src/khmerclipper/download.py apps/desktop/tests/test_download.py
 /usr/bin/git commit -m "feat(desktop): add checksum-verified, cancellable downloader"
 ```
 
@@ -847,18 +847,18 @@ Expected: 6 passed.
 
 **Files:**
 - Create: `apps/desktop/tools/fetch_tessdata.py`
-- Create: `apps/desktop/src/khmerclip/ocr/__init__.py` (empty for now; Task 8 fills it)
-- Create: `apps/desktop/src/khmerclip/ocr/tesseract.py`
+- Create: `apps/desktop/src/khmerclipper/ocr/__init__.py` (empty for now; Task 8 fills it)
+- Create: `apps/desktop/src/khmerclipper/ocr/tesseract.py`
 - Test: `apps/desktop/tests/test_tesseract.py`
 
 **Interfaces:**
 - Consumes: `download.RemoteFile`, `download.download`, `paths.resource_dir()`, `errors.*`
 - Produces:
-  - `tesseract.find_tesseract(env: Mapping[str, str] | None = None) -> str | None` (env `KHMERCLIP_TESSERACT` > bundled `resources/tesseract/tesseract(.exe)` > `PATH`)
+  - `tesseract.find_tesseract(env: Mapping[str, str] | None = None) -> str | None` (env `KHMERCLIPPER_TESSERACT` > bundled `resources/tesseract/tesseract(.exe)` > `PATH`)
   - `tesseract.tessdata_dir() -> Path` (= `resource_dir()/"tesseract"/"tessdata"`)
   - `tesseract.subprocess_env(env: Mapping[str, str], frozen: bool) -> dict[str, str]`
   - `tesseract.ascii_path(path: Path) -> str`
-  - `tesseract.recognize(image: PIL.Image.Image) -> str`. Raises `EngineUnavailable` or `KhmerClipError`.
+  - `tesseract.recognize(image: PIL.Image.Image) -> str`. Raises `EngineUnavailable` or `KhmerClipperError`.
 
 - [ ] **Step 1: Write the tessdata fetch tool**
 
@@ -870,8 +870,8 @@ Same files (and hashes) the mac app vendors. Run from apps/desktop:
     .venv/bin/python tools/fetch_tessdata.py
 """
 
-from khmerclip.download import RemoteFile, download
-from khmerclip.ocr.tesseract import tessdata_dir
+from khmerclipper.download import RemoteFile, download
+from khmerclipper.ocr.tesseract import tessdata_dir
 
 BASE = "https://github.com/tesseract-ocr/tessdata_fast/raw/4.1.0/"
 FILES = [
@@ -899,13 +899,13 @@ import pytest
 from PIL import Image
 
 from helpers import FIXTURES, cer, normalize
-from khmerclip.errors import EngineUnavailable
-from khmerclip.ocr import tesseract
+from khmerclipper.errors import EngineUnavailable
+from khmerclipper.ocr import tesseract
 
 HAVE_TESSERACT = tesseract.find_tesseract() is not None and (tesseract.tessdata_dir() / "khm.traineddata").is_file()
 needs_tesseract = pytest.mark.skipif(
-    not HAVE_TESSERACT and not os.environ.get("KHMERCLIP_REQUIRE_TESSERACT"),
-    reason="tesseract/tessdata not installed (CI sets KHMERCLIP_REQUIRE_TESSERACT=1)",
+    not HAVE_TESSERACT and not os.environ.get("KHMERCLIPPER_REQUIRE_TESSERACT"),
+    reason="tesseract/tessdata not installed (CI sets KHMERCLIPPER_REQUIRE_TESSERACT=1)",
 )
 
 
@@ -927,7 +927,7 @@ def test_missing_binary_is_engine_unavailable(monkeypatch):
 
 def test_find_tesseract_prefers_env_override(tmp_path):
     exe = tmp_path / "my-tesseract"
-    assert tesseract.find_tesseract({"KHMERCLIP_TESSERACT": str(exe), "PATH": ""}) == str(exe)
+    assert tesseract.find_tesseract({"KHMERCLIPPER_TESSERACT": str(exe), "PATH": ""}) == str(exe)
 
 
 def test_subprocess_env_restores_original_ld_library_path_when_frozen():
@@ -964,13 +964,13 @@ def test_ascii_path_passthrough_for_ascii(tmp_path):
 - [ ] **Step 3: Run tests to verify they fail**
 
 Run: `.venv/bin/python -m pytest tests/test_tesseract.py -v`
-Expected: FAIL at collection with `ModuleNotFoundError: No module named 'khmerclip.ocr'`.
+Expected: FAIL at collection with `ModuleNotFoundError: No module named 'khmerclipper.ocr'`.
 
 - [ ] **Step 4: Implement**
 
-`apps/desktop/src/khmerclip/ocr/__init__.py`: create as an empty file.
+`apps/desktop/src/khmerclipper/ocr/__init__.py`: create as an empty file.
 
-`apps/desktop/src/khmerclip/ocr/tesseract.py`:
+`apps/desktop/src/khmerclipper/ocr/tesseract.py`:
 ```python
 """Tesseract subprocess engine (khm+eng), mirroring TesseractEngine.swift."""
 
@@ -984,8 +984,8 @@ from pathlib import Path
 
 from PIL import Image
 
-from khmerclip.errors import EngineUnavailable, KhmerClipError
-from khmerclip.paths import resource_dir
+from khmerclipper.errors import EngineUnavailable, KhmerClipperError
+from khmerclipper.paths import resource_dir
 
 LANGS = "khm+eng"
 TIMEOUT_S = 60
@@ -993,7 +993,7 @@ TIMEOUT_S = 60
 
 def find_tesseract(env: Mapping[str, str] | None = None) -> str | None:
     env = os.environ if env is None else env
-    if override := env.get("KHMERCLIP_TESSERACT"):
+    if override := env.get("KHMERCLIPPER_TESSERACT"):
         return override
     exe = "tesseract.exe" if sys.platform == "win32" else "tesseract"
     bundled = resource_dir() / "tesseract" / exe
@@ -1035,7 +1035,7 @@ def ascii_path(path: Path) -> str:
 def recognize(image: Image.Image) -> str:
     exe = find_tesseract()
     if exe is None:
-        raise EngineUnavailable("Tesseract was not found. Reinstall KhmerClip (developers: install tesseract-ocr).")
+        raise EngineUnavailable("Tesseract was not found. Reinstall KhmerClipper (developers: install tesseract-ocr).")
     tessdata = tessdata_dir()
     if not (tessdata / "khm.traineddata").is_file():
         raise EngineUnavailable("Khmer language data is missing. Developers: run tools/fetch_tessdata.py.")
@@ -1053,11 +1053,11 @@ def recognize(image: Image.Image) -> str:
             creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),  # no console flash on Windows
         )
     except subprocess.TimeoutExpired as e:
-        raise KhmerClipError("Tesseract timed out.") from e
+        raise KhmerClipperError("Tesseract timed out.") from e
     except OSError as e:
         raise EngineUnavailable(f"Could not run Tesseract: {e}") from e
     if proc.returncode != 0:
-        raise KhmerClipError("Tesseract failed: " + proc.stderr.decode("utf-8", "replace").strip())
+        raise KhmerClipperError("Tesseract failed: " + proc.stderr.decode("utf-8", "replace").strip())
     return proc.stdout.decode("utf-8", "replace").strip()
 ```
 
@@ -1069,7 +1069,7 @@ Run:
 ```
 Expected: `tessdata ready: …/apps/desktop/resources/tesseract/tessdata`.
 
-For a local Tesseract on macOS use Homebrew (`brew install tesseract`) or the mac app's vendored one from the main checkout, for example `export KHMERCLIP_TESSERACT=/Users/kim/Sync/workspace/khmerclip/apps/mac/Vendor/tesseract/bin/tesseract`.
+For a local Tesseract on macOS use Homebrew (`brew install tesseract`) or the mac app's vendored one from the main checkout, for example `export KHMERCLIPPER_TESSERACT=/Users/kim/Sync/workspace/khmerclipper/apps/mac/Vendor/tesseract/bin/tesseract`.
 
 Run: `.venv/bin/python -m pytest tests/test_tesseract.py -v`
 Expected: 6 fixture tests plus 6 unit tests pass, and the Windows-only test is skipped. Without any Tesseract the fixture tests show as skipped. Windows and Linux CI run them for real in Task 17.
@@ -1077,7 +1077,7 @@ Expected: 6 fixture tests plus 6 unit tests pass, and the Windows-only test is s
 - [ ] **Step 6: Commit**
 
 ```bash
-/usr/bin/git add apps/desktop/tools/fetch_tessdata.py apps/desktop/src/khmerclip/ocr apps/desktop/tests/test_tesseract.py
+/usr/bin/git add apps/desktop/tools/fetch_tessdata.py apps/desktop/src/khmerclipper/ocr apps/desktop/tests/test_tesseract.py
 /usr/bin/git commit -m "feat(desktop): add Tesseract engine with pinned tessdata"
 ```
 
@@ -1086,7 +1086,7 @@ Expected: 6 fixture tests plus 6 unit tests pass, and the Windows-only test is s
 ### Task 5: TrOCR tokenizer decode
 
 **Files:**
-- Create: `apps/desktop/src/khmerclip/ocr/tokenizer.py`
+- Create: `apps/desktop/src/khmerclipper/ocr/tokenizer.py`
 - Test: `apps/desktop/tests/test_tokenizer.py`
 
 **Interfaces:**
@@ -1100,7 +1100,7 @@ import json
 
 import pytest
 
-from khmerclip.ocr.tokenizer import _BYTE_ENCODER, TrOCRTokenizer
+from khmerclipper.ocr.tokenizer import _BYTE_ENCODER, TrOCRTokenizer
 
 SPECIALS = ["<s>", "<pad>", "</s>", "<unk>"]
 
@@ -1159,11 +1159,11 @@ def test_from_file_reads_utf8(tmp_path):
 - [ ] **Step 2: Run tests to verify they fail**
 
 Run: `.venv/bin/python -m pytest tests/test_tokenizer.py -v`
-Expected: FAIL with `ModuleNotFoundError: No module named 'khmerclip.ocr.tokenizer'`.
+Expected: FAIL with `ModuleNotFoundError: No module named 'khmerclipper.ocr.tokenizer'`.
 
 - [ ] **Step 3: Implement**
 
-`apps/desktop/src/khmerclip/ocr/tokenizer.py`:
+`apps/desktop/src/khmerclipper/ocr/tokenizer.py`:
 ```python
 """Decode-only TrOCR tokenizer. Port of apps/mac/Sources/OCR/TrOCRTokenizer.swift.
 
@@ -1236,7 +1236,7 @@ Expected: 8 passed.
 - [ ] **Step 5: Commit**
 
 ```bash
-/usr/bin/git add apps/desktop/src/khmerclip/ocr/tokenizer.py apps/desktop/tests/test_tokenizer.py
+/usr/bin/git add apps/desktop/src/khmerclipper/ocr/tokenizer.py apps/desktop/tests/test_tokenizer.py
 /usr/bin/git commit -m "feat(desktop): port TrOCR tokenizer decode"
 ```
 
@@ -1245,7 +1245,7 @@ Expected: 8 passed.
 ### Task 6: TrOCR image preprocessing
 
 **Files:**
-- Create: `apps/desktop/src/khmerclip/ocr/preprocess.py`
+- Create: `apps/desktop/src/khmerclipper/ocr/preprocess.py`
 - Test: `apps/desktop/tests/test_preprocess.py`
 
 **Interfaces:**
@@ -1263,8 +1263,8 @@ Expected: 8 passed.
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
-from khmerclip.ocr.preprocess import content_crop, ink_mask, line_strips, pixel_values
-from khmerclip.paths import resource_dir
+from khmerclipper.ocr.preprocess import content_crop, ink_mask, line_strips, pixel_values
+from khmerclipper.paths import resource_dir
 
 
 def bars(size, rows, bg="white", fg="black"):
@@ -1343,11 +1343,11 @@ def test_pixel_values_shape_and_normalization():
 - [ ] **Step 2: Run tests to verify they fail**
 
 Run: `.venv/bin/python -m pytest tests/test_preprocess.py -v`
-Expected: FAIL with `ModuleNotFoundError: No module named 'khmerclip.ocr.preprocess'`.
+Expected: FAIL with `ModuleNotFoundError: No module named 'khmerclipper.ocr.preprocess'`.
 
 - [ ] **Step 3: Implement**
 
-`apps/desktop/src/khmerclip/ocr/preprocess.py`:
+`apps/desktop/src/khmerclipper/ocr/preprocess.py`:
 ```python
 """TrOCR preprocessing, ported from apps/mac/Sources/OCR/TrOCREngine.swift.
 
@@ -1463,7 +1463,7 @@ Expected: 10 passed. If `test_line_strips_three_khmer_lines` fails, print the in
 - [ ] **Step 5: Commit**
 
 ```bash
-/usr/bin/git add apps/desktop/src/khmerclip/ocr/preprocess.py apps/desktop/tests/test_preprocess.py
+/usr/bin/git add apps/desktop/src/khmerclipper/ocr/preprocess.py apps/desktop/tests/test_preprocess.py
 /usr/bin/git commit -m "feat(desktop): port TrOCR line split, content crop and normalization"
 ```
 
@@ -1472,8 +1472,8 @@ Expected: 10 passed. If `test_line_strips_three_khmer_lines` fails, print the in
 ### Task 7: TrOCR ONNX export, model manifest and publishing
 
 **Files:**
-- Create: `apps/desktop/src/khmerclip/ocr/trocr_models.py`
-- Create: `apps/desktop/src/khmerclip/ocr/trocr_manifest.json`
+- Create: `apps/desktop/src/khmerclipper/ocr/trocr_models.py`
+- Create: `apps/desktop/src/khmerclipper/ocr/trocr_manifest.json`
 - Create: `apps/desktop/tools/export_onnx.py`
 - Create: `apps/desktop/tools/publish_models.py`
 - Test: `apps/desktop/tests/test_trocr_models.py`
@@ -1500,8 +1500,8 @@ import json
 
 import pytest
 
-from khmerclip.errors import EngineUnavailable
-from khmerclip.ocr import trocr_models as tm
+from khmerclipper.errors import EngineUnavailable
+from khmerclipper.ocr import trocr_models as tm
 
 
 def make_model_dir(tmp_path):
@@ -1554,7 +1554,7 @@ Expected: FAIL with `ImportError: cannot import name 'trocr_models'`.
 
 - [ ] **Step 3: Implement the manifest module and the empty committed manifest**
 
-`apps/desktop/src/khmerclip/ocr/trocr_manifest.json` (stays empty until Step 6 publishes the models; while empty, the app reports TrOCR as "not published yet"):
+`apps/desktop/src/khmerclipper/ocr/trocr_manifest.json` (stays empty until Step 6 publishes the models; while empty, the app reports TrOCR as "not published yet"):
 ```json
 {
   "version": "khmer-v1",
@@ -1562,7 +1562,7 @@ Expected: FAIL with `ImportError: cannot import name 'trocr_models'`.
 }
 ```
 
-`apps/desktop/src/khmerclip/ocr/trocr_models.py`:
+`apps/desktop/src/khmerclipper/ocr/trocr_models.py`:
 ```python
 """Which TrOCR ONNX files to download (pinned manifest) and where they live."""
 
@@ -1570,9 +1570,9 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-from khmerclip import paths
-from khmerclip.download import RemoteFile, download, is_present, sha256_file
-from khmerclip.errors import EngineUnavailable
+from khmerclipper import paths
+from khmerclipper.download import RemoteFile, download, is_present, sha256_file
+from khmerclipper.errors import EngineUnavailable
 
 MANIFEST_PATH = Path(__file__).with_name("trocr_manifest.json")
 MODEL_FILES = ("encoder.onnx", "decoder.onnx", "tokenizer.json")
@@ -1633,7 +1633,7 @@ Expected: 4 passed.
 """Export a TrOCR checkpoint to encoder.onnx + decoder.onnx + tokenizer.json.
 
 Mirrors the mac app's Vendor/trocr/convert.py (CoreML) and export_tokenizer.py, but emits
-ONNX for khmerclip.ocr.trocr. Needs the `tools` extra:
+ONNX for khmerclipper.ocr.trocr. Needs the `tools` extra:
     .venv/bin/pip install -e '.[tools]'
     .venv/bin/python tools/export_onnx.py <checkpoint dir or HF id> exported/khmer
 """
@@ -1762,9 +1762,9 @@ from pathlib import Path
 
 from huggingface_hub import HfApi
 
-from khmerclip.ocr.trocr_models import MANIFEST_PATH, MODEL_FILES, build_manifest
+from khmerclipper.ocr.trocr_models import MANIFEST_PATH, MODEL_FILES, build_manifest
 
-REPO = "KimChengSHEANG/khmerclip-trocr-khmer-onnx"
+REPO = "KimChengSHEANG/khmerclipper-trocr-khmer-onnx"
 
 
 def main() -> None:
@@ -1778,7 +1778,7 @@ def main() -> None:
     api.create_repo(args.repo, repo_type="model", private=False, exist_ok=True)
     commit = api.upload_folder(repo_id=args.repo, folder_path=str(args.model_dir),
                                allow_patterns=list(MODEL_FILES),
-                               commit_message=f"KhmerClip TrOCR ONNX {args.version}")
+                               commit_message=f"KhmerClipper TrOCR ONNX {args.version}")
     # Pin by commit revision so later uploads never change what an installed app downloads.
     base_url = f"https://huggingface.co/{args.repo}/resolve/{commit.oid}"
     data = build_manifest(args.model_dir, base_url, args.version)
@@ -1795,7 +1795,7 @@ if __name__ == "__main__":
 The checkpoint is gitignored and lives only in the main checkout. Run from `apps/desktop/`:
 ```bash
 .venv/bin/pip install -e '.[tools]'
-.venv/bin/python tools/export_onnx.py /Users/kim/Sync/workspace/khmerclip/apps/mac/raw_models/TrOCR-khmer exported/khmer
+.venv/bin/python tools/export_onnx.py /Users/kim/Sync/workspace/khmerclipper/apps/mac/raw_models/TrOCR-khmer exported/khmer
 ```
 Expected: `parity max abs diff: …` at or below `1.00e-03`, then `exported to exported/khmer`. If the diff exceeds tolerance the script exits non-zero. Do not publish; report the number.
 
@@ -1804,23 +1804,23 @@ Expected: `parity max abs diff: …` at or below `1.00e-03`, then `exported to e
 .venv/bin/python tools/publish_models.py exported/khmer --version khmer-v1
 .venv/bin/python -m pytest tests/test_trocr_models.py -v
 ```
-Expected: the manifest lists three files with `https://huggingface.co/KimChengSHEANG/khmerclip-trocr-khmer-onnx/resolve/<sha>/…` URLs, and 4 tests pass.
+Expected: the manifest lists three files with `https://huggingface.co/KimChengSHEANG/khmerclipper-trocr-khmer-onnx/resolve/<sha>/…` URLs, and 4 tests pass.
 
 - [ ] **Step 7: Commit**
 
 ```bash
-/usr/bin/git add apps/desktop/src/khmerclip/ocr/trocr_models.py apps/desktop/src/khmerclip/ocr/trocr_manifest.json apps/desktop/tools/export_onnx.py apps/desktop/tools/publish_models.py apps/desktop/tests/test_trocr_models.py
+/usr/bin/git add apps/desktop/src/khmerclipper/ocr/trocr_models.py apps/desktop/src/khmerclipper/ocr/trocr_manifest.json apps/desktop/tools/export_onnx.py apps/desktop/tools/publish_models.py apps/desktop/tests/test_trocr_models.py
 /usr/bin/git commit -m "feat(desktop): add TrOCR ONNX export, publishing and pinned model manifest"
 ```
 
 ---
 
-### Task 8: TrOCR runtime, OCR dispatcher, `khmerclip ocr` CLI
+### Task 8: TrOCR runtime, OCR dispatcher, `khmerclipper ocr` CLI
 
 **Files:**
-- Create: `apps/desktop/src/khmerclip/ocr/trocr.py`
-- Modify: `apps/desktop/src/khmerclip/ocr/__init__.py` (was empty)
-- Create: `apps/desktop/src/khmerclip/__main__.py`
+- Create: `apps/desktop/src/khmerclipper/ocr/trocr.py`
+- Modify: `apps/desktop/src/khmerclipper/ocr/__init__.py` (was empty)
+- Create: `apps/desktop/src/khmerclipper/__main__.py`
 - Test: `apps/desktop/tests/test_trocr.py`, `apps/desktop/tests/test_dispatch_cli.py`
 
 **Interfaces:**
@@ -1829,13 +1829,13 @@ Expected: the manifest lists three files with `https://huggingface.co/KimChengSH
   - `trocr.MAX_LENGTH = 64`
   - `trocr.Session(encoder, decoder, tokenizer)` (dataclass; encoder/decoder expose onnxruntime's `.run(output_names, feeds)`)
   - `trocr.load_session(model_dir: Path) -> Session` (cached per dir)
-  - `trocr.installed_model_dir() -> Path` (env `KHMERCLIP_TROCR_DIR` overrides)
+  - `trocr.installed_model_dir() -> Path` (env `KHMERCLIPPER_TROCR_DIR` overrides)
   - `trocr.preload() -> None` (best effort)
   - `trocr.recognize(image, progress: Callable[[str], None] | None = None, cancel: threading.Event | None = None) -> str`
   - `trocr.recognize_with_session(session, image, progress=None, cancel=None) -> str`
-  - `khmerclip.ocr.Engine` (`StrEnum`: `TESSERACT = "tesseract"`, `TROCR = "trocr"`)
-  - `khmerclip.ocr.recognize(image, engine: Engine | str, progress=None, cancel=None) -> str`
-  - `khmerclip.__main__.main(argv: list[str] | None = None) -> int`. `khmerclip ocr IMAGE [--engine tesseract|trocr] [--flatten] [-o OUT]`. With no subcommand it calls `khmerclip.ui.app.run_gui(capture: bool) -> int` (Task 15).
+  - `khmerclipper.ocr.Engine` (`StrEnum`: `TESSERACT = "tesseract"`, `TROCR = "trocr"`)
+  - `khmerclipper.ocr.recognize(image, engine: Engine | str, progress=None, cancel=None) -> str`
+  - `khmerclipper.__main__.main(argv: list[str] | None = None) -> int`. `khmerclipper ocr IMAGE [--engine tesseract|trocr] [--flatten] [-o OUT]`. With no subcommand it calls `khmerclipper.ui.app.run_gui(capture: bool) -> int` (Task 15).
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -1850,9 +1850,9 @@ import pytest
 from PIL import Image, ImageDraw
 
 from helpers import FIXTURES
-from khmerclip.errors import Cancelled
-from khmerclip.ocr import trocr
-from khmerclip.ocr.tokenizer import TrOCRTokenizer
+from khmerclipper.errors import Cancelled
+from khmerclipper.ocr import trocr
+from khmerclipper.ocr.tokenizer import TrOCRTokenizer
 
 TOKENIZER = TrOCRTokenizer({"kind": "bpe", "bos_id": 0, "eos_id": 2, "pad_id": 1, "unk_id": 3,
                             "decoder_start_id": 0, "literal_ids": [4, 5],
@@ -1921,7 +1921,7 @@ def test_progress_reports_token_count():
     assert seen[-1] == "Reading text… (4)"
 
 
-@pytest.mark.skipif(not os.environ.get("KHMERCLIP_TROCR_DIR"), reason="set KHMERCLIP_TROCR_DIR to an exported model")
+@pytest.mark.skipif(not os.environ.get("KHMERCLIPPER_TROCR_DIR"), reason="set KHMERCLIPPER_TROCR_DIR to an exported model")
 def test_real_model_reads_fixture():
     with Image.open(FIXTURES / "1.png") as img:
         text = trocr.recognize(img)
@@ -1936,12 +1936,12 @@ import sys
 import pytest
 from PIL import Image
 
-import khmerclip.ocr as ocr
-from khmerclip.__main__ import main
+import khmerclipper.ocr as ocr
+from khmerclipper.__main__ import main
 
 
 def test_dispatch_routes_by_engine(monkeypatch):
-    from khmerclip.ocr import tesseract, trocr
+    from khmerclipper.ocr import tesseract, trocr
     monkeypatch.setattr(tesseract, "recognize", lambda image: "tess")
     monkeypatch.setattr(trocr, "recognize", lambda image, progress=None, cancel=None: "tr")
     img = Image.new("RGB", (4, 4))
@@ -1972,11 +1972,11 @@ def test_cli_prints_to_stdout(tmp_path, monkeypatch, capsys):
 
 def test_cli_missing_file_exits_1(tmp_path, capsys):
     assert main(["ocr", str(tmp_path / "nope.png")]) == 1
-    assert "khmerclip:" in capsys.readouterr().err
+    assert "khmerclipper:" in capsys.readouterr().err
 
 
 def test_cli_ocr_path_does_not_import_qt():
-    code = "import sys, khmerclip.__main__, khmerclip.ocr.tesseract, khmerclip.ocr.trocr; print('PySide6' in sys.modules)"
+    code = "import sys, khmerclipper.__main__, khmerclipper.ocr.tesseract, khmerclipper.ocr.trocr; print('PySide6' in sys.modules)"
     out = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True).stdout
     assert out.strip() == "False"
 ```
@@ -1984,11 +1984,11 @@ def test_cli_ocr_path_does_not_import_qt():
 - [ ] **Step 2: Run tests to verify they fail**
 
 Run: `.venv/bin/python -m pytest tests/test_trocr.py tests/test_dispatch_cli.py -v`
-Expected: FAIL with `ImportError: cannot import name 'trocr' from 'khmerclip.ocr'` and `No module named 'khmerclip.__main__'`.
+Expected: FAIL with `ImportError: cannot import name 'trocr' from 'khmerclipper.ocr'` and `No module named 'khmerclipper.__main__'`.
 
 - [ ] **Step 3: Implement the TrOCR runtime**
 
-`apps/desktop/src/khmerclip/ocr/trocr.py`:
+`apps/desktop/src/khmerclipper/ocr/trocr.py`:
 ```python
 """TrOCR via onnxruntime: greedy, no-KV-cache decode per text line (same loop as
 apps/mac/Sources/OCR/TrOCREngine.swift)."""
@@ -2003,10 +2003,10 @@ from typing import Any
 import numpy as np
 from PIL import Image
 
-from khmerclip.errors import Cancelled, EngineUnavailable, KhmerClipError
-from khmerclip.ocr import trocr_models
-from khmerclip.ocr.preprocess import line_strips, pixel_values
-from khmerclip.ocr.tokenizer import TrOCRTokenizer
+from khmerclipper.errors import Cancelled, EngineUnavailable, KhmerClipperError
+from khmerclipper.ocr import trocr_models
+from khmerclipper.ocr.preprocess import line_strips, pixel_values
+from khmerclipper.ocr.tokenizer import TrOCRTokenizer
 
 MAX_LENGTH = 64
 
@@ -2040,7 +2040,7 @@ def load_session(model_dir: Path) -> Session:
 
 
 def installed_model_dir() -> Path:
-    if override := os.environ.get("KHMERCLIP_TROCR_DIR"):
+    if override := os.environ.get("KHMERCLIPPER_TROCR_DIR"):
         return Path(override)
     manifest = trocr_models.load_manifest()
     if not trocr_models.is_installed(manifest):
@@ -2052,7 +2052,7 @@ def preload() -> None:
     """Warm the ONNX sessions while the user drags a selection. Errors surface on recognize()."""
     try:
         load_session(installed_model_dir())
-    except KhmerClipError:
+    except KhmerClipperError:
         pass
 
 
@@ -2089,7 +2089,7 @@ def recognize_with_session(session, image: Image.Image, progress: Callable[[str]
 
 - [ ] **Step 4: Implement the dispatcher and CLI**
 
-`apps/desktop/src/khmerclip/ocr/__init__.py`:
+`apps/desktop/src/khmerclipper/ocr/__init__.py`:
 ```python
 """OCR engine selection. Engines are imported lazily (onnxruntime is slow to import)."""
 
@@ -2109,17 +2109,17 @@ def recognize(image: Image.Image, engine: "Engine | str", progress: Callable[[st
               cancel: threading.Event | None = None) -> str:
     engine = Engine(engine)
     if engine is Engine.TROCR:
-        from khmerclip.ocr import trocr
+        from khmerclipper.ocr import trocr
 
         return trocr.recognize(image, progress=progress, cancel=cancel)
-    from khmerclip.ocr import tesseract
+    from khmerclipper.ocr import tesseract
 
     return tesseract.recognize(image)
 ```
 
-`apps/desktop/src/khmerclip/__main__.py`:
+`apps/desktop/src/khmerclipper/__main__.py`:
 ```python
-"""Entry point: `khmerclip` (tray app), `khmerclip --capture`, `khmerclip ocr IMAGE`."""
+"""Entry point: `khmerclipper` (tray app), `khmerclipper --capture`, `khmerclipper ocr IMAGE`."""
 
 import argparse
 import sys
@@ -2127,7 +2127,7 @@ from pathlib import Path
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="khmerclip", description="Khmer OCR screen capture")
+    parser = argparse.ArgumentParser(prog="khmerclipper", description="Khmer OCR screen capture")
     parser.add_argument("--capture", action="store_true",
                         help="start a capture (signals the running instance; bind this to a desktop shortcut on Wayland)")
     sub = parser.add_subparsers(dest="command")
@@ -2141,21 +2141,21 @@ def build_parser() -> argparse.ArgumentParser:
 
 def _err(message: object) -> None:
     if sys.stderr:  # None in the windowed (no console) Windows build
-        print(f"khmerclip: {message}", file=sys.stderr)
+        print(f"khmerclipper: {message}", file=sys.stderr)
 
 
 def _ocr(args: argparse.Namespace) -> int:
     from PIL import Image
 
-    import khmerclip.ocr as ocr
-    from khmerclip.errors import KhmerClipError
-    from khmerclip.formatter import apply
+    import khmerclipper.ocr as ocr
+    from khmerclipper.errors import KhmerClipperError
+    from khmerclipper.formatter import apply
 
     try:
         with Image.open(args.image) as img:
             img.load()
             text = ocr.recognize(img, args.engine)
-    except (OSError, KhmerClipError) as e:
+    except (OSError, KhmerClipperError) as e:
         _err(e)
         return 1
     text = apply(text, preserve_linebreaks=not args.flatten)
@@ -2172,7 +2172,7 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.command == "ocr":
         return _ocr(args)
-    from khmerclip.ui.app import run_gui  # Qt is imported only for the GUI
+    from khmerclipper.ui.app import run_gui  # Qt is imported only for the GUI
 
     return run_gui(capture=args.capture)
 
@@ -2186,7 +2186,7 @@ if __name__ == "__main__":
 Run: `.venv/bin/python -m pytest tests/test_trocr.py tests/test_dispatch_cli.py -v`
 Expected: 10 passed and 1 skipped (the real-model test).
 
-If Task 7 Step 6 exported a model, also run `KHMERCLIP_TROCR_DIR=exported/khmer .venv/bin/python -m pytest tests/test_trocr.py -k real -v`. Expected: 1 passed. Then run `KHMERCLIP_TROCR_DIR=exported/khmer .venv/bin/python -m khmerclip ocr ../mac/Tests/Fixtures/ocr/1.png --engine trocr` and compare the Khmer text by eye against `1.txt`.
+If Task 7 Step 6 exported a model, also run `KHMERCLIPPER_TROCR_DIR=exported/khmer .venv/bin/python -m pytest tests/test_trocr.py -k real -v`. Expected: 1 passed. Then run `KHMERCLIPPER_TROCR_DIR=exported/khmer .venv/bin/python -m khmerclipper ocr ../mac/Tests/Fixtures/ocr/1.png --engine trocr` and compare the Khmer text by eye against `1.txt`.
 
 - [ ] **Step 6: Run the full suite and commit**
 
@@ -2194,7 +2194,7 @@ Run: `.venv/bin/python -m pytest -q`
 Expected: all pass (skips allowed for Tesseract/real-model tests).
 
 ```bash
-/usr/bin/git add apps/desktop/src/khmerclip/ocr/trocr.py apps/desktop/src/khmerclip/ocr/__init__.py apps/desktop/src/khmerclip/__main__.py apps/desktop/tests/test_trocr.py apps/desktop/tests/test_dispatch_cli.py
+/usr/bin/git add apps/desktop/src/khmerclipper/ocr/trocr.py apps/desktop/src/khmerclipper/ocr/__init__.py apps/desktop/src/khmerclipper/__main__.py apps/desktop/tests/test_trocr.py apps/desktop/tests/test_dispatch_cli.py
 /usr/bin/git commit -m "feat(desktop): add TrOCR onnxruntime engine, OCR dispatcher and ocr CLI"
 ```
 
@@ -2203,13 +2203,13 @@ Expected: all pass (skips allowed for Tesseract/real-model tests).
 ### Task 9: Capture geometry, backend selection, Wayland portal
 
 **Files:**
-- Create: `apps/desktop/src/khmerclip/capture/__init__.py` (empty)
-- Create: `apps/desktop/src/khmerclip/capture/geometry.py`
-- Create: `apps/desktop/src/khmerclip/capture/portal.py`
+- Create: `apps/desktop/src/khmerclipper/capture/__init__.py` (empty)
+- Create: `apps/desktop/src/khmerclipper/capture/geometry.py`
+- Create: `apps/desktop/src/khmerclipper/capture/portal.py`
 - Test: `apps/desktop/tests/test_capture_geometry.py`, `apps/desktop/tests/test_portal.py`
 
 **Interfaces:**
-- Consumes: `errors.KhmerClipError`
+- Consumes: `errors.KhmerClipperError`
 - Produces:
   - `geometry.MIN_SIDE = 4` (logical px)
   - `geometry.normalize_drag(x0: float, y0: float, x1: float, y1: float) -> tuple[float, float, float, float]` (x, y, w, h)
@@ -2218,13 +2218,13 @@ Expected: all pass (skips allowed for Tesseract/real-model tests).
   - `portal.request_path(unique_name: str, token: str) -> str`
   - `portal.uri_from_response(body: tuple) -> str | None`
   - `portal.uri_to_path(uri: str) -> Path`
-  - `portal.screenshot() -> PIL.Image.Image | None` (blocking. `None` means the user cancelled. Raises `KhmerClipError` when the portal is unusable)
+  - `portal.screenshot() -> PIL.Image.Image | None` (blocking. `None` means the user cancelled. Raises `KhmerClipperError` when the portal is unusable)
 
 - [ ] **Step 1: Write the failing tests**
 
 `apps/desktop/tests/test_capture_geometry.py`:
 ```python
-from khmerclip.capture.geometry import capture_backend, normalize_drag, to_physical
+from khmerclipper.capture.geometry import capture_backend, normalize_drag, to_physical
 
 
 def test_normalize_drag_any_direction():
@@ -2271,11 +2271,11 @@ from pathlib import Path
 
 import pytest
 
-from khmerclip.capture import portal
+from khmerclipper.capture import portal
 
 
 def test_request_path_follows_portal_convention():
-    assert portal.request_path(":1.42", "khmerclipab12") == "/org/freedesktop/portal/desktop/request/1_42/khmerclipab12"
+    assert portal.request_path(":1.42", "khmerclipperab12") == "/org/freedesktop/portal/desktop/request/1_42/khmerclipperab12"
 
 
 def test_uri_from_response_success_and_cancel():
@@ -2292,13 +2292,13 @@ def test_uri_to_path_unquotes():
 - [ ] **Step 2: Run tests to verify they fail**
 
 Run: `.venv/bin/python -m pytest tests/test_capture_geometry.py tests/test_portal.py -v`
-Expected: FAIL with `ModuleNotFoundError: No module named 'khmerclip.capture'`.
+Expected: FAIL with `ModuleNotFoundError: No module named 'khmerclipper.capture'`.
 
 - [ ] **Step 3: Implement**
 
-`apps/desktop/src/khmerclip/capture/__init__.py`: create as an empty file.
+`apps/desktop/src/khmerclipper/capture/__init__.py`: create as an empty file.
 
-`apps/desktop/src/khmerclip/capture/geometry.py`:
+`apps/desktop/src/khmerclipper/capture/geometry.py`:
 ```python
 import math
 import os
@@ -2339,7 +2339,7 @@ def capture_backend(platform: str | None = None, env: Mapping[str, str] | None =
     return "portal" if env.get("WAYLAND_DISPLAY") else "qt"
 ```
 
-`apps/desktop/src/khmerclip/capture/portal.py`:
+`apps/desktop/src/khmerclipper/capture/portal.py`:
 ```python
 """Wayland screen capture through org.freedesktop.portal.Screenshot (interactive mode shows
 the desktop's own region picker). jeepney is imported lazily: it exists only on Linux."""
@@ -2351,7 +2351,7 @@ from pathlib import Path
 
 from PIL import Image
 
-from khmerclip.errors import KhmerClipError
+from khmerclipper.errors import KhmerClipperError
 
 
 def request_path(unique_name: str, token: str) -> str:
@@ -2377,7 +2377,7 @@ def screenshot() -> Image.Image | None:
         from jeepney import DBusAddress, MatchRule, message_bus, new_method_call
         from jeepney.io.blocking import Proxy, open_dbus_connection
 
-        token = "khmerclip" + uuid.uuid4().hex[:8]
+        token = "khmerclipper" + uuid.uuid4().hex[:8]
         with open_dbus_connection(bus="SESSION") as conn:
             rule = MatchRule(type="signal", interface="org.freedesktop.portal.Request", member="Response",
                              path=request_path(conn.unique_name, token))
@@ -2396,7 +2396,7 @@ def screenshot() -> Image.Image | None:
         with Image.open(uri_to_path(uri)) as img:
             return img.convert("RGB")
     except Exception as e:  # no session bus, no portal, D-Bus error reply, unreadable file
-        raise KhmerClipError(f"Screen capture through the desktop portal failed: {e}") from e
+        raise KhmerClipperError(f"Screen capture through the desktop portal failed: {e}") from e
 ```
 
 - [ ] **Step 4: Run tests to verify they pass**
@@ -2407,7 +2407,7 @@ Expected: 11 passed (10 on Windows, with the POSIX URI test skipped).
 - [ ] **Step 5: Commit**
 
 ```bash
-/usr/bin/git add apps/desktop/src/khmerclip/capture apps/desktop/tests/test_capture_geometry.py apps/desktop/tests/test_portal.py
+/usr/bin/git add apps/desktop/src/khmerclipper/capture apps/desktop/tests/test_capture_geometry.py apps/desktop/tests/test_portal.py
 /usr/bin/git commit -m "feat(desktop): add capture geometry, backend choice and Wayland portal capture"
 ```
 
@@ -2416,7 +2416,7 @@ Expected: 11 passed (10 on Windows, with the POSIX URI test skipped).
 ### Task 10: Qt region selector overlay (Windows / X11)
 
 **Files:**
-- Create: `apps/desktop/src/khmerclip/capture/overlay.py`
+- Create: `apps/desktop/src/khmerclipper/capture/overlay.py`
 - Test: `apps/desktop/tests/test_overlay.py`
 
 **Interfaces:**
@@ -2433,7 +2433,7 @@ Expected: 11 passed (10 on Windows, with the POSIX URI test skipped).
 from PySide6.QtCore import QPoint, Qt
 from PySide6.QtGui import QColor, QPixmap
 
-from khmerclip.capture.overlay import RegionSelector
+from khmerclipper.capture.overlay import RegionSelector
 
 
 def fake_grab_at(ratio):
@@ -2489,11 +2489,11 @@ def test_start_twice_does_not_stack_overlays(qtbot):
 - [ ] **Step 2: Run tests to verify they fail**
 
 Run: `.venv/bin/python -m pytest tests/test_overlay.py -v`
-Expected: FAIL with `ModuleNotFoundError: No module named 'khmerclip.capture.overlay'`.
+Expected: FAIL with `ModuleNotFoundError: No module named 'khmerclipper.capture.overlay'`.
 
 - [ ] **Step 3: Implement**
 
-`apps/desktop/src/khmerclip/capture/overlay.py`:
+`apps/desktop/src/khmerclipper/capture/overlay.py`:
 ```python
 """Frozen-screenshot region selector: grab every screen first, then show each grab in a
 fullscreen overlay and crop from the grab. Cropping from the grabbed image (not a second
@@ -2508,7 +2508,7 @@ from PySide6.QtCore import QBuffer, QIODevice, QObject, QRect, Qt, Signal
 from PySide6.QtGui import QColor, QGuiApplication, QImage, QPainter, QPen, QPixmap, QRegion, QScreen
 from PySide6.QtWidgets import QWidget
 
-from khmerclip.capture.geometry import normalize_drag, to_physical
+from khmerclipper.capture.geometry import normalize_drag, to_physical
 
 
 def qimage_to_pil(image: QImage) -> Image.Image:
@@ -2622,7 +2622,7 @@ Expected: 4 passed (offscreen Qt platform from `conftest.py`).
 - [ ] **Step 5: Commit**
 
 ```bash
-/usr/bin/git add apps/desktop/src/khmerclip/capture/overlay.py apps/desktop/tests/test_overlay.py
+/usr/bin/git add apps/desktop/src/khmerclipper/capture/overlay.py apps/desktop/tests/test_overlay.py
 /usr/bin/git commit -m "feat(desktop): add frozen-screenshot region selector overlay"
 ```
 
@@ -2631,8 +2631,8 @@ Expected: 4 passed (offscreen Qt platform from `conftest.py`).
 ### Task 11: Global hotkey and single-instance command channel
 
 **Files:**
-- Create: `apps/desktop/src/khmerclip/hotkey.py`
-- Create: `apps/desktop/src/khmerclip/single_instance.py`
+- Create: `apps/desktop/src/khmerclipper/hotkey.py`
+- Create: `apps/desktop/src/khmerclipper/single_instance.py`
 - Test: `apps/desktop/tests/test_hotkey.py`, `apps/desktop/tests/test_single_instance.py`
 
 **Interfaces:**
@@ -2651,7 +2651,7 @@ Expected: 4 passed (offscreen Qt platform from `conftest.py`).
 ```python
 import sys
 
-from khmerclip.hotkey import HotkeyListener, pynput_to_qt, qt_to_pynput
+from khmerclipper.hotkey import HotkeyListener, pynput_to_qt, qt_to_pynput
 
 
 def test_qt_to_pynput_basic_and_shifted_digit():
@@ -2689,11 +2689,11 @@ def test_listener_reports_missing_pynput(monkeypatch):
 ```python
 import uuid
 
-from khmerclip.single_instance import CommandServer, send_command, server_name
+from khmerclipper.single_instance import CommandServer, send_command, server_name
 
 
 def test_command_roundtrip(qtbot):
-    name = f"khmerclip-test-{uuid.uuid4().hex[:8]}"
+    name = f"khmerclipper-test-{uuid.uuid4().hex[:8]}"
     server = CommandServer(name)
     assert server.listen()
     with qtbot.waitSignal(server.command, timeout=3000) as blocker:
@@ -2703,7 +2703,7 @@ def test_command_roundtrip(qtbot):
 
 
 def test_send_without_server_returns_false(qapp):
-    assert send_command("capture", f"khmerclip-none-{uuid.uuid4().hex[:8]}", timeout_ms=200) is False
+    assert send_command("capture", f"khmerclipper-none-{uuid.uuid4().hex[:8]}", timeout_ms=200) is False
 
 
 def test_server_name_is_ascii_and_stable():
@@ -2714,19 +2714,19 @@ def test_server_name_is_ascii_and_stable():
 - [ ] **Step 2: Run tests to verify they fail**
 
 Run: `.venv/bin/python -m pytest tests/test_hotkey.py tests/test_single_instance.py -v`
-Expected: FAIL with `ModuleNotFoundError: No module named 'khmerclip.hotkey'`.
+Expected: FAIL with `ModuleNotFoundError: No module named 'khmerclipper.hotkey'`.
 
 - [ ] **Step 3: Implement**
 
-`apps/desktop/src/khmerclip/hotkey.py`:
+`apps/desktop/src/khmerclipper/hotkey.py`:
 ```python
 """Global capture hotkey. pynput on Windows and X11; Wayland has no app-level global
-hotkeys, so users bind `khmerclip --capture` in their desktop settings instead."""
+hotkeys, so users bind `khmerclipper --capture` in their desktop settings instead."""
 
 import re
 from collections.abc import Callable
 
-from khmerclip.capture.geometry import capture_backend
+from khmerclipper.capture.geometry import capture_backend
 
 _MODS = {"ctrl": "<ctrl>", "shift": "<shift>", "alt": "<alt>", "meta": "<cmd>"}
 _NAMED = {"space": "<space>", "print": "<print_screen>"}
@@ -2796,9 +2796,9 @@ class HotkeyListener:
             self._listener = None
 ```
 
-`apps/desktop/src/khmerclip/single_instance.py`:
+`apps/desktop/src/khmerclipper/single_instance.py`:
 ```python
-"""One KhmerClip per user. A second launch (`khmerclip --capture` bound to a desktop
+"""One KhmerClipper per user. A second launch (`khmerclipper --capture` bound to a desktop
 shortcut on Wayland) forwards its command to the running instance over a local socket."""
 
 import getpass
@@ -2814,7 +2814,7 @@ def server_name() -> str:
         user = getpass.getuser()
     except Exception:  # no USER/USERNAME in a stripped environment
         user = "user"
-    return "khmerclip-" + hashlib.sha1(user.encode("utf-8")).hexdigest()[:12]
+    return "khmerclipper-" + hashlib.sha1(user.encode("utf-8")).hexdigest()[:12]
 
 
 def send_command(command: str, name: str | None = None, timeout_ms: int = 1000) -> bool:
@@ -2867,7 +2867,7 @@ Expected: 8 passed.
 - [ ] **Step 5: Commit**
 
 ```bash
-/usr/bin/git add apps/desktop/src/khmerclip/hotkey.py apps/desktop/src/khmerclip/single_instance.py apps/desktop/tests/test_hotkey.py apps/desktop/tests/test_single_instance.py
+/usr/bin/git add apps/desktop/src/khmerclipper/hotkey.py apps/desktop/src/khmerclipper/single_instance.py apps/desktop/tests/test_hotkey.py apps/desktop/tests/test_single_instance.py
 /usr/bin/git commit -m "feat(desktop): add global hotkey listener and single-instance command channel"
 ```
 
@@ -2876,7 +2876,7 @@ Expected: 8 passed.
 ### Task 12: Launch at login
 
 **Files:**
-- Create: `apps/desktop/src/khmerclip/autostart.py`
+- Create: `apps/desktop/src/khmerclipper/autostart.py`
 - Test: `apps/desktop/tests/test_autostart.py`
 
 **Interfaces:**
@@ -2885,8 +2885,8 @@ Expected: 8 passed.
   - `launch_command(env: Mapping[str, str] | None = None, executable: str | None = None, frozen: bool | None = None) -> list[str]`
   - `desktop_entry(command: list[str]) -> str`
   - `autostart_file(config_home: Path | None = None) -> Path`
-  - `set_enabled(enabled: bool, platform: str | None = None, config_home: Path | None = None, value_name: str = "KhmerClip", command: list[str] | None = None) -> None` (raises `OSError` on registry/file failure; `NotImplementedError` on other platforms)
-  - `is_enabled(platform: str | None = None, config_home: Path | None = None, value_name: str = "KhmerClip") -> bool`
+  - `set_enabled(enabled: bool, platform: str | None = None, config_home: Path | None = None, value_name: str = "KhmerClipper", command: list[str] | None = None) -> None` (raises `OSError` on registry/file failure; `NotImplementedError` on other platforms)
+  - `is_enabled(platform: str | None = None, config_home: Path | None = None, value_name: str = "KhmerClipper") -> bool`
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -2896,22 +2896,22 @@ import sys
 
 import pytest
 
-from khmerclip import autostart
+from khmerclipper import autostart
 
 
 def test_launch_command_prefers_appimage_path():
-    env = {"APPIMAGE": "/home/u/Apps/KhmerClip.AppImage"}
-    assert autostart.launch_command(env, "/usr/bin/python3", frozen=True) == ["/home/u/Apps/KhmerClip.AppImage"]
+    env = {"APPIMAGE": "/home/u/Apps/KhmerClipper.AppImage"}
+    assert autostart.launch_command(env, "/usr/bin/python3", frozen=True) == ["/home/u/Apps/KhmerClipper.AppImage"]
 
 
 def test_launch_command_frozen_and_dev():
-    assert autostart.launch_command({}, r"C:\Apps\KhmerClip.exe", frozen=True) == [r"C:\Apps\KhmerClip.exe"]
-    assert autostart.launch_command({}, "/venv/bin/python", frozen=False) == ["/venv/bin/python", "-m", "khmerclip"]
+    assert autostart.launch_command({}, r"C:\Apps\KhmerClipper.exe", frozen=True) == [r"C:\Apps\KhmerClipper.exe"]
+    assert autostart.launch_command({}, "/venv/bin/python", frozen=False) == ["/venv/bin/python", "-m", "khmerclipper"]
 
 
 def test_desktop_entry_quotes_spaces_and_non_ascii():
-    entry = autostart.desktop_entry(["/home/ស/My Apps/KhmerClip.AppImage"])
-    assert 'Exec="/home/ស/My Apps/KhmerClip.AppImage"\n' in entry
+    entry = autostart.desktop_entry(["/home/ស/My Apps/KhmerClipper.AppImage"])
+    assert 'Exec="/home/ស/My Apps/KhmerClipper.AppImage"\n' in entry
     assert entry.startswith("[Desktop Entry]\n")
 
 
@@ -2921,9 +2921,9 @@ def test_desktop_entry_escapes_reserved_characters():
 
 
 def test_linux_enable_disable(tmp_path):
-    cmd = ["/opt/KhmerClip.AppImage"]
+    cmd = ["/opt/KhmerClipper.AppImage"]
     autostart.set_enabled(True, platform="linux", config_home=tmp_path, command=cmd)
-    path = tmp_path / "autostart" / "khmerclip.desktop"
+    path = tmp_path / "autostart" / "khmerclipper.desktop"
     assert path.read_text(encoding="utf-8") == autostart.desktop_entry(cmd)
     assert autostart.is_enabled(platform="linux", config_home=tmp_path)
     autostart.set_enabled(False, platform="linux", config_home=tmp_path)
@@ -2938,8 +2938,8 @@ def test_unsupported_platform_raises(tmp_path):
 
 @pytest.mark.skipif(sys.platform != "win32", reason="Windows registry")
 def test_windows_run_key_roundtrip():
-    name = "KhmerClipTest"
-    cmd = [r"C:\Program Files\KhmerClip\KhmerClip.exe"]
+    name = "KhmerClipperTest"
+    cmd = [r"C:\Program Files\KhmerClipper\KhmerClipper.exe"]
     try:
         autostart.set_enabled(True, platform="win32", value_name=name, command=cmd)
         assert autostart.is_enabled(platform="win32", value_name=name)
@@ -2955,7 +2955,7 @@ Expected: FAIL with `ImportError: cannot import name 'autostart'`.
 
 - [ ] **Step 3: Implement**
 
-`apps/desktop/src/khmerclip/autostart.py`:
+`apps/desktop/src/khmerclipper/autostart.py`:
 ```python
 """Launch at login: HKCU Run key on Windows, XDG autostart .desktop file on Linux."""
 
@@ -2965,9 +2965,9 @@ import sys
 from collections.abc import Mapping
 from pathlib import Path
 
-from khmerclip.paths import atomic_write_text
+from khmerclipper.paths import atomic_write_text
 
-APP_ID = "KhmerClip"
+APP_ID = "KhmerClipper"
 RUN_KEY = r"Software\Microsoft\Windows\CurrentVersion\Run"
 
 
@@ -2980,7 +2980,7 @@ def launch_command(env: Mapping[str, str] | None = None, executable: str | None 
         return [env["APPIMAGE"]]
     if frozen:
         return [executable]
-    return [executable, "-m", "khmerclip"]
+    return [executable, "-m", "khmerclipper"]
 
 
 def _desktop_quote(arg: str) -> str:
@@ -2993,14 +2993,14 @@ def _desktop_quote(arg: str) -> str:
 
 
 def desktop_entry(command: list[str]) -> str:
-    return ("[Desktop Entry]\nType=Application\nName=KhmerClip\n"
+    return ("[Desktop Entry]\nType=Application\nName=KhmerClipper\n"
             f"Exec={' '.join(_desktop_quote(a) for a in command)}\n"
             "Terminal=false\nX-GNOME-Autostart-enabled=true\n")
 
 
 def autostart_file(config_home: Path | None = None) -> Path:
     base = config_home or Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config")
-    return base / "autostart" / "khmerclip.desktop"
+    return base / "autostart" / "khmerclipper.desktop"
 
 
 def set_enabled(enabled: bool, platform: str | None = None, config_home: Path | None = None,
@@ -3052,7 +3052,7 @@ Expected: 6 passed, 1 skipped (Windows registry test runs on Windows CI).
 - [ ] **Step 5: Commit**
 
 ```bash
-/usr/bin/git add apps/desktop/src/khmerclip/autostart.py apps/desktop/tests/test_autostart.py
+/usr/bin/git add apps/desktop/src/khmerclipper/autostart.py apps/desktop/tests/test_autostart.py
 /usr/bin/git commit -m "feat(desktop): add launch-at-login for Windows and Linux"
 ```
 
@@ -3061,13 +3061,13 @@ Expected: 6 passed, 1 skipped (Windows registry test runs on Windows CI).
 ### Task 13: Update check
 
 **Files:**
-- Create: `apps/desktop/src/khmerclip/updater.py`
+- Create: `apps/desktop/src/khmerclipper/updater.py`
 - Test: `apps/desktop/tests/test_updater.py`
 
 **Interfaces:**
-- Consumes: `khmerclip.__version__`
+- Consumes: `khmerclipper.__version__`
 - Produces:
-  - `FEED_URL = "https://api.github.com/repos/KimChengSHEANG/khmerclip-releases/releases/latest"`
+  - `FEED_URL = "https://api.github.com/repos/KimChengSHEANG/khmerclipper-releases/releases/latest"`
   - `CHECK_INTERVAL_S = 86400`
   - `Release(version: str, page_url: str)` (frozen dataclass)
   - `parse_version(tag: str) -> tuple[int, int, int] | None`
@@ -3080,10 +3080,10 @@ Expected: 6 passed, 1 skipped (Windows registry test runs on Windows CI).
 
 `apps/desktop/tests/test_updater.py`:
 ```python
-from khmerclip import updater
-from khmerclip.updater import Release, due, newer_release, parse_version
+from khmerclipper import updater
+from khmerclipper.updater import Release, due, newer_release, parse_version
 
-PAGE = "https://github.com/KimChengSHEANG/khmerclip-releases/releases/tag/"
+PAGE = "https://github.com/KimChengSHEANG/khmerclipper-releases/releases/tag/"
 
 
 def payload(tag="v0.2.0", **extra):
@@ -3140,7 +3140,7 @@ Expected: FAIL with `ImportError: cannot import name 'updater'`.
 
 - [ ] **Step 3: Implement**
 
-`apps/desktop/src/khmerclip/updater.py`:
+`apps/desktop/src/khmerclipper/updater.py`:
 ```python
 """Daily check of the public releases repo. Never installs anything: the UI offers to
 open the release page."""
@@ -3151,9 +3151,9 @@ import urllib.request
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from khmerclip import __version__
+from khmerclipper import __version__
 
-FEED_URL = "https://api.github.com/repos/KimChengSHEANG/khmerclip-releases/releases/latest"
+FEED_URL = "https://api.github.com/repos/KimChengSHEANG/khmerclipper-releases/releases/latest"
 CHECK_INTERVAL_S = 24 * 3600
 
 
@@ -3182,7 +3182,7 @@ def newer_release(payload: object, current: str) -> Release | None:
 
 def fetch_latest(url: str = FEED_URL, timeout: float = 10) -> dict | None:
     request = urllib.request.Request(url, headers={"Accept": "application/vnd.github+json",
-                                                   "User-Agent": f"KhmerClip/{__version__}"})
+                                                   "User-Agent": f"KhmerClipper/{__version__}"})
     try:
         with urllib.request.urlopen(request, timeout=timeout) as resp:
             return json.loads(resp.read().decode("utf-8"))
@@ -3206,7 +3206,7 @@ Expected: 8 passed.
 - [ ] **Step 5: Commit**
 
 ```bash
-/usr/bin/git add apps/desktop/src/khmerclip/updater.py apps/desktop/tests/test_updater.py
+/usr/bin/git add apps/desktop/src/khmerclipper/updater.py apps/desktop/tests/test_updater.py
 /usr/bin/git commit -m "feat(desktop): add GitHub releases update check"
 ```
 
@@ -3215,13 +3215,13 @@ Expected: 8 passed.
 ### Task 14: UI building blocks (font, worker, popup, history, preferences, image window)
 
 **Files:**
-- Create: `apps/desktop/src/khmerclip/ui/__init__.py` (empty)
-- Create: `apps/desktop/src/khmerclip/ui/fonts.py`
-- Create: `apps/desktop/src/khmerclip/ui/worker.py`
-- Create: `apps/desktop/src/khmerclip/ui/popup.py`
-- Create: `apps/desktop/src/khmerclip/ui/history_window.py`
-- Create: `apps/desktop/src/khmerclip/ui/prefs_window.py`
-- Create: `apps/desktop/src/khmerclip/ui/image_window.py`
+- Create: `apps/desktop/src/khmerclipper/ui/__init__.py` (empty)
+- Create: `apps/desktop/src/khmerclipper/ui/fonts.py`
+- Create: `apps/desktop/src/khmerclipper/ui/worker.py`
+- Create: `apps/desktop/src/khmerclipper/ui/popup.py`
+- Create: `apps/desktop/src/khmerclipper/ui/history_window.py`
+- Create: `apps/desktop/src/khmerclipper/ui/prefs_window.py`
+- Create: `apps/desktop/src/khmerclipper/ui/image_window.py`
 - Test: `apps/desktop/tests/test_ui_widgets.py`
 
 **Interfaces:**
@@ -3245,14 +3245,14 @@ from PySide6.QtGui import QKeySequence
 from PySide6.QtWidgets import QLabel, QMessageBox
 
 from helpers import FIXTURES
-from khmerclip.history import HistoryStore, ScanRecord
-from khmerclip.prefs import Prefs
-from khmerclip.ui.fonts import khmer_font
-from khmerclip.ui.history_window import HistoryWindow
-from khmerclip.ui.image_window import ImageOCRWindow
-from khmerclip.ui.popup import ResultPopup
-from khmerclip.ui.prefs_window import WAYLAND_HINT, PrefsWindow
-from khmerclip.ui.worker import Task
+from khmerclipper.history import HistoryStore, ScanRecord
+from khmerclipper.prefs import Prefs
+from khmerclipper.ui.fonts import khmer_font
+from khmerclipper.ui.history_window import HistoryWindow
+from khmerclipper.ui.image_window import ImageOCRWindow
+from khmerclipper.ui.popup import ResultPopup
+from khmerclipper.ui.prefs_window import WAYLAND_HINT, PrefsWindow
+from khmerclipper.ui.worker import Task
 
 
 def test_khmer_font_is_bundled_noto(qapp):
@@ -3372,20 +3372,20 @@ def test_image_window_open_path(qtbot, tmp_path):
 - [ ] **Step 2: Run tests to verify they fail**
 
 Run: `.venv/bin/python -m pytest tests/test_ui_widgets.py -v`
-Expected: FAIL with `ModuleNotFoundError: No module named 'khmerclip.ui'`.
+Expected: FAIL with `ModuleNotFoundError: No module named 'khmerclipper.ui'`.
 
 - [ ] **Step 3: Implement**
 
-`apps/desktop/src/khmerclip/ui/__init__.py`: create as an empty file.
+`apps/desktop/src/khmerclipper/ui/__init__.py`: create as an empty file.
 
-`apps/desktop/src/khmerclip/ui/fonts.py`:
+`apps/desktop/src/khmerclipper/ui/fonts.py`:
 ```python
 """Stock Windows/Linux installs often lack a Khmer font (text renders as boxes), so every
 text widget uses the bundled Noto Sans Khmer first."""
 
 from PySide6.QtGui import QFont, QFontDatabase
 
-from khmerclip.paths import resource_dir
+from khmerclipper.paths import resource_dir
 
 FONT_FILE = "fonts/NotoSansKhmer-Regular.ttf"
 _family: str | None = None
@@ -3408,7 +3408,7 @@ def khmer_font(point_size: int = 12) -> QFont:
     return font
 ```
 
-`apps/desktop/src/khmerclip/ui/worker.py`:
+`apps/desktop/src/khmerclipper/ui/worker.py`:
 ```python
 """Run blocking work (OCR, downloads, portal, update check) off the GUI thread."""
 
@@ -3449,13 +3449,13 @@ def submit(fn) -> Task:
     return task
 ```
 
-`apps/desktop/src/khmerclip/ui/popup.py`:
+`apps/desktop/src/khmerclipper/ui/popup.py`:
 ```python
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QGuiApplication
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
-from khmerclip.ui.fonts import khmer_font
+from khmerclipper.ui.fonts import khmer_font
 
 PREVIEW_CHARS = 1500
 
@@ -3518,7 +3518,7 @@ class ResultPopup(QWidget):
         super().leaveEvent(event)
 ```
 
-`apps/desktop/src/khmerclip/ui/history_window.py`:
+`apps/desktop/src/khmerclipper/ui/history_window.py`:
 ```python
 from collections.abc import Callable
 
@@ -3526,8 +3526,8 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QHBoxLayout, QListWidget, QListWidgetItem, QMessageBox, QPushButton,
                                QVBoxLayout, QWidget)
 
-from khmerclip.history import HistoryStore, ScanRecord
-from khmerclip.ui.fonts import khmer_font
+from khmerclipper.history import HistoryStore, ScanRecord
+from khmerclipper.ui.fonts import khmer_font
 
 PREVIEW_CHARS = 300
 
@@ -3535,7 +3535,7 @@ PREVIEW_CHARS = 300
 class HistoryWindow(QWidget):
     def __init__(self, store: HistoryStore, copy: Callable[[str], None]):
         super().__init__()
-        self.setWindowTitle("KhmerClip History")
+        self.setWindowTitle("KhmerClipper History")
         self.resize(480, 420)
         self.store, self._copy = store, copy
         self.list = QListWidget()
@@ -3588,7 +3588,7 @@ class HistoryWindow(QWidget):
         super().showEvent(event)
 ```
 
-`apps/desktop/src/khmerclip/ui/prefs_window.py`:
+`apps/desktop/src/khmerclipper/ui/prefs_window.py`:
 ```python
 from functools import partial
 
@@ -3596,11 +3596,11 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QKeySequence
 from PySide6.QtWidgets import QCheckBox, QComboBox, QFormLayout, QKeySequenceEdit, QLabel, QMessageBox, QWidget
 
-from khmerclip.hotkey import pynput_to_qt, qt_to_pynput
-from khmerclip.prefs import Prefs
+from khmerclipper.hotkey import pynput_to_qt, qt_to_pynput
+from khmerclipper.prefs import Prefs
 
 WAYLAND_HINT = ("Global shortcuts aren't available to apps on Wayland. Add a custom shortcut in your "
-                "desktop's keyboard settings that runs:  khmerclip --capture")
+                "desktop's keyboard settings that runs:  khmerclipper --capture")
 CHECKS = (
     ("auto_copy", "Copy result to clipboard"),
     ("show_result", "Show result popup"),
@@ -3615,7 +3615,7 @@ class PrefsWindow(QWidget):
 
     def __init__(self, prefs: Prefs, trocr_available: bool, hotkey_supported: bool):
         super().__init__()
-        self.setWindowTitle("KhmerClip Preferences")
+        self.setWindowTitle("KhmerClipper Preferences")
         self.prefs = prefs
         form = QFormLayout(self)
 
@@ -3665,7 +3665,7 @@ class PrefsWindow(QWidget):
         self._set("hotkey", hotkey)
 ```
 
-`apps/desktop/src/khmerclip/ui/image_window.py`:
+`apps/desktop/src/khmerclipper/ui/image_window.py`:
 ```python
 from pathlib import Path
 
@@ -3729,7 +3729,7 @@ Expected: 10 passed.
 - [ ] **Step 5: Commit**
 
 ```bash
-/usr/bin/git add apps/desktop/src/khmerclip/ui apps/desktop/tests/test_ui_widgets.py
+/usr/bin/git add apps/desktop/src/khmerclipper/ui apps/desktop/tests/test_ui_widgets.py
 /usr/bin/git commit -m "feat(desktop): add Khmer font, worker, result popup, history, preferences and image windows"
 ```
 
@@ -3738,7 +3738,7 @@ Expected: 10 passed.
 ### Task 15: Controller, tray app and `run_gui`
 
 **Files:**
-- Create: `apps/desktop/src/khmerclip/ui/app.py`
+- Create: `apps/desktop/src/khmerclipper/ui/app.py`
 - Test: `apps/desktop/tests/test_app.py`
 
 **Interfaces:**
@@ -3747,7 +3747,7 @@ Expected: 10 passed.
   - `Controller(prefs: Prefs, history: HistoryStore, set_clipboard: Callable[[str], None] | None = None)` with signal `capture_requested()` (safe to emit from any thread). Methods: `start_capture()`, `run_ocr(image)`, `handle_text(text: str, kind: str = "text")`, `handle_error(error: BaseException)`, `copy(text: str)`, `submit(fn, on_done=None, dialog=None) -> Task`. Attribute `popup: ResultPopup`.
   - `TrayApp(controller: Controller)` with `on_command(cmd: str)`, `show_history()`, `show_prefs()`, `show_image_window()`, `check_updates(manual: bool)`, attribute `menu: QMenu`
   - `preferred_qpa(platform: str, env: Mapping[str, str]) -> str | None`. Returns `"xcb"` on Linux when `DISPLAY` is set and `QT_QPA_PLATFORM` isn't. Under native Wayland a background app can't reliably set the clipboard or place its popup; XWayland can. Capture still uses the portal, because `capture_backend` reads `XDG_SESSION_TYPE`.
-  - `run_gui(capture: bool = False) -> int` (called by `khmerclip.__main__.main`)
+  - `run_gui(capture: bool = False) -> int` (called by `khmerclipper.__main__.main`)
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -3758,12 +3758,12 @@ import threading
 import pytest
 from PIL import Image
 
-from khmerclip.errors import Cancelled, KhmerClipError
-from khmerclip.history import HistoryStore
-from khmerclip.ocr import trocr_models
-from khmerclip.prefs import Prefs
-from khmerclip.ui import app as app_module
-from khmerclip.ui.app import Controller, TrayApp, preferred_qpa
+from khmerclipper.errors import Cancelled, KhmerClipperError
+from khmerclipper.history import HistoryStore
+from khmerclipper.ocr import trocr_models
+from khmerclipper.prefs import Prefs
+from khmerclipper.ui import app as app_module
+from khmerclipper.ui.app import Controller, TrayApp, preferred_qpa
 
 
 @pytest.fixture
@@ -3801,7 +3801,7 @@ def test_empty_result_is_not_recorded(controller):
 def test_errors(controller):
     controller.handle_error(Cancelled())
     assert not controller.popup.isVisible()
-    controller.handle_error(KhmerClipError("Tesseract was not found."))
+    controller.handle_error(KhmerClipperError("Tesseract was not found."))
     assert "Tesseract was not found." in controller.popup.label.text()
 
 
@@ -3830,7 +3830,7 @@ def test_preferred_qpa():
 
 
 def test_trocr_unpublished_explains_instead_of_crashing(controller, monkeypatch):
-    monkeypatch.delenv("KHMERCLIP_TROCR_DIR", raising=False)
+    monkeypatch.delenv("KHMERCLIPPER_TROCR_DIR", raising=False)
     monkeypatch.setattr(trocr_models, "load_manifest", lambda path=None: trocr_models.Manifest("khmer-v1", ()))
     controller.prefs.engine = "trocr"
     controller.run_ocr(Image.new("RGB", (20, 20), "white"))
@@ -3847,7 +3847,7 @@ def test_tray_menu_and_commands(controller, monkeypatch):
     tray = TrayApp(controller)
     texts = [a.text() for a in tray.menu.actions() if a.text()]
     assert texts == ["Capture Text", "OCR Image File…", "History…", "Preferences…",
-                     "Check for Updates…", "Quit KhmerClip"]
+                     "Check for Updates…", "Quit KhmerClipper"]
     tray.on_command("capture")
     assert captures == [1]
     tray.on_command("show")
@@ -3857,11 +3857,11 @@ def test_tray_menu_and_commands(controller, monkeypatch):
 - [ ] **Step 2: Run tests to verify they fail**
 
 Run: `.venv/bin/python -m pytest tests/test_app.py -v`
-Expected: FAIL with `ModuleNotFoundError: No module named 'khmerclip.ui.app'`.
+Expected: FAIL with `ModuleNotFoundError: No module named 'khmerclipper.ui.app'`.
 
 - [ ] **Step 3: Implement**
 
-`apps/desktop/src/khmerclip/ui/app.py`:
+`apps/desktop/src/khmerclipper/ui/app.py`:
 ```python
 """Tray app wiring: capture -> OCR (worker thread) -> clipboard/history/popup."""
 
@@ -3875,23 +3875,23 @@ from PySide6.QtCore import QObject, QThreadPool, QTimer, QUrl, Signal, Slot
 from PySide6.QtGui import QAction, QDesktopServices, QGuiApplication, QIcon
 from PySide6.QtWidgets import QApplication, QMenu, QMessageBox, QProgressDialog, QSystemTrayIcon
 
-from khmerclip import __version__, autostart, updater
-from khmerclip.capture import portal
-from khmerclip.capture.geometry import capture_backend
-from khmerclip.capture.overlay import RegionSelector
-from khmerclip.errors import Cancelled, KhmerClipError
-from khmerclip.formatter import apply
-from khmerclip.history import HistoryStore, ScanRecord
-from khmerclip.hotkey import HotkeyListener, pynput_to_qt
-from khmerclip.ocr import Engine, recognize, trocr_models
-from khmerclip.paths import APP_NAME, resource_dir
-from khmerclip.prefs import Prefs
-from khmerclip.single_instance import CommandServer, send_command
-from khmerclip.ui.history_window import HistoryWindow
-from khmerclip.ui.image_window import ImageOCRWindow
-from khmerclip.ui.popup import ResultPopup
-from khmerclip.ui.prefs_window import PrefsWindow
-from khmerclip.ui.worker import Task
+from khmerclipper import __version__, autostart, updater
+from khmerclipper.capture import portal
+from khmerclipper.capture.geometry import capture_backend
+from khmerclipper.capture.overlay import RegionSelector
+from khmerclipper.errors import Cancelled, KhmerClipperError
+from khmerclipper.formatter import apply
+from khmerclipper.history import HistoryStore, ScanRecord
+from khmerclipper.hotkey import HotkeyListener, pynput_to_qt
+from khmerclipper.ocr import Engine, recognize, trocr_models
+from khmerclipper.paths import APP_NAME, resource_dir
+from khmerclipper.prefs import Prefs
+from khmerclipper.single_instance import CommandServer, send_command
+from khmerclipper.ui.history_window import HistoryWindow
+from khmerclipper.ui.image_window import ImageOCRWindow
+from khmerclipper.ui.popup import ResultPopup
+from khmerclipper.ui.prefs_window import PrefsWindow
+from khmerclipper.ui.worker import Task
 
 
 def _update_progress(dialog: QProgressDialog, value: object) -> None:
@@ -3955,7 +3955,7 @@ class Controller(QObject):
     # --- capture -------------------------------------------------------------
     def start_capture(self) -> None:
         if self.prefs.engine == Engine.TROCR:
-            from khmerclip.ocr import trocr
+            from khmerclipper.ocr import trocr
 
             self.submit(lambda progress, cancel: trocr.preload())  # warm up while the user selects
         if capture_backend() == "portal":
@@ -3980,7 +3980,7 @@ class Controller(QObject):
         """True if TrOCR can run now. Otherwise explains or offers the one-time download
         (which re-runs this OCR when finished) and returns False."""
         manifest = trocr_models.load_manifest()
-        if os.environ.get("KHMERCLIP_TROCR_DIR") or trocr_models.is_installed(manifest):
+        if os.environ.get("KHMERCLIPPER_TROCR_DIR") or trocr_models.is_installed(manifest):
             return True
         if not manifest.available:
             self.popup.show_message("The TrOCR model isn't published yet. Switch to Tesseract in Preferences.")
@@ -4009,7 +4009,7 @@ class Controller(QObject):
     def handle_error(self, error: BaseException) -> None:
         if isinstance(error, Cancelled):
             return
-        message = str(error) if isinstance(error, KhmerClipError) else f"Unexpected error: {error!r}"
+        message = str(error) if isinstance(error, KhmerClipperError) else f"Unexpected error: {error!r}"
         self.popup.show_message(f"Capture failed: {message}")
 
     def copy(self, text: str) -> None:
@@ -4079,7 +4079,7 @@ class TrayApp(QObject):
             action.triggered.connect(lambda _checked=False, s=slot: s())
             self.menu.addAction(action)
         self.menu.addSeparator()
-        quit_action = QAction("Quit KhmerClip", self.menu)
+        quit_action = QAction("Quit KhmerClipper", self.menu)
         quit_action.triggered.connect(QApplication.quit)
         self.menu.addAction(quit_action)
 
@@ -4094,7 +4094,7 @@ class TrayApp(QObject):
             self.show_prefs()  # e.g. GNOME without the AppIndicator extension: keep the app reachable
         if not prefs.welcomed:
             how = (f"Press {pynput_to_qt(prefs.hotkey)}" if self.hotkey_ok
-                   else "Bind “khmerclip --capture” to a keyboard shortcut")
+                   else "Bind “khmerclipper --capture” to a keyboard shortcut")
             self.tray.showMessage(f"{APP_NAME} is running", f"{how} or use the tray icon to capture text.")
             prefs.welcomed = True
             prefs.save()
@@ -4195,10 +4195,10 @@ Expected: 9 passed.
 
 - [ ] **Step 5: Manual smoke run (dev machine, then Linux Wayland)**
 
-Run: `.venv/bin/python -m khmerclip`
-Expected: the tray icon appears and the welcome notification shows. On macOS dev, grant Screen Recording when asked. "Capture Text" shows the dimmed frozen screen. Dragging over Khmer text yields a popup with the text, which is also on the clipboard. History… lists it. Preferences… toggles persist across restarts. Run `.venv/bin/python -m khmerclip --capture` in a second terminal while the app runs. Expected: the running instance starts a capture, and the second process exits immediately.
+Run: `.venv/bin/python -m khmerclipper`
+Expected: the tray icon appears and the welcome notification shows. On macOS dev, grant Screen Recording when asked. "Capture Text" shows the dimmed frozen screen. Dragging over Khmer text yields a popup with the text, which is also on the clipboard. History… lists it. Preferences… toggles persist across restarts. Run `.venv/bin/python -m khmerclipper --capture` in a second terminal while the app runs. Expected: the running instance starts a capture, and the second process exits immediately.
 
-On an Ubuntu **Wayland** session (the user's Ubuntu machine), run the same app. Then run `khmerclip --capture` from a second terminal.
+On an Ubuntu **Wayland** session (the user's Ubuntu machine), run the same app. Then run `khmerclipper --capture` from a second terminal.
 Expected:
 - The GNOME screenshot picker opens.
 - After selecting Khmer text, the popup appears bottom-right.
@@ -4212,7 +4212,7 @@ Run: `.venv/bin/python -m pytest -q`
 Expected: all pass (skips allowed).
 
 ```bash
-/usr/bin/git add apps/desktop/src/khmerclip/ui/app.py apps/desktop/tests/test_app.py
+/usr/bin/git add apps/desktop/src/khmerclipper/ui/app.py apps/desktop/tests/test_app.py
 /usr/bin/git commit -m "feat(desktop): wire tray app, capture-to-clipboard flow and model download prompt"
 ```
 
@@ -4222,34 +4222,34 @@ Expected: all pass (skips allowed).
 
 **Files:**
 - Create: `apps/desktop/packaging/entry.py`
-- Create: `apps/desktop/packaging/khmerclip.spec`
+- Create: `apps/desktop/packaging/khmerclipper.spec`
 - Create: `apps/desktop/packaging/windows/vendor_tesseract.ps1`
-- Create: `apps/desktop/packaging/windows/khmerclip.iss`
+- Create: `apps/desktop/packaging/windows/khmerclipper.iss`
 - Create: `apps/desktop/packaging/linux/AppRun`
-- Create: `apps/desktop/packaging/linux/khmerclip.desktop`
+- Create: `apps/desktop/packaging/linux/khmerclipper.desktop`
 - Create: `apps/desktop/packaging/linux/build_appimage.sh`
 
 **Interfaces:**
-- Consumes: `khmerclip.__main__.main`, `resources/` (font, icon, `tesseract/tessdata`, Windows `tesseract.exe` + DLLs), `src/khmerclip/ocr/trocr_manifest.json`
+- Consumes: `khmerclipper.__main__.main`, `resources/` (font, icon, `tesseract/tessdata`, Windows `tesseract.exe` + DLLs), `src/khmerclipper/ocr/trocr_manifest.json`
 - Produces (used by Task 17 CI):
-  - `pyinstaller packaging/khmerclip.spec --noconfirm` → `dist/KhmerClip/KhmerClip(.exe)` (onedir)
-  - Windows: `ISCC.exe packaging\windows\khmerclip.iss` with env `KHMERCLIP_VERSION` → `dist/KhmerClip-<ver>-windows-x64-setup.exe`
-  - Linux: `packaging/linux/build_appimage.sh <ver>` → `dist/KhmerClip-<ver>-x86_64.AppImage`
+  - `pyinstaller packaging/khmerclipper.spec --noconfirm` → `dist/KhmerClipper/KhmerClipper(.exe)` (onedir)
+  - Windows: `ISCC.exe packaging\windows\khmerclipper.iss` with env `KHMERCLIPPER_VERSION` → `dist/KhmerClipper-<ver>-windows-x64-setup.exe`
+  - Linux: `packaging/linux/build_appimage.sh <ver>` → `dist/KhmerClipper-<ver>-x86_64.AppImage`
   - Smoke contract: `<frozen app> ocr <png> -o <out.txt>` exits 0 and writes UTF-8 text
 
 - [ ] **Step 1: Write the PyInstaller entry and spec**
 
 `apps/desktop/packaging/entry.py`:
 ```python
-from khmerclip.__main__ import main
+from khmerclipper.__main__ import main
 
 raise SystemExit(main())
 ```
 
-`apps/desktop/packaging/khmerclip.spec`:
+`apps/desktop/packaging/khmerclipper.spec`:
 ```python
 # PyInstaller onedir build. Run from apps/desktop:
-#   pyinstaller packaging/khmerclip.spec --noconfirm
+#   pyinstaller packaging/khmerclipper.spec --noconfirm
 # Expects resources/tesseract/tessdata (tools/fetch_tessdata.py) and, on Windows,
 # resources/tesseract/tesseract.exe + DLLs (packaging/windows/vendor_tesseract.ps1).
 from pathlib import Path
@@ -4261,27 +4261,27 @@ a = Analysis(
     pathex=[str(ROOT / "src")],
     datas=[
         (str(ROOT / "resources"), "resources"),
-        (str(ROOT / "src" / "khmerclip" / "ocr" / "trocr_manifest.json"), "khmerclip/ocr"),
+        (str(ROOT / "src" / "khmerclipper" / "ocr" / "trocr_manifest.json"), "khmerclipper/ocr"),
     ],
     hiddenimports=["pynput.keyboard._win32", "pynput.mouse._win32", "pynput.keyboard._xorg", "pynput.mouse._xorg"],
     excludes=["tkinter"],
 )
 pyz = PYZ(a.pure)
-exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name="KhmerClip", console=False,
+exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name="KhmerClipper", console=False,
           icon=str(ROOT / "resources" / "icon.png"))
-coll = COLLECT(exe, a.binaries, a.datas, name="KhmerClip")
+coll = COLLECT(exe, a.binaries, a.datas, name="KhmerClipper")
 ```
 
 - [ ] **Step 2: Freeze locally and smoke-test the frozen CLI**
 
 Run from `apps/desktop/` (the OS you're on; macOS works as a sanity check):
 ```bash
-.venv/bin/pyinstaller packaging/khmerclip.spec --noconfirm
-ls dist/KhmerClip/_internal/resources/fonts dist/KhmerClip/_internal/resources/tesseract/tessdata dist/KhmerClip/_internal/khmerclip/ocr/trocr_manifest.json
-dist/KhmerClip/KhmerClip ocr ../mac/Tests/Fixtures/ocr/1.png -o /tmp/khmerclip-smoke.txt
-cat /tmp/khmerclip-smoke.txt
+.venv/bin/pyinstaller packaging/khmerclipper.spec --noconfirm
+ls dist/KhmerClipper/_internal/resources/fonts dist/KhmerClipper/_internal/resources/tesseract/tessdata dist/KhmerClipper/_internal/khmerclipper/ocr/trocr_manifest.json
+dist/KhmerClipper/KhmerClipper ocr ../mac/Tests/Fixtures/ocr/1.png -o /tmp/khmerclipper-smoke.txt
+cat /tmp/khmerclipper-smoke.txt
 ```
-Expected: the `ls` shows the font, `khm.traineddata`/`eng.traineddata` and the manifest. On macOS or Linux with Tesseract on `PATH` (or `KHMERCLIP_TESSERACT` exported), the smoke file contains Khmer text matching `1.txt`. PyInstaller warnings about the other OS's pynput backends are expected.
+Expected: the `ls` shows the font, `khm.traineddata`/`eng.traineddata` and the manifest. On macOS or Linux with Tesseract on `PATH` (or `KHMERCLIPPER_TESSERACT` exported), the smoke file contains Khmer text matching `1.txt`. PyInstaller warnings about the other OS's pynput backends are expected.
 
 - [ ] **Step 3: Windows packaging files**
 
@@ -4298,44 +4298,44 @@ Copy-Item "$src\*.dll" $dst
 & "$dst\tesseract.exe" --version
 ```
 
-`apps/desktop/packaging/windows/khmerclip.iss`:
+`apps/desktop/packaging/windows/khmerclipper.iss`:
 ```ini
 ; Per-user installer (no admin). Build from apps/desktop after PyInstaller:
-;   $env:KHMERCLIP_VERSION = "0.1.0"; & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" packaging\windows\khmerclip.iss
-#define AppVersion GetEnv("KHMERCLIP_VERSION")
+;   $env:KHMERCLIPPER_VERSION = "0.1.0"; & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" packaging\windows\khmerclipper.iss
+#define AppVersion GetEnv("KHMERCLIPPER_VERSION")
 #if AppVersion == ""
-  #error KHMERCLIP_VERSION is not set
+  #error KHMERCLIPPER_VERSION is not set
 #endif
 
 [Setup]
 AppId={{6E0B3C52-6C4E-4C1B-9C7B-6B2E7A4F1D10}
-AppName=KhmerClip
+AppName=KhmerClipper
 AppVersion={#AppVersion}
-AppPublisher=KhmerClip
-DefaultDirName={localappdata}\Programs\KhmerClip
+AppPublisher=KhmerClipper
+DefaultDirName={localappdata}\Programs\KhmerClipper
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
 OutputDir=..\..\dist
-OutputBaseFilename=KhmerClip-{#AppVersion}-windows-x64-setup
+OutputBaseFilename=KhmerClipper-{#AppVersion}-windows-x64-setup
 Compression=lzma2
 SolidCompression=yes
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 CloseApplications=yes
-UninstallDisplayIcon={app}\KhmerClip.exe
+UninstallDisplayIcon={app}\KhmerClipper.exe
 
 [Files]
-Source: "..\..\dist\KhmerClip\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
+Source: "..\..\dist\KhmerClipper\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
 
 [Icons]
-Name: "{userprograms}\KhmerClip"; Filename: "{app}\KhmerClip.exe"
+Name: "{userprograms}\KhmerClipper"; Filename: "{app}\KhmerClipper.exe"
 
 [Registry]
 ; The app writes this value when "Launch at login" is on; remove it on uninstall.
-Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueName: "KhmerClip"; ValueType: none; Flags: uninsdeletevalue dontcreatekey
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueName: "KhmerClipper"; ValueType: none; Flags: uninsdeletevalue dontcreatekey
 
 [Run]
-Filename: "{app}\KhmerClip.exe"; Description: "Launch KhmerClip"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\KhmerClipper.exe"; Description: "Launch KhmerClipper"; Flags: nowait postinstall skipifsilent
 ```
 
 - [ ] **Step 4: Linux packaging files**
@@ -4346,17 +4346,17 @@ Filename: "{app}\KhmerClip.exe"; Description: "Launch KhmerClip"; Flags: nowait 
 # Bundled tesseract (deployed by linuxdeploy into usr/bin) wins over any system copy.
 HERE="$(dirname "$(readlink -f "$0")")"
 export PATH="$HERE/usr/bin:$PATH"
-exec "$HERE/usr/lib/khmerclip/KhmerClip" "$@"
+exec "$HERE/usr/lib/khmerclipper/KhmerClipper" "$@"
 ```
 
-`apps/desktop/packaging/linux/khmerclip.desktop`:
+`apps/desktop/packaging/linux/khmerclipper.desktop`:
 ```ini
 [Desktop Entry]
 Type=Application
-Name=KhmerClip
+Name=KhmerClipper
 Comment=Khmer OCR screen capture
-Exec=KhmerClip
-Icon=khmerclip
+Exec=KhmerClipper
+Icon=khmerclipper
 Categories=Utility;
 Terminal=false
 ```
@@ -4364,13 +4364,13 @@ Terminal=false
 `apps/desktop/packaging/linux/build_appimage.sh`:
 ```bash
 #!/usr/bin/env bash
-# Package dist/KhmerClip (PyInstaller onedir) + the system Tesseract into an AppImage.
+# Package dist/KhmerClipper (PyInstaller onedir) + the system Tesseract into an AppImage.
 # Usage, from apps/desktop after pyinstaller:  packaging/linux/build_appimage.sh <version>
 set -euo pipefail
 VERSION="$1"
 APPDIR="build/AppDir"
 TOOLS="build/tools"
-OUT="dist/KhmerClip-${VERSION}-x86_64.AppImage"
+OUT="dist/KhmerClipper-${VERSION}-x86_64.AppImage"
 export APPIMAGE_EXTRACT_AND_RUN=1  # CI runners have no FUSE
 
 mkdir -p "$TOOLS"
@@ -4379,14 +4379,14 @@ fetch linuxdeploy https://github.com/linuxdeploy/linuxdeploy/releases/download/c
 fetch appimagetool https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
 
 rm -rf "$APPDIR"
-cp resources/icon.png build/khmerclip.png
+cp resources/icon.png build/khmerclipper.png
 # 1) Tesseract and its shared libs, rpath-patched by linuxdeploy. Only tesseract goes through
 #    linuxdeploy: patching PyInstaller's binaries would corrupt its appended archive.
 "$TOOLS/linuxdeploy" --appdir "$APPDIR" --executable "$(command -v tesseract)" \
-  --desktop-file packaging/linux/khmerclip.desktop --icon-file build/khmerclip.png
+  --desktop-file packaging/linux/khmerclipper.desktop --icon-file build/khmerclipper.png
 # 2) The frozen app, copied untouched.
 mkdir -p "$APPDIR/usr/lib"
-cp -a dist/KhmerClip "$APPDIR/usr/lib/khmerclip"
+cp -a dist/KhmerClipper "$APPDIR/usr/lib/khmerclipper"
 rm -f "$APPDIR/AppRun"
 install -m 755 packaging/linux/AppRun "$APPDIR/AppRun"
 ARCH=x86_64 "$TOOLS/appimagetool" "$APPDIR" "$OUT"
@@ -4414,8 +4414,8 @@ These two scripts run only on their target OS. Task 17's CI jobs execute and smo
 - Modify: `README.md` (root: layout table row + quick start line)
 
 **Interfaces:**
-- Consumes: Task 16 build contracts, `tools/fetch_tessdata.py`, `pytest`, env `KHMERCLIP_REQUIRE_TESSERACT`, `KHMERCLIP_TESSERACT`
-- Produces: workflow `desktop`. Jobs: `test` (matrix), `build` (matrix, uploads `khmerclip-Windows` / `khmerclip-Linux` artifacts), `release` (tag `desktop-v*` → GitHub release `v<ver>` on `KimChengSHEANG/khmerclip-releases` using secret `RELEASES_TOKEN`)
+- Consumes: Task 16 build contracts, `tools/fetch_tessdata.py`, `pytest`, env `KHMERCLIPPER_REQUIRE_TESSERACT`, `KHMERCLIPPER_TESSERACT`
+- Produces: workflow `desktop`. Jobs: `test` (matrix), `build` (matrix, uploads `khmerclipper-Windows` / `khmerclipper-Linux` artifacts), `release` (tag `desktop-v*` → GitHub release `v<ver>` on `KimChengSHEANG/khmerclipper-releases` using secret `RELEASES_TOKEN`)
 
 - [ ] **Step 1: Write the workflow**
 
@@ -4446,7 +4446,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       QT_QPA_PLATFORM: offscreen
-      KHMERCLIP_REQUIRE_TESSERACT: "1"
+      KHMERCLIPPER_REQUIRE_TESSERACT: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -4462,7 +4462,7 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           choco install tesseract --no-progress -y
-          echo "KHMERCLIP_TESSERACT=C:\Program Files\Tesseract-OCR\tesseract.exe" >> "$GITHUB_ENV"
+          echo "KHMERCLIPPER_TESSERACT=C:\Program Files\Tesseract-OCR\tesseract.exe" >> "$GITHUB_ENV"
       - run: python -m pip install -e ".[dev]"
       - run: python tools/fetch_tessdata.py
       - run: python -m pytest -v
@@ -4497,49 +4497,49 @@ jobs:
         run: ./packaging/windows/vendor_tesseract.ps1
       - name: Version
         id: ver
-        run: echo "version=$(python -c 'import khmerclip; print(khmerclip.__version__)')" >> "$GITHUB_OUTPUT"
-      - run: pyinstaller packaging/khmerclip.spec --noconfirm
+        run: echo "version=$(python -c 'import khmerclipper; print(khmerclipper.__version__)')" >> "$GITHUB_OUTPUT"
+      - run: pyinstaller packaging/khmerclipper.spec --noconfirm
       - name: Installer + smoke test (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         env:
-          KHMERCLIP_VERSION: ${{ steps.ver.outputs.version }}
+          KHMERCLIPPER_VERSION: ${{ steps.ver.outputs.version }}
         run: |
-          # Smoke: the frozen app must OCR with its *bundled* tesseract (KHMERCLIP_TESSERACT unset here).
-          Start-Process -Wait -FilePath dist\KhmerClip\KhmerClip.exe -ArgumentList 'ocr','..\mac\Tests\Fixtures\ocr\1.png','-o','smoke.txt'
+          # Smoke: the frozen app must OCR with its *bundled* tesseract (KHMERCLIPPER_TESSERACT unset here).
+          Start-Process -Wait -FilePath dist\KhmerClipper\KhmerClipper.exe -ArgumentList 'ocr','..\mac\Tests\Fixtures\ocr\1.png','-o','smoke.txt'
           $text = Get-Content smoke.txt -Encoding utf8 -Raw
           if (-not $text.Trim()) { throw "frozen app produced no OCR text" }
           Write-Host $text
           # GUI smoke: the frozen tray app must load Qt and stay up (the ocr path never imports Qt).
-          $p = Start-Process -PassThru -FilePath dist\KhmerClip\KhmerClip.exe
+          $p = Start-Process -PassThru -FilePath dist\KhmerClipper\KhmerClipper.exe
           Start-Sleep -Seconds 15
           if ($p.HasExited) { throw "frozen GUI exited early with code $($p.ExitCode)" }
           Stop-Process -Id $p.Id -Force
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
           if (-not (Test-Path $iscc)) { choco install innosetup --no-progress -y }
-          & $iscc packaging\windows\khmerclip.iss
+          & $iscc packaging\windows\khmerclipper.iss
       - name: AppImage + smoke test (Linux)
         if: runner.os == 'Linux'
         run: |
           packaging/linux/build_appimage.sh "${{ steps.ver.outputs.version }}"
           # Prove the AppImage uses its bundled tesseract, not the runner's.
           sudo apt-get remove -y tesseract-ocr
-          APPIMAGE_EXTRACT_AND_RUN=1 "dist/KhmerClip-${{ steps.ver.outputs.version }}-x86_64.AppImage" \
+          APPIMAGE_EXTRACT_AND_RUN=1 "dist/KhmerClipper-${{ steps.ver.outputs.version }}-x86_64.AppImage" \
             ocr ../mac/Tests/Fixtures/ocr/1.png -o smoke.txt
           test -s smoke.txt && cat smoke.txt
           # GUI smoke: the tray app must load the bundled Qt xcb plugin and stay up.
           # timeout's exit 124 = still running after 15 s = pass; anything else = crash.
           set +e
-          APPIMAGE_EXTRACT_AND_RUN=1 xvfb-run -a timeout 15 "dist/KhmerClip-${{ steps.ver.outputs.version }}-x86_64.AppImage"
+          APPIMAGE_EXTRACT_AND_RUN=1 xvfb-run -a timeout 15 "dist/KhmerClipper-${{ steps.ver.outputs.version }}-x86_64.AppImage"
           code=$?
           set -e
           test "$code" -eq 124 || { echo "frozen GUI exited early with code $code"; exit 1; }
       - uses: actions/upload-artifact@v4
         with:
-          name: khmerclip-${{ runner.os }}
+          name: khmerclipper-${{ runner.os }}
           path: |
-            apps/desktop/dist/KhmerClip-*-setup.exe
-            apps/desktop/dist/KhmerClip-*.AppImage
+            apps/desktop/dist/KhmerClipper-*-setup.exe
+            apps/desktop/dist/KhmerClipper-*.AppImage
           if-no-files-found: error
 
   release:
@@ -4553,7 +4553,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Tag must match __version__
         run: |
-          ver=$(python3 -c "import re, pathlib; print(re.search(r'__version__ = \"(.+?)\"', pathlib.Path('apps/desktop/src/khmerclip/__init__.py').read_text()).group(1))")
+          ver=$(python3 -c "import re, pathlib; print(re.search(r'__version__ = \"(.+?)\"', pathlib.Path('apps/desktop/src/khmerclipper/__init__.py').read_text()).group(1))")
           test "desktop-v$ver" = "$GITHUB_REF_NAME" || { echo "tag $GITHUB_REF_NAME != desktop-v$ver"; exit 1; }
           echo "VERSION=$ver" >> "$GITHUB_ENV"
       - uses: actions/download-artifact@v4
@@ -4565,15 +4565,15 @@ jobs:
           GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
         run: |
           gh release create "v$VERSION" artifacts/* \
-            --repo KimChengSHEANG/khmerclip-releases \
-            --title "KhmerClip $VERSION" \
-            --notes "KhmerClip $VERSION for Windows (installer) and Linux (AppImage)."
+            --repo KimChengSHEANG/khmerclipper-releases \
+            --title "KhmerClipper $VERSION" \
+            --notes "KhmerClipper $VERSION for Windows (installer) and Linux (AppImage)."
 ```
 
 - [ ] **Step 2: Write `apps/desktop/README.md`**
 
 ````markdown
-# KhmerClip for Windows and Linux
+# KhmerClipper for Windows and Linux
 
 Tray app: select a screen region → Khmer (+English) OCR → text on the clipboard. Python +
 PySide6. The macOS app lives in [`../mac`](../mac) and is separate.
@@ -4585,14 +4585,14 @@ PySide6. The macOS app lives in [`../mac`](../mac) and is separate.
   - **Tesseract** (`khm+eng`, bundled): the default; works offline with no setup.
   - **TrOCR** (Khmer fine-tune, ONNX): about a 1.3 GB one-time download from Hugging Face on first use.
 - Auto-copy, result popup, history (last 200), OCR Image File…, launch at login, daily update check.
-- Global hotkey (default `Ctrl+Shift+2`) on Windows and X11. **Wayland:** add a custom shortcut in your desktop's keyboard settings that runs `khmerclip --capture` (for the AppImage: `/path/to/KhmerClip-x.y.z-x86_64.AppImage --capture`).
+- Global hotkey (default `Ctrl+Shift+2`) on Windows and X11. **Wayland:** add a custom shortcut in your desktop's keyboard settings that runs `khmerclipper --capture` (for the AppImage: `/path/to/KhmerClipper-x.y.z-x86_64.AppImage --capture`).
 
 ## Install
 
-Download from [KhmerClip releases](https://github.com/KimChengSHEANG/khmerclip-releases/releases):
+Download from [KhmerClipper releases](https://github.com/KimChengSHEANG/khmerclipper-releases/releases):
 
-- **Windows:** `KhmerClip-<ver>-windows-x64-setup.exe`. Per-user install, no admin. Builds are unsigned, so SmartScreen warns: More info → Run anyway.
-- **Linux:** `KhmerClip-<ver>-x86_64.AppImage`. Run `chmod +x` on it, then start it. GNOME needs the AppIndicator extension for the tray icon (on by default on Ubuntu).
+- **Windows:** `KhmerClipper-<ver>-windows-x64-setup.exe`. Per-user install, no admin. Builds are unsigned, so SmartScreen warns: More info → Run anyway.
+- **Linux:** `KhmerClipper-<ver>-x86_64.AppImage`. Run `chmod +x` on it, then start it. GNOME needs the AppIndicator extension for the tray icon (on by default on Ubuntu).
 
 ## Develop
 
@@ -4601,30 +4601,30 @@ cd apps/desktop
 python3.12 -m venv .venv
 .venv/bin/pip install -e '.[dev]'
 .venv/bin/python tools/fetch_tessdata.py        # pinned khm/eng tessdata
-.venv/bin/python -m khmerclip                   # tray app
-.venv/bin/python -m khmerclip ocr image.png     # headless OCR
+.venv/bin/python -m khmerclipper                   # tray app
+.venv/bin/python -m khmerclipper ocr image.png     # headless OCR
 .venv/bin/python -m pytest
 ```
 
-You need a `tesseract` 5.x on `PATH`, or `KHMERCLIP_TESSERACT=/path/to/tesseract`. Options: `apt install tesseract-ocr`, `brew install tesseract`, or the UB Mannheim build on Windows.
+You need a `tesseract` 5.x on `PATH`, or `KHMERCLIPPER_TESSERACT=/path/to/tesseract`. Options: `apt install tesseract-ocr`, `brew install tesseract`, or the UB Mannheim build on Windows.
 
 ## TrOCR models
 
 1. Export: `.venv/bin/pip install -e '.[tools]'`, then `.venv/bin/python tools/export_onnx.py <checkpoint> exported/khmer`. This checks ONNX against torch.
-2. Publish (needs `huggingface-cli login`): `.venv/bin/python tools/publish_models.py exported/khmer --version khmer-v2`. This pins the HF commit and the SHA-256 values in `src/khmerclip/ocr/trocr_manifest.json`. Commit that file.
-3. To test a local export without publishing, set `KHMERCLIP_TROCR_DIR=exported/khmer`.
+2. Publish (needs `huggingface-cli login`): `.venv/bin/python tools/publish_models.py exported/khmer --version khmer-v2`. This pins the HF commit and the SHA-256 values in `src/khmerclipper/ocr/trocr_manifest.json`. Commit that file.
+3. To test a local export without publishing, set `KHMERCLIPPER_TROCR_DIR=exported/khmer`.
 
 ## Release
 
 One-time setup:
 
-1. Create the public repo `KimChengSHEANG/khmerclip-releases`.
+1. Create the public repo `KimChengSHEANG/khmerclipper-releases`.
 2. Create a fine-grained PAT with *Contents: read and write* on that repo.
 3. Store the PAT as the `RELEASES_TOKEN` secret in this repo.
 
 Each release:
 
-1. Bump `__version__` in `src/khmerclip/__init__.py` and commit.
+1. Bump `__version__` in `src/khmerclipper/__init__.py` and commit.
 2. Run `git tag desktop-v<version>` and push the tag (`git push origin desktop-v<version>`).
 3. CI tests, builds both installers, smoke-tests the frozen apps, and publishes release `v<version>` to the releases repo. Installed apps see it within a day.
 
@@ -4644,11 +4644,11 @@ Manual checklist before announcing a release:
 
 In `README.md`, add a row to the Layout table directly under the `apps/mac` row:
 ```markdown
-| [`apps/desktop`](apps/desktop) | KhmerClip for Windows + Linux (Python / PySide6) |
+| [`apps/desktop`](apps/desktop) | KhmerClipper for Windows + Linux (Python / PySide6) |
 ```
 Under "## Quick start (app)", append this line after the existing mac sentence:
 ```markdown
-Windows/Linux: see [`apps/desktop/README.md`](apps/desktop/README.md) (`pip install -e '.[dev]'`, then `python -m khmerclip`).
+Windows/Linux: see [`apps/desktop/README.md`](apps/desktop/README.md) (`pip install -e '.[dev]'`, then `python -m khmerclipper`).
 ```
 
 - [ ] **Step 4: Validate the workflow locally, then on GitHub**
@@ -4656,7 +4656,7 @@ Windows/Linux: see [`apps/desktop/README.md`](apps/desktop/README.md) (`pip inst
 Run (from the worktree root): `python3 -c "import yaml, sys; yaml.safe_load(open('.github/workflows/desktop.yml')); print('ok')"`
 Expected: `ok`. If PyYAML is missing, run `.venv/bin/pip install pyyaml` first, from `apps/desktop`.
 
-**Human-gated (pushing is outward-facing):** after the user approves pushing the branch, run `gh workflow run desktop --ref <branch>`, or open a PR. Watch with `gh run watch`. Expected: `test` passes on both OSes, which includes the 6 Tesseract fixture tests and the Windows-only path and registry tests. `build` uploads `khmerclip-Windows` (setup exe) and `khmerclip-Linux` (AppImage), and both smoke steps print Khmer text. If a fixture's CER exceeds 0.05 on a runner's Tesseract build, report the diff. Do not loosen the threshold silently.
+**Human-gated (pushing is outward-facing):** after the user approves pushing the branch, run `gh workflow run desktop --ref <branch>`, or open a PR. Watch with `gh run watch`. Expected: `test` passes on both OSes, which includes the 6 Tesseract fixture tests and the Windows-only path and registry tests. `build` uploads `khmerclipper-Windows` (setup exe) and `khmerclipper-Linux` (AppImage), and both smoke steps print Khmer text. If a fixture's CER exceeds 0.05 on a runner's Tesseract build, report the diff. Do not loosen the threshold silently.
 
 - [ ] **Step 5: Commit**
 

@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="apps/desktop/resources/icon.png" width="96" height="96" alt="KhmerClip icon">
+  <img src="apps/desktop/resources/icon.png" width="96" height="96" alt="KhmerClipper icon">
 </p>
 
-<h1 align="center">KhmerClip</h1>
+<h1 align="center">KhmerClipper</h1>
 
 <p align="center">
   Screen OCR for <b>Khmer</b> and mixed Khmer/English text.<br>
@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/KimChengSHEANG/khmerclip/releases">Download</a> ·
+  <a href="https://github.com/KimChengSHEANG/khmerclipper/releases">Download</a> ·
   <a href="#results">Results</a> ·
   <a href="#training-data">Training data</a> ·
   <a href="#build-from-source">Build from source</a> ·
@@ -20,7 +20,7 @@
 
 ---
 
-Apple's Vision framework, and most OCR tools, can't read Khmer. KhmerClip ships its own engines: a TrOCR model fine-tuned on over a million Khmer and English text lines, and Tesseract as a lightweight fallback. On our 200-image benchmark the fine-tuned model has a **0.44% character error rate**. Stock Tesseract has 25.8% on the same images.
+Apple's Vision framework, and most OCR tools, can't read Khmer. KhmerClipper ships its own engines: a TrOCR model fine-tuned on over a million Khmer and English text lines, and Tesseract as a lightweight fallback. On our 200-image benchmark the fine-tuned model has a **0.44% character error rate**. Stock Tesseract has 25.8% on the same images.
 
 ## Features
 
@@ -38,13 +38,13 @@ Choose the engine in **Preferences → OCR Engine**. Tesseract is the default. *
 
 ## Download
 
-Get the latest build from the [Releases](https://github.com/KimChengSHEANG/khmerclip/releases) page. The macOS build is signed and notarized. The Windows and Linux builds are unsigned.
+Get the latest build from the [Releases](https://github.com/KimChengSHEANG/khmerclipper/releases) page. The macOS build is signed and notarized. The Windows and Linux builds are unsigned.
 
-- **macOS 15+ (Apple Silicon):** open `KhmerClip-<ver>.dmg` and drag KhmerClip to Applications. Grant **Screen Recording** when asked.
-- **Windows:** run `KhmerClip-<ver>-windows-x64-setup.exe`. SmartScreen warns on first run: More info → Run anyway.
-- **Linux:** on Ubuntu/Debian, `sudo apt install ./khmerclip_<ver>_amd64.deb`. Otherwise, `chmod +x KhmerClip-<ver>-x86_64.AppImage`, then run it. On Wayland, bind a desktop shortcut to `KhmerClip-…AppImage --capture`. GNOME needs the AppIndicator extension for the tray icon.
+- **macOS 15+ (Apple Silicon):** open `KhmerClipper-<ver>.dmg` and drag KhmerClipper to Applications. Grant **Screen Recording** when asked.
+- **Windows:** run `KhmerClipper-<ver>-windows-x64-setup.exe`. SmartScreen warns on first run: More info → Run anyway.
+- **Linux:** on Ubuntu/Debian, `sudo apt install ./khmerclipper_<ver>_amd64.deb`. Otherwise, `chmod +x KhmerClipper-<ver>-x86_64.AppImage`, then run it. On Wayland, bind a desktop shortcut to `KhmerClipper-…AppImage --capture`. GNOME needs the AppIndicator extension for the tray icon.
 
-The Windows/Linux TrOCR model (~1.3 GB) downloads on first use from [`kcsheang/khmerclip-trocr-khmer-onnx`](https://huggingface.co/kcsheang/khmerclip-trocr-khmer-onnx). The app checks it against a pinned commit and SHA-256.
+The Windows/Linux TrOCR model (~1.3 GB) downloads on first use from [`kcsheang/khmerclipper-trocr-khmer-onnx`](https://huggingface.co/kcsheang/khmerclipper-trocr-khmer-onnx). The app checks it against a pinned commit and SHA-256.
 
 ## Results
 
@@ -163,7 +163,7 @@ The synthetic sets are rendered by [`render_synth.py`](training/trocr/scripts/re
 ## Build from source
 
 ```bash
-git clone https://github.com/KimChengSHEANG/khmerclip && cd khmerclip
+git clone https://github.com/KimChengSHEANG/khmerclipper && cd khmerclipper
 ```
 
 **macOS app** (Swift, Xcode 16+, `brew install xcodegen`): see [`apps/mac/README.md`](apps/mac/README.md).
@@ -174,7 +174,7 @@ cd apps/mac && make run           # Tesseract engine; TrOCR needs `make trocr-kh
 **Windows / Linux app** (Python 3.12, PySide6, onnxruntime): see [`apps/desktop/README.md`](apps/desktop/README.md).
 ```bash
 cd apps/desktop && python3.12 -m venv .venv && .venv/bin/pip install -e '.[dev]'
-.venv/bin/python tools/fetch_tessdata.py && .venv/bin/python -m khmerclip
+.venv/bin/python tools/fetch_tessdata.py && .venv/bin/python -m khmerclipper
 ```
 
 **All tests:** `make check` from the repo root.

@@ -8,7 +8,7 @@ from pathlib import Path
 
 from PIL import Image
 
-from khmerclip.errors import KhmerClipError
+from khmerclipper.errors import KhmerClipperError
 
 
 def request_path(unique_name: str, token: str) -> str:
@@ -34,7 +34,7 @@ def screenshot() -> Image.Image | None:
         from jeepney import DBusAddress, MatchRule, message_bus, new_method_call
         from jeepney.io.blocking import Proxy, open_dbus_connection
 
-        token = "khmerclip" + uuid.uuid4().hex[:8]
+        token = "khmerclipper" + uuid.uuid4().hex[:8]
         with open_dbus_connection(bus="SESSION") as conn:
             rule = MatchRule(type="signal", interface="org.freedesktop.portal.Request", member="Response",
                              path=request_path(conn.unique_name, token))
@@ -53,4 +53,4 @@ def screenshot() -> Image.Image | None:
         with Image.open(uri_to_path(uri)) as img:
             return img.convert("RGB")
     except Exception as e:  # no session bus, no portal, D-Bus error reply, unreadable file
-        raise KhmerClipError(f"Screen capture through the desktop portal failed: {e}") from e
+        raise KhmerClipperError(f"Screen capture through the desktop portal failed: {e}") from e

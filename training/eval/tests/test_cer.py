@@ -1,4 +1,4 @@
-from khmerclip_eval.cer import character_error_rate
+from khmerclipper_eval.cer import character_error_rate
 
 
 def test_identical_is_zero():

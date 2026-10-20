@@ -67,5 +67,5 @@ On-device gate (`bench.py` vs Tesseract, n=200, checkpoint-4 CoreML, sha256 `004
 
 **Mac gate:** FAIL (latency only — median > 2× Tesseract); accuracy passes. Default engine policy: Step 4b in `mac_gate.md` (keep TrOCR default).
 
-**Manual app check:** KhmerClip launched with new build; automated smoke only — operator should confirm TrOCR clips on UI/PDF/handwriting match on-screen text.
+**Manual app check:** KhmerClipper launched with new build; automated smoke only — operator should confirm TrOCR clips on UI/PDF/handwriting match on-screen text.
 

@@ -1,23 +1,23 @@
-# KhmerClip Monorepo Git Organization Implementation Plan
+# KhmerClipper Monorepo Git Organization Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Merge `mac/`, `EasyOCR-KhmerClip/`, and `TrOCR-KhmerClip/` into one private GitHub monorepo at `khmerclip/` with histories preserved under `apps/mac/`, `training/easyocr/`, and `training/trocr/`.
+**Goal:** Merge `mac/`, `EasyOCR-KhmerClipper/`, and `TrOCR-KhmerClipper/` into one private GitHub monorepo at `khmerclipper/` with histories preserved under `apps/mac/`, `training/easyocr/`, and `training/trocr/`.
 
 **Architecture:** Commit dirty work in each source repo, rewrite each history with `git filter-repo --to-subdirectory-filter`, init a fresh monorepo with root README/gitignore, merge the three rewritten histories with `--allow-unrelated-histories`, verify ignores and history, then create a private GitHub remote and push `main`.
 
 **Tech Stack:** git, git-filter-repo, GitHub CLI (`gh`), existing Xcode/Python project trees (unchanged internals)
 
-**Spec:** `docs/superpowers/specs/2026-08-26-khmerclip-monorepo-git-design.md`
+**Spec:** `docs/superpowers/specs/2026-08-26-khmerclipper-monorepo-git-design.md`
 
 ## Global Constraints
 
 - Preserve all three git histories (no squash-only / discard history)
 - Target prefixes: `apps/mac/`, `training/easyocr/`, `training/trocr/`
 - Commit dirty trees in source repos before rewrite
-- New GitHub remote must be **private**; preferred name `khmerclip`
+- New GitHub remote must be **private**; preferred name `khmerclipper`
 - Never commit `build/`, `raw_models/`, `Vendor/` weights/venvs, `.env*`, or other large artifacts listed in the spec
-- Work in scratch dir `/tmp/khmerclip-merge` until verified; keep local backup of pre-merge folders until push + smoke check
+- Work in scratch dir `/tmp/khmerclipper-merge` until verified; keep local backup of pre-merge folders until push + smoke check
 - Minimal path-reference fixes only; no CI, no package renames, no model publishing
 
 ## File structure (create / modify)
@@ -26,11 +26,11 @@
 |------|----------------|
 | `README.md` (root) | Product overview + map to three subprojects |
 | `.gitignore` (root) | Safety-net ignores for OS/IDE/secrets + mac artifact paths |
-| `docs/superpowers/specs/2026-08-26-khmerclip-monorepo-git-design.md` | Carry into monorepo first commit |
-| `docs/superpowers/plans/2026-08-26-khmerclip-monorepo-git.md` | This plan (carry into monorepo) |
+| `docs/superpowers/specs/2026-08-26-khmerclipper-monorepo-git-design.md` | Carry into monorepo first commit |
+| `docs/superpowers/plans/2026-08-26-khmerclipper-monorepo-git.md` | This plan (carry into monorepo) |
 | `apps/mac/**` | Rewritten history of current `mac/` |
-| `training/easyocr/**` | Rewritten history of current `EasyOCR-KhmerClip/` |
-| `training/trocr/**` | Rewritten history of current `TrOCR-KhmerClip/` |
+| `training/easyocr/**` | Rewritten history of current `EasyOCR-KhmerClipper/` |
+| `training/trocr/**` | Rewritten history of current `TrOCR-KhmerClipper/` |
 | Path refs inside subproject Makefiles/READMEs | Fix only if they break after move |
 
 ---
@@ -72,17 +72,17 @@ If `gh auth status` fails, run `gh auth login` interactively and re-check before
 ### Task 2: Commit dirty work in source repos
 
 **Files:**
-- Modify (stage/commit): everything dirty under `mac/` and `TrOCR-KhmerClip/` (see statuses below)
-- `EasyOCR-KhmerClip/`: expect clean; verify only
+- Modify (stage/commit): everything dirty under `mac/` and `TrOCR-KhmerClipper/` (see statuses below)
+- `EasyOCR-KhmerClipper/`: expect clean; verify only
 
 **Interfaces:**
-- Consumes: current working trees at `/Users/kim/Sync/workspace/khmerclip/{mac,TrOCR-KhmerClip,EasyOCR-KhmerClip}`
+- Consumes: current working trees at `/Users/kim/Sync/workspace/khmerclipper/{mac,TrOCR-KhmerClipper,EasyOCR-KhmerClipper}`
 - Produces: clean `git status` on all three before any filter-repo copy
 
 - [ ] **Step 1: Verify EasyOCR is clean**
 
 ```bash
-cd /Users/kim/Sync/workspace/khmerclip/EasyOCR-KhmerClip
+cd /Users/kim/Sync/workspace/khmerclipper/EasyOCR-KhmerClipper
 git status --porcelain
 ```
 
@@ -91,7 +91,7 @@ Expected: empty output. If not empty, stage and commit with an accurate message 
 - [ ] **Step 2: Commit TrOCR dirty files**
 
 ```bash
-cd /Users/kim/Sync/workspace/khmerclip/TrOCR-KhmerClip
+cd /Users/kim/Sync/workspace/khmerclipper/TrOCR-KhmerClipper
 git status
 git add scripts/evaluate_model.py scripts/train.py src/trocr_khmer/__init__.py src/trocr_khmer/dataset.py src/trocr_khmer/model.py
 git commit -m "$(cat <<'EOF'
@@ -104,10 +104,10 @@ git status --porcelain
 
 Expected: empty porcelain after commit. Adjust message if the diff is clearly something else (read `git diff --stat` first).
 
-- [ ] **Step 3: Commit mac dirty files (KhmerClip rename + related)**
+- [ ] **Step 3: Commit mac dirty files (KhmerClipper rename + related)**
 
 ```bash
-cd /Users/kim/Sync/workspace/khmerclip/mac
+cd /Users/kim/Sync/workspace/khmerclipper/mac
 git status
 git add -A
 git status
@@ -117,7 +117,7 @@ Confirm staged set does **not** include `build/`, `raw_models/`, or bulk `Vendor
 
 ```bash
 git commit -m "$(cat <<'EOF'
-Save KhmerClip rename and OCR updates before monorepo merge.
+Save KhmerClipper rename and OCR updates before monorepo merge.
 
 EOF
 )"
@@ -129,9 +129,9 @@ Expected: empty porcelain (aside from ignored build artifacts).
 - [ ] **Step 4: Record tip SHAs for later sanity**
 
 ```bash
-cd /Users/kim/Sync/workspace/khmerclip/mac && git rev-parse HEAD
-cd /Users/kim/Sync/workspace/khmerclip/EasyOCR-KhmerClip && git rev-parse HEAD
-cd /Users/kim/Sync/workspace/khmerclip/TrOCR-KhmerClip && git rev-parse HEAD
+cd /Users/kim/Sync/workspace/khmerclipper/mac && git rev-parse HEAD
+cd /Users/kim/Sync/workspace/khmerclipper/EasyOCR-KhmerClipper && git rev-parse HEAD
+cd /Users/kim/Sync/workspace/khmerclipper/TrOCR-KhmerClipper && git rev-parse HEAD
 ```
 
 Save the three SHAs in the agent transcript / notes (pre-rewrite tips).
@@ -141,7 +141,7 @@ Save the three SHAs in the agent transcript / notes (pre-rewrite tips).
 ### Task 3: Scratch copies + filter-repo path rewrite
 
 **Files:**
-- Create (scratch only): `/tmp/khmerclip-merge/{mac,easyocr,trocr}/` rewritten clones
+- Create (scratch only): `/tmp/khmerclipper-merge/{mac,easyocr,trocr}/` rewritten clones
 
 **Interfaces:**
 - Consumes: clean source repos from Task 2
@@ -150,22 +150,22 @@ Save the three SHAs in the agent transcript / notes (pre-rewrite tips).
 - [ ] **Step 1: Create scratch workspace**
 
 ```bash
-rm -rf /tmp/khmerclip-merge
-mkdir -p /tmp/khmerclip-merge
+rm -rf /tmp/khmerclipper-merge
+mkdir -p /tmp/khmerclipper-merge
 ```
 
 - [ ] **Step 2: Copy repos into scratch (full `.git`)**
 
 ```bash
-cp -a /Users/kim/Sync/workspace/khmerclip/mac /tmp/khmerclip-merge/mac
-cp -a /Users/kim/Sync/workspace/khmerclip/EasyOCR-KhmerClip /tmp/khmerclip-merge/easyocr
-cp -a /Users/kim/Sync/workspace/khmerclip/TrOCR-KhmerClip /tmp/khmerclip-merge/trocr
+cp -a /Users/kim/Sync/workspace/khmerclipper/mac /tmp/khmerclipper-merge/mac
+cp -a /Users/kim/Sync/workspace/khmerclipper/EasyOCR-KhmerClipper /tmp/khmerclipper-merge/easyocr
+cp -a /Users/kim/Sync/workspace/khmerclipper/TrOCR-KhmerClipper /tmp/khmerclipper-merge/trocr
 ```
 
 - [ ] **Step 3: Rewrite mac → `apps/mac/`**
 
 ```bash
-cd /tmp/khmerclip-merge/mac
+cd /tmp/khmerclipper-merge/mac
 git filter-repo --to-subdirectory-filter apps/mac/ --force
 git log -1 --name-only
 ls apps/mac | head
@@ -176,7 +176,7 @@ Expected: latest commit lists paths under `apps/mac/`; `apps/mac/Sources` (or eq
 - [ ] **Step 4: Rewrite EasyOCR → `training/easyocr/`**
 
 ```bash
-cd /tmp/khmerclip-merge/easyocr
+cd /tmp/khmerclipper-merge/easyocr
 git filter-repo --to-subdirectory-filter training/easyocr/ --force
 git log -1 --name-only
 ls training/easyocr | head
@@ -187,7 +187,7 @@ Expected: paths under `training/easyocr/`; `training/easyocr/pyproject.toml` exi
 - [ ] **Step 5: Rewrite TrOCR → `training/trocr/`**
 
 ```bash
-cd /tmp/khmerclip-merge/trocr
+cd /tmp/khmerclipper-merge/trocr
 git filter-repo --to-subdirectory-filter training/trocr/ --force
 git log -1 --name-only
 ls training/trocr | head
@@ -200,25 +200,25 @@ Expected: paths under `training/trocr/`; `training/trocr/pyproject.toml` exists.
 ### Task 4: Init monorepo with root README + .gitignore
 
 **Files:**
-- Create: `/tmp/khmerclip-merge/mono/README.md`
-- Create: `/tmp/khmerclip-merge/mono/.gitignore`
+- Create: `/tmp/khmerclipper-merge/mono/README.md`
+- Create: `/tmp/khmerclipper-merge/mono/.gitignore`
 - Copy into mono: design + plan under `docs/superpowers/`
 
 **Interfaces:**
 - Consumes: design/plan from workspace `docs/superpowers/`
-- Produces: monorepo at `/tmp/khmerclip-merge/mono` on `main` with initial commit
+- Produces: monorepo at `/tmp/khmerclipper-merge/mono` on `main` with initial commit
 
 - [ ] **Step 1: Init repo**
 
 ```bash
-mkdir -p /tmp/khmerclip-merge/mono
-cd /tmp/khmerclip-merge/mono
+mkdir -p /tmp/khmerclipper-merge/mono
+cd /tmp/khmerclipper-merge/mono
 git init -b main
 ```
 
 - [ ] **Step 2: Write root `.gitignore`**
 
-Create `/tmp/khmerclip-merge/mono/.gitignore` with exactly:
+Create `/tmp/khmerclipper-merge/mono/.gitignore` with exactly:
 
 ```gitignore
 # OS / editors
@@ -269,10 +269,10 @@ dist/
 
 - [ ] **Step 3: Write root `README.md`**
 
-Create `/tmp/khmerclip-merge/mono/README.md` with exactly:
+Create `/tmp/khmerclipper-merge/mono/README.md` with exactly:
 
 ```markdown
-# KhmerClip
+# KhmerClipper
 
 macOS menu-bar OCR for Khmer (and mixed Khmer/English) text — screen capture, file OCR, and on-device engines.
 
@@ -280,7 +280,7 @@ macOS menu-bar OCR for Khmer (and mixed Khmer/English) text — screen capture, 
 
 | Path | What it is |
 |------|------------|
-| [`apps/mac`](apps/mac) | KhmerClip macOS app (Swift / Xcode) |
+| [`apps/mac`](apps/mac) | KhmerClipper macOS app (Swift / Xcode) |
 | [`training/easyocr`](training/easyocr) | EasyOCR-compatible Khmer recognition training |
 | [`training/trocr`](training/trocr) | TrOCR Khmer fine-tuning |
 
@@ -299,18 +299,18 @@ See [`apps/mac/README.md`](apps/mac/README.md): install `xcodegen`, then `make r
 - [ ] **Step 4: Copy design + plan docs**
 
 ```bash
-mkdir -p /tmp/khmerclip-merge/mono/docs/superpowers/specs
-mkdir -p /tmp/khmerclip-merge/mono/docs/superpowers/plans
-cp /Users/kim/Sync/workspace/khmerclip/docs/superpowers/specs/2026-08-26-khmerclip-monorepo-git-design.md \
-  /tmp/khmerclip-merge/mono/docs/superpowers/specs/
-cp /Users/kim/Sync/workspace/khmerclip/docs/superpowers/plans/2026-08-26-khmerclip-monorepo-git.md \
-  /tmp/khmerclip-merge/mono/docs/superpowers/plans/
+mkdir -p /tmp/khmerclipper-merge/mono/docs/superpowers/specs
+mkdir -p /tmp/khmerclipper-merge/mono/docs/superpowers/plans
+cp /Users/kim/Sync/workspace/khmerclipper/docs/superpowers/specs/2026-08-26-khmerclipper-monorepo-git-design.md \
+  /tmp/khmerclipper-merge/mono/docs/superpowers/specs/
+cp /Users/kim/Sync/workspace/khmerclipper/docs/superpowers/plans/2026-08-26-khmerclipper-monorepo-git.md \
+  /tmp/khmerclipper-merge/mono/docs/superpowers/plans/
 ```
 
 - [ ] **Step 5: Initial commit**
 
 ```bash
-cd /tmp/khmerclip-merge/mono
+cd /tmp/khmerclipper-merge/mono
 git add README.md .gitignore docs
 git commit -m "$(cat <<'EOF'
 Initial monorepo scaffold with README, gitignore, and design docs.
@@ -327,7 +327,7 @@ Expected: one commit on `main` containing only root scaffolding files.
 ### Task 5: Merge rewritten histories into monorepo
 
 **Files:**
-- Modify: `/tmp/khmerclip-merge/mono/.git` history (merges)
+- Modify: `/tmp/khmerclipper-merge/mono/.git` history (merges)
 
 **Interfaces:**
 - Consumes: rewritten remotes from Task 3; scaffold from Task 4
@@ -336,10 +336,10 @@ Expected: one commit on `main` containing only root scaffolding files.
 - [ ] **Step 1: Add remotes and fetch**
 
 ```bash
-cd /tmp/khmerclip-merge/mono
-git remote add mac /tmp/khmerclip-merge/mac
-git remote add easyocr /tmp/khmerclip-merge/easyocr
-git remote add trocr /tmp/khmerclip-merge/trocr
+cd /tmp/khmerclipper-merge/mono
+git remote add mac /tmp/khmerclipper-merge/mac
+git remote add easyocr /tmp/khmerclipper-merge/easyocr
+git remote add trocr /tmp/khmerclipper-merge/trocr
 git fetch mac
 git fetch easyocr
 git fetch trocr
@@ -355,7 +355,7 @@ EOF
 )"
 ```
 
-If the default branch is not `main` (e.g. `KhmerClip`), use that ref instead:
+If the default branch is not `main` (e.g. `KhmerClipper`), use that ref instead:
 
 ```bash
 git branch -r | grep mac/
@@ -395,7 +395,7 @@ Expected: no remotes yet (GitHub added in Task 8).
 - [ ] **Step 6: Verify tree layout**
 
 ```bash
-cd /tmp/khmerclip-merge/mono
+cd /tmp/khmerclipper-merge/mono
 test -f apps/mac/README.md && test -f training/easyocr/pyproject.toml && test -f training/trocr/pyproject.toml
 find . -name .git -type d
 ls -la
@@ -417,7 +417,7 @@ Expected: three project markers exist; only one `.git` at mono root.
 - [ ] **Step 1: History under each prefix**
 
 ```bash
-cd /tmp/khmerclip-merge/mono
+cd /tmp/khmerclipper-merge/mono
 git log --oneline -- apps/mac/ | head -5
 git log --oneline -- training/easyocr/ | head -5
 git log --oneline -- training/trocr/ | head -5
@@ -429,7 +429,7 @@ Expected: multiple commits per prefix; `--follow` shows history for mac README.
 - [ ] **Step 2: Confirm heavy paths are not tracked**
 
 ```bash
-cd /tmp/khmerclip-merge/mono
+cd /tmp/khmerclipper-merge/mono
 git ls-files 'apps/mac/build/*' | head
 git ls-files 'apps/mac/raw_models/*' | head
 git ls-files 'apps/mac/Vendor/*' | head -20
@@ -441,8 +441,8 @@ Expected: `build/` and `raw_models/` not listed; `Vendor/` only allowlisted Easy
 - [ ] **Step 3: Working tree size sanity**
 
 ```bash
-du -sh /tmp/khmerclip-merge/mono
-du -sh /tmp/khmerclip-merge/mono/apps/mac /tmp/khmerclip-merge/mono/training/*
+du -sh /tmp/khmerclipper-merge/mono
+du -sh /tmp/khmerclipper-merge/mono/apps/mac /tmp/khmerclipper-merge/mono/training/*
 ```
 
 Expected: mono working tree far smaller than the original `mac/` (~6.4G) if build/Vendor copies were not brought as tracked files. (Untracked leftover files from `cp -a` should not exist here because merges bring git trees only.)
@@ -457,7 +457,7 @@ Expected: mono working tree far smaller than the original `mac/` (~6.4G) if buil
   - `apps/mac/Makefile`
   - `training/easyocr/README.md`
   - `training/trocr/README.md`
-  - any scripts that hardcode `EasyOCR-KhmerClip`, `TrOCR-KhmerClip`, or absolute old paths
+  - any scripts that hardcode `EasyOCR-KhmerClipper`, `TrOCR-KhmerClipper`, or absolute old paths
 
 **Interfaces:**
 - Consumes: merged tree
@@ -466,8 +466,8 @@ Expected: mono working tree far smaller than the original `mac/` (~6.4G) if buil
 - [ ] **Step 1: Search for old folder names**
 
 ```bash
-cd /tmp/khmerclip-merge/mono
-rg -n 'EasyOCR-KhmerClip|TrOCR-KhmerClip|/mac/|workspace/khmerclip/mac' \
+cd /tmp/khmerclipper-merge/mono
+rg -n 'EasyOCR-KhmerClipper|TrOCR-KhmerClipper|/mac/|workspace/khmerclipper/mac' \
   --glob '!**/.git/**' || true
 ```
 
@@ -476,14 +476,14 @@ rg -n 'EasyOCR-KhmerClip|TrOCR-KhmerClip|/mac/|workspace/khmerclip/mac' \
 Examples of allowed fixes:
 
 - README clone paths → monorepo-relative (`apps/mac`, etc.)
-- Docs saying “cd into EasyOCR-KhmerClip” → `training/easyocr`
+- Docs saying “cd into EasyOCR-KhmerClipper” → `training/easyocr`
 
 Do **not** rename Python packages or change import paths.
 
 - [ ] **Step 3: Commit if any fixes**
 
 ```bash
-cd /tmp/khmerclip-merge/mono
+cd /tmp/khmerclipper-merge/mono
 git status
 # if changes:
 git add -A
@@ -501,22 +501,22 @@ If no matches needing changes, skip the commit.
 ### Task 8: Backup workspace, swap mono in, create private GitHub remote
 
 **Files:**
-- Replace workspace contents under `/Users/kim/Sync/workspace/khmerclip/`
+- Replace workspace contents under `/Users/kim/Sync/workspace/khmerclipper/`
 - Create remote via `gh`
 
 **Interfaces:**
-- Consumes: verified `/tmp/khmerclip-merge/mono`
+- Consumes: verified `/tmp/khmerclipper-merge/mono`
 - Produces: live workspace = monorepo; `origin` = private GitHub; `main` pushed
 
 - [ ] **Step 1: Backup current workspace folders**
 
 ```bash
-mkdir -p /Users/kim/Sync/workspace/khmerclip-pre-monorepo-backup
-rsync -a /Users/kim/Sync/workspace/khmerclip/mac \
-  /Users/kim/Sync/workspace/khmerclip/EasyOCR-KhmerClip \
-  /Users/kim/Sync/workspace/khmerclip/TrOCR-KhmerClip \
-  /Users/kim/Sync/workspace/khmerclip/docs \
-  /Users/kim/Sync/workspace/khmerclip-pre-monorepo-backup/
+mkdir -p /Users/kim/Sync/workspace/khmerclipper-pre-monorepo-backup
+rsync -a /Users/kim/Sync/workspace/khmerclipper/mac \
+  /Users/kim/Sync/workspace/khmerclipper/EasyOCR-KhmerClipper \
+  /Users/kim/Sync/workspace/khmerclipper/TrOCR-KhmerClipper \
+  /Users/kim/Sync/workspace/khmerclipper/docs \
+  /Users/kim/Sync/workspace/khmerclipper-pre-monorepo-backup/
 ```
 
 Expected: backup directory populated. Do not delete backup until Task 9 passes.
@@ -526,11 +526,11 @@ Expected: backup directory populated. Do not delete backup until Task 9 passes.
 Move aside old project dirs, then move mono contents in:
 
 ```bash
-cd /Users/kim/Sync/workspace/khmerclip
-mv mac EasyOCR-KhmerClip TrOCR-KhmerClip /Users/kim/Sync/workspace/khmerclip-pre-monorepo-backup/ 2>/dev/null || true
+cd /Users/kim/Sync/workspace/khmerclipper
+mv mac EasyOCR-KhmerClipper TrOCR-KhmerClipper /Users/kim/Sync/workspace/khmerclipper-pre-monorepo-backup/ 2>/dev/null || true
 # Prefer rsync of mono (including .git) into workspace:
-rsync -a --delete --exclude '.DS_Store' /tmp/khmerclip-merge/mono/ /Users/kim/Sync/workspace/khmerclip/
-cd /Users/kim/Sync/workspace/khmerclip
+rsync -a --delete --exclude '.DS_Store' /tmp/khmerclipper-merge/mono/ /Users/kim/Sync/workspace/khmerclipper/
+cd /Users/kim/Sync/workspace/khmerclipper
 git status
 ls apps training README.md .gitignore
 ```
@@ -542,14 +542,14 @@ Expected: workspace shows `apps/`, `training/`, root README, single `.git`. Old 
 - [ ] **Step 3: Create private GitHub repo and push**
 
 ```bash
-cd /Users/kim/Sync/workspace/khmerclip
-gh repo create khmerclip --private --source=. --remote=origin --push
+cd /Users/kim/Sync/workspace/khmerclipper
+gh repo create khmerclipper --private --source=. --remote=origin --push
 ```
 
-If name `khmerclip` is taken:
+If name `khmerclipper` is taken:
 
 ```bash
-gh repo create khmerclip-app --private --source=. --remote=origin --push
+gh repo create khmerclipper-app --private --source=. --remote=origin --push
 ```
 
 If that also fails, stop and ask the user for a name.
@@ -578,7 +578,7 @@ Expected: `origin` points at the private GitHub repo; `main` up to date with `or
 - [ ] **Step 1: App smoke (structure)**
 
 ```bash
-cd /Users/kim/Sync/workspace/khmerclip/apps/mac
+cd /Users/kim/Sync/workspace/khmerclipper/apps/mac
 test -f project.yml && test -d Sources && test -f Makefile
 head -20 README.md
 ```
@@ -588,17 +588,17 @@ Expected: project files present. Full `make run` optional if Xcode tools availab
 - [ ] **Step 2: Training smoke (structure)**
 
 ```bash
-test -f /Users/kim/Sync/workspace/khmerclip/training/easyocr/pyproject.toml
-test -f /Users/kim/Sync/workspace/khmerclip/training/trocr/pyproject.toml
+test -f /Users/kim/Sync/workspace/khmerclipper/training/easyocr/pyproject.toml
+test -f /Users/kim/Sync/workspace/khmerclipper/training/trocr/pyproject.toml
 ```
 
 - [ ] **Step 3: Backup retention**
 
-Keep `/Users/kim/Sync/workspace/khmerclip-pre-monorepo-backup/` until you are satisfied. Delete manually later:
+Keep `/Users/kim/Sync/workspace/khmerclipper-pre-monorepo-backup/` until you are satisfied. Delete manually later:
 
 ```bash
 # ONLY after user confirms — do not run automatically:
-# rm -rf /Users/kim/Sync/workspace/khmerclip-pre-monorepo-backup /tmp/khmerclip-merge
+# rm -rf /Users/kim/Sync/workspace/khmerclipper-pre-monorepo-backup /tmp/khmerclipper-merge
 ```
 
 ---
@@ -610,7 +610,7 @@ Keep `/Users/kim/Sync/workspace/khmerclip-pre-monorepo-backup/` until you are sa
 | Preserve 3 histories via filter-repo | 3, 5 |
 | Layout `apps/mac`, `training/easyocr`, `training/trocr` | 3–5 |
 | Commit dirty first | 2 |
-| Private GitHub `khmerclip` | 8 |
+| Private GitHub `khmerclipper` | 8 |
 | Root README + gitignore | 4 |
 | Scratch then swap + backup | 3, 8 |
 | Never commit heavy artifacts | 2 (pre-check), 4 (gitignore), 6 (verify) |
@@ -620,5 +620,5 @@ Keep `/Users/kim/Sync/workspace/khmerclip-pre-monorepo-backup/` until you are sa
 ## Placeholder / consistency check
 
 - No TBD/TODO placeholders
-- Branch name caveat documented for mac (`main` vs `KhmerClip`)
+- Branch name caveat documented for mac (`main` vs `KhmerClipper`)
 - Prefix strings identical across tasks: `apps/mac/`, `training/easyocr/`, `training/trocr/`

@@ -24,11 +24,11 @@
 
 | Path | Responsibility |
 |------|----------------|
-| `training/eval/pyproject.toml` | Package `khmerclip-eval` + pytest |
-| `training/eval/src/khmerclip_eval/cer.py` | CER helper (jiwer) |
-| `training/eval/src/khmerclip_eval/fixtures.py` | Load `labels.jsonl` + images; fail closed |
-| `training/eval/src/khmerclip_eval/summary.py` | Aggregate CER + median ms; pass/fail vs Tess |
-| `training/eval/src/khmerclip_eval/runners/*.py` | Engine adapters |
+| `training/eval/pyproject.toml` | Package `khmerclipper-eval` + pytest |
+| `training/eval/src/khmerclipper_eval/cer.py` | CER helper (jiwer) |
+| `training/eval/src/khmerclipper_eval/fixtures.py` | Load `labels.jsonl` + images; fail closed |
+| `training/eval/src/khmerclipper_eval/summary.py` | Aggregate CER + median ms; pass/fail vs Tess |
+| `training/eval/src/khmerclipper_eval/runners/*.py` | Engine adapters |
 | `training/eval/scripts/bench.py` | CLI: run engines → CSV + summary |
 | `training/eval/scripts/build_printed_fixtures.py` | Sample soyvitou **test** → fixtures |
 | `training/eval/scripts/build_ui_fixtures.py` | Render UI-style Khmer/EN lines → fixtures |
@@ -51,8 +51,8 @@
 
 **Files:**
 - Create: `training/eval/pyproject.toml`
-- Create: `training/eval/src/khmerclip_eval/__init__.py`
-- Create: `training/eval/src/khmerclip_eval/cer.py`
+- Create: `training/eval/src/khmerclipper_eval/__init__.py`
+- Create: `training/eval/src/khmerclipper_eval/cer.py`
 - Create: `training/eval/tests/test_cer.py`
 
 **Interfaces:**
@@ -63,7 +63,7 @@
 
 ```python
 # training/eval/tests/test_cer.py
-from khmerclip_eval.cer import character_error_rate
+from khmerclipper_eval.cer import character_error_rate
 
 
 def test_identical_is_zero():
@@ -93,7 +93,7 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "khmerclip-eval"
+name = "khmerclipper-eval"
 version = "0.1.0"
 requires-python = ">=3.10"
 dependencies = ["jiwer>=3.0.0", "pillow>=10.0.0"]
@@ -106,12 +106,12 @@ where = ["src"]
 ```
 
 ```python
-# training/eval/src/khmerclip_eval/__init__.py
-"""Frozen-fixture OCR bench for KhmerClip (CER + latency vs Tesseract)."""
+# training/eval/src/khmerclipper_eval/__init__.py
+"""Frozen-fixture OCR bench for KhmerClipper (CER + latency vs Tesseract)."""
 ```
 
 ```python
-# training/eval/src/khmerclip_eval/cer.py
+# training/eval/src/khmerclipper_eval/cer.py
 from jiwer import cer
 
 
@@ -132,9 +132,9 @@ Expected: PASS
 - [ ] **Step 5: Commit**
 
 ```bash
-git add training/eval/pyproject.toml training/eval/src/khmerclip_eval/__init__.py   training/eval/src/khmerclip_eval/cer.py training/eval/tests/test_cer.py
+git add training/eval/pyproject.toml training/eval/src/khmerclipper_eval/__init__.py   training/eval/src/khmerclipper_eval/cer.py training/eval/tests/test_cer.py
 git commit -m "$(cat <<EOF
-feat(eval): add khmerclip-eval package with CER helper
+feat(eval): add khmerclipper-eval package with CER helper
 
 EOF
 )"
@@ -145,7 +145,7 @@ EOF
 ### Task 2: Fixture loader (TDD)
 
 **Files:**
-- Create: `training/eval/src/khmerclip_eval/fixtures.py`
+- Create: `training/eval/src/khmerclipper_eval/fixtures.py`
 - Create: `training/eval/tests/test_fixtures.py`
 
 **Interfaces:**
@@ -173,7 +173,7 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from khmerclip_eval.fixtures import load_fixtures
+from khmerclipper_eval.fixtures import load_fixtures
 
 
 @pytest.fixture()
@@ -212,12 +212,12 @@ def test_missing_image_raises(fixture_root: Path):
 
 Run: `cd training/eval && pytest tests/test_fixtures.py -v`
 
-Expected: FAIL import `khmerclip_eval.fixtures`
+Expected: FAIL import `khmerclipper_eval.fixtures`
 
 - [ ] **Step 3: Write minimal implementation**
 
 ```python
-# training/eval/src/khmerclip_eval/fixtures.py
+# training/eval/src/khmerclipper_eval/fixtures.py
 from __future__ import annotations
 
 import json
@@ -277,7 +277,7 @@ Expected: PASS
 - [ ] **Step 5: Commit**
 
 ```bash
-git add training/eval/src/khmerclip_eval/fixtures.py training/eval/tests/test_fixtures.py
+git add training/eval/src/khmerclipper_eval/fixtures.py training/eval/tests/test_fixtures.py
 git commit -m "$(cat <<'EOF'
 feat(eval): load frozen OCR fixtures from labels.jsonl
 
@@ -290,7 +290,7 @@ EOF
 ### Task 3: Summary + pass/fail (TDD)
 
 **Files:**
-- Create: `training/eval/src/khmerclip_eval/summary.py`
+- Create: `training/eval/src/khmerclipper_eval/summary.py`
 - Create: `training/eval/tests/test_summary.py`
 
 **Interfaces:**
@@ -305,7 +305,7 @@ Gate rules: `candidate["cer"] < tesseract["cer"]`; `candidate["median_ms"] <= 2 
 
 ```python
 # training/eval/tests/test_summary.py
-from khmerclip_eval.summary import aggregate, passes_gate
+from khmerclipper_eval.summary import aggregate, passes_gate
 
 
 def test_aggregate_median_and_cer():
@@ -337,7 +337,7 @@ Run: `cd training/eval && pytest tests/test_summary.py -v`
 - [ ] **Step 3: Implement**
 
 ```python
-# training/eval/src/khmerclip_eval/summary.py
+# training/eval/src/khmerclipper_eval/summary.py
 from __future__ import annotations
 
 import statistics
@@ -386,7 +386,7 @@ Run: `cd training/eval && pytest tests/test_summary.py -v`
 - [ ] **Step 5: Commit**
 
 ```bash
-git add training/eval/src/khmerclip_eval/summary.py training/eval/tests/test_summary.py
+git add training/eval/src/khmerclipper_eval/summary.py training/eval/tests/test_summary.py
 git commit -m "$(cat <<'EOF'
 feat(eval): aggregate CER/latency and encode ship pass gate
 
@@ -399,9 +399,9 @@ EOF
 ### Task 4: Tesseract + EasyOCR runners + bench CLI
 
 **Files:**
-- Create: `training/eval/src/khmerclip_eval/runners/__init__.py`
-- Create: `training/eval/src/khmerclip_eval/runners/tesseract.py`
-- Create: `training/eval/src/khmerclip_eval/runners/easyocr.py`
+- Create: `training/eval/src/khmerclipper_eval/runners/__init__.py`
+- Create: `training/eval/src/khmerclipper_eval/runners/tesseract.py`
+- Create: `training/eval/src/khmerclipper_eval/runners/easyocr.py`
 - Create: `training/eval/scripts/bench.py`
 
 **Interfaces:**
@@ -453,11 +453,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from khmerclip_eval.cer import character_error_rate
-from khmerclip_eval.fixtures import load_fixtures
-from khmerclip_eval.runners import easyocr as easyocr_runner
-from khmerclip_eval.runners import tesseract as tess_runner
-from khmerclip_eval.summary import aggregate, passes_gate
+from khmerclipper_eval.cer import character_error_rate
+from khmerclipper_eval.fixtures import load_fixtures
+from khmerclipper_eval.runners import easyocr as easyocr_runner
+from khmerclipper_eval.runners import tesseract as tess_runner
+from khmerclipper_eval.summary import aggregate, passes_gate
 
 REPO = ROOT.parents[1]
 DEFAULT_FIXTURES = ROOT / "fixtures"
@@ -496,12 +496,12 @@ def main() -> None:
                 pred = easyocr_runner.recognize(
                     item.image_path, args.easyocr_root, args.easyocr_python)
             elif engine == "trocr-hf":
-                from khmerclip_eval.runners import trocr_hf
+                from khmerclipper_eval.runners import trocr_hf
                 if not args.trocr_model_dir:
                     raise SystemExit("--trocr-model-dir required")
                 pred = trocr_hf.recognize(item.image_path, args.trocr_model_dir)
             else:
-                from khmerclip_eval.runners import trocr_coreml
+                from khmerclipper_eval.runners import trocr_coreml
                 if not args.trocr_coreml_bin:
                     raise SystemExit("--trocr-coreml-bin required")
                 pred = trocr_coreml.recognize(item.image_path, args.trocr_coreml_bin)
@@ -585,7 +585,7 @@ Commit message: `feat(eval): freeze printed+UI OCR fixtures and Tesseract baseli
 ### Task 6: TrOCR-HF runner
 
 **Files:**
-- Create: `training/eval/src/khmerclip_eval/runners/trocr_hf.py`
+- Create: `training/eval/src/khmerclipper_eval/runners/trocr_hf.py`
 - Modify: `training/eval/README.md`
 
 **Interfaces:**
@@ -615,11 +615,11 @@ python ../eval/scripts/bench.py --engine tesseract --engine trocr-hf \
 **Files:**
 - Create: `apps/mac/Sources/Tools/OCRBenchMain.swift`
 - Modify: `apps/mac/project.yml` (new `OCRBench` macOS CLI target sharing OCR sources)
-- Create: `training/eval/src/khmerclip_eval/runners/trocr_coreml.py`
+- Create: `training/eval/src/khmerclipper_eval/runners/trocr_coreml.py`
 
 **Interfaces:**
 - CLI: `OCRBench --engine trocr|tesseract <image.png>` → text on stdout; `ms=<float>` on stderr
-- Env: `KHMERCLIP_VENDOR` → directory containing `tesseract/` and `trocr/` (default `Vendor`)
+- Env: `KHMERCLIPPER_VENDOR` → directory containing `tesseract/` and `trocr/` (default `Vendor`)
 - Set `TesseractEngine.resourceRootOverride` / `TrOCREngine.resourceRootOverride` before recognize
 
 Swift skeleton:
@@ -632,7 +632,7 @@ import Foundation
 struct OCRBenchMain {
     static func main() async {
         // parse --engine and image path
-        let vendorEnv = ProcessInfo.processInfo.environment["KHMERCLIP_VENDOR"]
+        let vendorEnv = ProcessInfo.processInfo.environment["KHMERCLIPPER_VENDOR"]
         let vendor = URL(fileURLWithPath: vendorEnv ?? "Vendor", isDirectory: true)
         TesseractEngine.resourceRootOverride = vendor.appendingPathComponent("tesseract", isDirectory: true)
         TrOCREngine.resourceRootOverride = vendor.appendingPathComponent("trocr", isDirectory: true)
@@ -646,7 +646,7 @@ Wire `project.yml` `OCRBench` tool target (OCR sources, no Sparkle). `xcodegen g
 Python runner: subprocess `[binary, "--engine", "trocr", image]` → stdout strip.
 
 - [ ] **Step 1: Add Swift + project.yml; build OCRBench**
-- [ ] **Step 2: Smoke Tess + TrOCR with `KHMERCLIP_VENDOR=.../apps/mac/Vendor`**
+- [ ] **Step 2: Smoke Tess + TrOCR with `KHMERCLIPPER_VENDOR=.../apps/mac/Vendor`**
 - [ ] **Step 3: Full Mac baseline bench with `--candidate trocr-coreml --compare-to tesseract`**
 - [ ] **Step 4: Commit** message `feat(eval): add OCRBench CLI for Mac CoreML latency/CER gate`
 
@@ -722,5 +722,5 @@ Commit message: `docs(eval): record Mac CoreML OCR gate outcome and default poli
 
 ## Placeholder / consistency check
 
-- No TBD left; Task 7 Vendor override uses `KHMERCLIP_VENDOR` + `resourceRootOverride`
+- No TBD left; Task 7 Vendor override uses `KHMERCLIPPER_VENDOR` + `resourceRootOverride`
 - Names stable: `FixtureItem`, `load_fixtures`, `aggregate`, `passes_gate`, engines `tesseract` / `easyocr` / `trocr-hf` / `trocr-coreml`

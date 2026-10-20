@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct KhmerClipApp: App {
+struct KhmerClipperApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var body: some Scene {
@@ -40,5 +40,5 @@ private struct SettingsOpenerView: View {
 }
 
 extension Notification.Name {
-    static let settingsOpenerRequest = Notification.Name("com.khmerclip.settingsOpenerRequest")
+    static let settingsOpenerRequest = Notification.Name("com.khmerclipper.settingsOpenerRequest")
 }

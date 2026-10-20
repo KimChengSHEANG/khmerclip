@@ -4,11 +4,11 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QKeySequence
 from PySide6.QtWidgets import QCheckBox, QComboBox, QFormLayout, QKeySequenceEdit, QLabel, QMessageBox, QWidget
 
-from khmerclip.hotkey import pynput_to_qt, qt_to_pynput
-from khmerclip.prefs import Prefs
+from khmerclipper.hotkey import pynput_to_qt, qt_to_pynput
+from khmerclipper.prefs import Prefs
 
 WAYLAND_HINT = ("Global shortcuts aren't available to apps on Wayland. Add a custom shortcut in your "
-                "desktop's keyboard settings that runs:  khmerclip --capture")
+                "desktop's keyboard settings that runs:  khmerclipper --capture")
 CHECKS = (
     ("auto_copy", "Copy result to clipboard"),
     ("show_result", "Show result popup"),
@@ -25,7 +25,7 @@ class PrefsWindow(QWidget):
 
     def __init__(self, prefs: Prefs, trocr_available: bool, hotkey_supported: bool):
         super().__init__()
-        self.setWindowTitle("KhmerClip Preferences")
+        self.setWindowTitle("KhmerClipper Preferences")
         self.prefs = prefs
         form = QFormLayout(self)
 

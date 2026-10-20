@@ -6,13 +6,13 @@ import pytest
 from PIL import Image
 
 from helpers import FIXTURES, cer, normalize
-from khmerclip.errors import EngineUnavailable
-from khmerclip.ocr import tesseract
+from khmerclipper.errors import EngineUnavailable
+from khmerclipper.ocr import tesseract
 
 HAVE_TESSERACT = tesseract.find_tesseract() is not None and (tesseract.tessdata_dir() / "khm.traineddata").is_file()
 needs_tesseract = pytest.mark.skipif(
-    not HAVE_TESSERACT and not os.environ.get("KHMERCLIP_REQUIRE_TESSERACT"),
-    reason="tesseract/tessdata not installed (CI sets KHMERCLIP_REQUIRE_TESSERACT=1)",
+    not HAVE_TESSERACT and not os.environ.get("KHMERCLIPPER_REQUIRE_TESSERACT"),
+    reason="tesseract/tessdata not installed (CI sets KHMERCLIPPER_REQUIRE_TESSERACT=1)",
 )
 
 
@@ -34,7 +34,7 @@ def test_missing_binary_is_engine_unavailable(monkeypatch):
 
 def test_find_tesseract_prefers_env_override(tmp_path):
     exe = tmp_path / "my-tesseract"
-    assert tesseract.find_tesseract({"KHMERCLIP_TESSERACT": str(exe), "PATH": ""}) == str(exe)
+    assert tesseract.find_tesseract({"KHMERCLIPPER_TESSERACT": str(exe), "PATH": ""}) == str(exe)
 
 
 def test_subprocess_env_restores_original_ld_library_path_when_frozen():

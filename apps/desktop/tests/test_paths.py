@@ -1,4 +1,4 @@
-from khmerclip import paths
+from khmerclipper import paths
 
 
 def test_resource_dir_contains_bundled_font_and_icon():

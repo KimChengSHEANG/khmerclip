@@ -4,9 +4,9 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-from khmerclip import paths
-from khmerclip.download import RemoteFile, download, is_present, sha256_file
-from khmerclip.errors import EngineUnavailable
+from khmerclipper import paths
+from khmerclipper.download import RemoteFile, download, is_present, sha256_file
+from khmerclipper.errors import EngineUnavailable
 
 MANIFEST_PATH = Path(__file__).with_name("trocr_manifest.json")
 MODEL_FILES = ("encoder.onnx", "decoder.onnx", "tokenizer.json")

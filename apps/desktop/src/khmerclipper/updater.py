@@ -7,9 +7,9 @@ import urllib.request
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from khmerclip import __version__
+from khmerclipper import __version__
 
-FEED_URL = "https://api.github.com/repos/KimChengSHEANG/khmerclip/releases/latest"
+FEED_URL = "https://api.github.com/repos/KimChengSHEANG/khmerclipper/releases/latest"
 CHECK_INTERVAL_S = 24 * 3600
 
 
@@ -38,7 +38,7 @@ def newer_release(payload: object, current: str) -> Release | None:
 
 def fetch_latest(url: str = FEED_URL, timeout: float = 10) -> dict | None:
     request = urllib.request.Request(url, headers={"Accept": "application/vnd.github+json",
-                                                   "User-Agent": f"KhmerClip/{__version__}"})
+                                                   "User-Agent": f"KhmerClipper/{__version__}"})
     try:
         with urllib.request.urlopen(request, timeout=timeout) as resp:
             return json.loads(resp.read().decode("utf-8"))

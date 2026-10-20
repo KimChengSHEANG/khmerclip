@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from khmerclip.ocr.tokenizer import _BYTE_ENCODER, TrOCRTokenizer
+from khmerclipper.ocr.tokenizer import _BYTE_ENCODER, TrOCRTokenizer
 
 SPECIALS = ["<s>", "<pad>", "</s>", "<unk>"]
 

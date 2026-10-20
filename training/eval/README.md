@@ -90,7 +90,7 @@ record PASS/FAIL.
 **PENDING** — no trained checkpoint yet).
 
 The gate uses `OCRBench` (Task 7) and `passes_gate()` from
-`khmerclip_eval.summary`: TrOCR must beat Tesseract on mean CER, stay within
+`khmerclipper_eval.summary`: TrOCR must beat Tesseract on mean CER, stay within
 2× median latency, and not regress on mixed-script CER. Outcome controls whether
 the macOS app keeps TrOCR as the default engine or falls back to Tesseract.
 
@@ -100,7 +100,7 @@ The frozen set above is clean, rendered text. To see how a model handles what
 users actually capture, build a second set from real screenshots: news sites,
 Facebook, PDFs, Telegram, Word, menus, dark mode and different zoom levels.
 
-1. Capture regions with KhmerClip (or ⌘⇧4) into a folder.
+1. Capture regions with KhmerClipper (or ⌘⇧4) into a folder.
 2. Prefill labels with TrOCR v2 (needs the Release `OCRBench`, `make -C apps/mac ocrbench`):
 
    ```bash
@@ -109,7 +109,7 @@ Facebook, PDFs, Telegram, Word, menus, dark mode and different zoom levels.
 
    Or point it at the app's flagged clips (turn on "Keep capture images for
    accuracy feedback", then "Flag as Wrong" in History). Mac:
-   `~/Library/Application Support/KhmerClip/feedback`; desktop: History >
+   `~/Library/Application Support/KhmerClipper/feedback`; desktop: History >
    Feedback Folder. Those use the app's own OCR text as the draft, so no
    OCRBench is needed.
 
@@ -123,7 +123,7 @@ Facebook, PDFs, Telegram, Word, menus, dark mode and different zoom levels.
 4. Benchmark:
 
    ```bash
-   KHMERCLIP_VENDOR=$PWD/../../apps/mac/Vendor python scripts/bench.py \
+   KHMERCLIPPER_VENDOR=$PWD/../../apps/mac/Vendor python scripts/bench.py \
      --fixtures fixtures_real --engine trocr-coreml \
      --trocr-coreml-bin ../../apps/mac/build/Build/Products/Release/OCRBench \
      --out results/real_trocr.csv

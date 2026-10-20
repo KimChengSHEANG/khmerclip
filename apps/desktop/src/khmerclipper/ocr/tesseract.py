@@ -10,8 +10,8 @@ from pathlib import Path
 
 from PIL import Image
 
-from khmerclip.errors import EngineUnavailable, KhmerClipError
-from khmerclip.paths import resource_dir
+from khmerclipper.errors import EngineUnavailable, KhmerClipperError
+from khmerclipper.paths import resource_dir
 
 LANGS = "khm+eng"
 TIMEOUT_S = 60
@@ -19,7 +19,7 @@ TIMEOUT_S = 60
 
 def find_tesseract(env: Mapping[str, str] | None = None) -> str | None:
     env = os.environ if env is None else env
-    if override := env.get("KHMERCLIP_TESSERACT"):
+    if override := env.get("KHMERCLIPPER_TESSERACT"):
         return override
     exe = "tesseract.exe" if sys.platform == "win32" else "tesseract"
     bundled = resource_dir() / "tesseract" / exe
@@ -80,7 +80,7 @@ def parse_tsv(tsv: str) -> tuple[str, float]:
 def _run(image: Image.Image, extra_args: list[str] | None = None) -> str:
     exe = find_tesseract()
     if exe is None:
-        raise EngineUnavailable("Tesseract was not found. Reinstall KhmerClip (developers: install tesseract-ocr).")
+        raise EngineUnavailable("Tesseract was not found. Reinstall KhmerClipper (developers: install tesseract-ocr).")
     tessdata = tessdata_dir()
     if not (tessdata / "khm.traineddata").is_file():
         raise EngineUnavailable("Khmer language data is missing. Developers: run tools/fetch_tessdata.py.")
@@ -98,9 +98,9 @@ def _run(image: Image.Image, extra_args: list[str] | None = None) -> str:
             creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),  # no console flash on Windows
         )
     except subprocess.TimeoutExpired as e:
-        raise KhmerClipError("Tesseract timed out.") from e
+        raise KhmerClipperError("Tesseract timed out.") from e
     except OSError as e:
         raise EngineUnavailable(f"Could not run Tesseract: {e}") from e
     if proc.returncode != 0:
-        raise KhmerClipError("Tesseract failed: " + proc.stderr.decode("utf-8", "replace").strip())
+        raise KhmerClipperError("Tesseract failed: " + proc.stderr.decode("utf-8", "replace").strip())
     return proc.stdout.decode("utf-8", "replace").strip()

@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import QDialog, QDialogButtonBox, QLabel, QLineEdit, QPlainTextEdit, QVBoxLayout
 
-from khmerclip.ui.fonts import khmer_font
+from khmerclipper.ui.fonts import khmer_font
 
 
 class FeedbackDialog(QDialog):
@@ -10,7 +10,7 @@ class FeedbackDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("Send Feedback")
         layout = QVBoxLayout(self)
-        layout.addWidget(QLabel("What would you like to tell the KhmerClip developer?"))
+        layout.addWidget(QLabel("What would you like to tell the KhmerClipper developer?"))
         self.message = QPlainTextEdit()
         self.message.setFont(khmer_font(12))
         layout.addWidget(self.message)

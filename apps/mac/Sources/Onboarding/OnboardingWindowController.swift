@@ -20,7 +20,7 @@ enum OnboardingWindowPresenter {
             controller = nil
         }))
         let window = NSWindow(contentViewController: hosting)
-        window.title = "Welcome to KhmerClip"
+        window.title = "Welcome to KhmerClipper"
         window.styleMask = [.titled, .closable]
         window.center()
         window.level = .floating
@@ -43,7 +43,7 @@ struct OnboardingView: View {
                     .font(.system(size: 36))
                     .foregroundStyle(.blue)
                 VStack(alignment: .leading) {
-                    Text("Welcome to KhmerClip").font(.title2).bold()
+                    Text("Welcome to KhmerClipper").font(.title2).bold()
                     Text("Khmer OCR, live from your screen.").foregroundStyle(.secondary)
                 }
             }
@@ -65,7 +65,7 @@ struct OnboardingView: View {
                         .foregroundStyle(hasScreenRecordingAccess ? .green : .orange)
                     Text("Screen Recording access").bold()
                 }
-                Text("KhmerClip needs this to capture the region you select. macOS will prompt on first use — or grant it now:")
+                Text("KhmerClipper needs this to capture the region you select. macOS will prompt on first use — or grant it now:")
                     .font(.callout)
                     .foregroundStyle(.secondary)
                 HStack {

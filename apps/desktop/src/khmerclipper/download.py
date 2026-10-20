@@ -8,8 +8,8 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
-from khmerclip import __version__
-from khmerclip.errors import Cancelled, KhmerClipError
+from khmerclipper import __version__
+from khmerclipper.errors import Cancelled, KhmerClipperError
 
 
 @dataclass(frozen=True)
@@ -51,7 +51,7 @@ def download(
             continue
         part = final.with_name(final.name + ".part")
         digest = hashlib.sha256()
-        request = urllib.request.Request(f.url, headers={"User-Agent": f"KhmerClip/{__version__}"})
+        request = urllib.request.Request(f.url, headers={"User-Agent": f"KhmerClipper/{__version__}"})
         try:
             with urllib.request.urlopen(request, timeout=30) as resp, open(part, "wb") as out:
                 while block := resp.read(chunk_size):
@@ -63,11 +63,11 @@ def download(
                     if progress:
                         progress(done, total)
             if digest.hexdigest() != f.sha256:
-                raise KhmerClipError(f"Checksum mismatch for {f.name}; the download was corrupted. Try again.")
+                raise KhmerClipperError(f"Checksum mismatch for {f.name}; the download was corrupted. Try again.")
             os.replace(part, final)
-        except (Cancelled, KhmerClipError):
+        except (Cancelled, KhmerClipperError):
             raise
         except OSError as e:  # URLError, HTTPError, disk full, permission denied
-            raise KhmerClipError(f"Downloading {f.name} failed: {e}") from e
+            raise KhmerClipperError(f"Downloading {f.name} failed: {e}") from e
         finally:
             part.unlink(missing_ok=True)

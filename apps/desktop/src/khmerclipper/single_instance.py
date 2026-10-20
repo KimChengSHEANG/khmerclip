@@ -1,4 +1,4 @@
-"""One KhmerClip per user. A second launch (`khmerclip --capture` bound to a desktop
+"""One KhmerClipper per user. A second launch (`khmerclipper --capture` bound to a desktop
 shortcut on Wayland) forwards its command to the running instance over a local socket."""
 
 import getpass
@@ -15,7 +15,7 @@ def server_name() -> str:
         user = getpass.getuser()
     except Exception:  # no USER/USERNAME in a stripped environment
         user = "user"
-    return "khmerclip-" + hashlib.sha1(user.encode("utf-8")).hexdigest()[:12]
+    return "khmerclipper-" + hashlib.sha1(user.encode("utf-8")).hexdigest()[:12]
 
 
 def send_command(command: str, name: str | None = None, timeout_ms: int = 1000) -> bool:

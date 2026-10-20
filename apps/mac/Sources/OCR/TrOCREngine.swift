@@ -279,7 +279,7 @@ enum TrOCREngine {
     /// matters, or a merged double line makes real lines look like marks.
     /// Strips extend halfway into the surrounding gaps so marks above/below
     /// the line stay attached. Returns [image] when there is 0 or 1 line.
-    /// Mirrors training/eval/src/khmerclip_eval/pipeline.py line_strips
+    /// Mirrors training/eval/src/khmerclipper_eval/pipeline.py line_strips
     /// (split_touching=True), which measured multi-line screen-clip CER
     /// 0.314 -> 0.046 (training/eval/results/accuracy_v3.md).
     static func lineStrips(_ image: CGImage) -> [CGImage] {
@@ -433,7 +433,7 @@ enum TrOCREngine {
     /// nearest blank run within a quarter piece width, or is skipped (never
     /// cuts ink). The separator is " " for a gap >= a quarter of the text
     /// height, else "" (Khmer words often have no space).
-    /// Mirrors training/eval/src/khmerclip_eval/pipeline.py split_wide.
+    /// Mirrors training/eval/src/khmerclipper_eval/pipeline.py split_wide.
     static func splitWide(_ strip: CGImage, maxAspect: Double) -> [(separator: String, image: CGImage)] {
         let w = strip.width, h = strip.height
         let whole = [(separator: "", image: strip)]
@@ -564,11 +564,11 @@ enum TrOCREngine {
     private actor ModelCache {
         static let shared = ModelCache()
 
-        /// Bench knob: KHMERCLIP_TROCR_UNITS=all|gpu|ane|cpu. ponytail: env
+        /// Bench knob: KHMERCLIPPER_TROCR_UNITS=all|gpu|ane|cpu. ponytail: env
         /// read, not a preference. Default `.cpuAndGPU` (2026-10-03 full-200:
         /// CER 0.0593 tied with `.all`, median 95.3 ms vs 105.9 ms).
         private static let computeUnits: MLComputeUnits = {
-            switch ProcessInfo.processInfo.environment["KHMERCLIP_TROCR_UNITS"] {
+            switch ProcessInfo.processInfo.environment["KHMERCLIPPER_TROCR_UNITS"] {
             case "all": return .all
             case "ane": return .cpuAndNeuralEngine
             case "cpu": return .cpuOnly
@@ -593,7 +593,7 @@ enum TrOCREngine {
 
         private static func loadCompiled(packageURL: URL, name: String) throws -> MLModel {
             let cacheDir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-                .appendingPathComponent("KhmerClip/TrOCRCompiled", isDirectory: true)
+                .appendingPathComponent("KhmerClipper/TrOCRCompiled", isDirectory: true)
             try FileManager.default.createDirectory(at: cacheDir, withIntermediateDirectories: true)
 
             let compiledURL = cacheDir.appendingPathComponent("\(name).mlmodelc")

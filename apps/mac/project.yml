@@ -1,6 +1,6 @@
-name: KhmerClip
+name: KhmerClipper
 options:
-  bundleIdPrefix: com.khmerclip
+  bundleIdPrefix: com.khmerclipper
   deploymentTarget:
     macOS: "15.0"
 settings:
@@ -11,7 +11,7 @@ packages:
     url: https://github.com/cocoabits/MASShortcut
     revision: 6f2603c6b6cc18f64a799e5d2c9d3bbc467c413a
 targets:
-  KhmerClip:
+  KhmerClipper:
     type: application
     platform: macOS
     sources:
@@ -29,19 +29,19 @@ targets:
       path: Resources/Info.plist
       properties:
         LSUIElement: true
-        NSScreenCaptureUsageDescription: "KhmerClip needs to capture your screen to extract text from the region you select."
+        NSScreenCaptureUsageDescription: "KhmerClipper needs to capture your screen to extract text from the region you select."
         NSMicrophoneUsageDescription: "Not used."
         CFBundleShortVersionString: "0.2.0"
         CFBundleVersion: "1"
     entitlements:
-      path: Resources/KhmerClip.entitlements
+      path: Resources/KhmerClipper.entitlements
       properties:
         com.apple.security.app-sandbox: false
         com.apple.security.device.camera: false
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.khmerclip.app
-        PRODUCT_NAME: KhmerClip
+        PRODUCT_BUNDLE_IDENTIFIER: com.khmerclipper.app
+        PRODUCT_NAME: KhmerClipper
         CODE_SIGN_STYLE: Automatic
         ENABLE_HARDENED_RUNTIME: true
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
@@ -55,12 +55,12 @@ targets:
       - path: Sources/OCR
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.khmerclip.ocrbench
+        PRODUCT_BUNDLE_IDENTIFIER: com.khmerclipper.ocrbench
         PRODUCT_NAME: OCRBench
         CODE_SIGN_IDENTITY: "-"
         ENABLE_HARDENED_RUNTIME: true
         OTHER_CODE_SIGN_FLAGS: "--options=runtime"
-  KhmerClipTests:
+  KhmerClipperTests:
     type: bundle.unit-test
     platform: macOS
     # Compiles the units under test directly (no TEST_HOST) so the suite runs as a
@@ -86,4 +86,4 @@ targets:
       # not be bundled here — kept out of sources on purpose.
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.khmerclip.tests
+        PRODUCT_BUNDLE_IDENTIFIER: com.khmerclipper.tests

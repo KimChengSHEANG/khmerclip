@@ -11,7 +11,7 @@ directory in the Syncthing-synced clone. All generated data goes to `~/khm-tesst
 ## Run (server)
 
 ```bash
-cd ~/Sync/workspace/khmerclip/training/tesseract   # or .worktrees/tesseract-finetune/... before merge
+cd ~/Sync/workspace/khmerclipper/training/tesseract   # or .worktrees/tesseract-finetune/... before merge
 make image check          # build + verify toolchain pins
 make download             # fetch the two datasets not already in the HF cache
 make gt                   # export ground truth (DEFAULT_SOURCES, ~650k lines)

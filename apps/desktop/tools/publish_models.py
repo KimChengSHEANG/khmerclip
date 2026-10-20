@@ -10,9 +10,9 @@ from pathlib import Path
 
 from huggingface_hub import HfApi
 
-from khmerclip.ocr.trocr_models import MANIFEST_PATH, MODEL_FILES, build_manifest
+from khmerclipper.ocr.trocr_models import MANIFEST_PATH, MODEL_FILES, build_manifest
 
-REPO = "kcsheang/khmerclip-trocr-khmer-onnx"
+REPO = "kcsheang/khmerclipper-trocr-khmer-onnx"
 
 
 def main() -> None:
@@ -26,7 +26,7 @@ def main() -> None:
     api.create_repo(args.repo, repo_type="model", private=False, exist_ok=True)
     commit = api.upload_folder(repo_id=args.repo, folder_path=str(args.model_dir),
                                allow_patterns=list(MODEL_FILES),
-                               commit_message=f"KhmerClip TrOCR ONNX {args.version}")
+                               commit_message=f"KhmerClipper TrOCR ONNX {args.version}")
     # Pin by commit revision so later uploads never change what an installed app downloads.
     base_url = f"https://huggingface.co/{args.repo}/resolve/{commit.oid}"
     data = build_manifest(args.model_dir, base_url, args.version)

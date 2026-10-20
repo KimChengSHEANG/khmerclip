@@ -72,7 +72,7 @@ private struct OCRProgressView: View {
                     Text(model.info.label)
                         .font(.headline)
                         .contentTransition(.opacity)
-                    Text("KhmerClip OCR")
+                    Text("KhmerClipper OCR")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

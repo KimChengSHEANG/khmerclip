@@ -20,7 +20,7 @@ Each candidate below was gated on paired per-fixture character errors (`scripts/
 
 ## Pipeline runner
 
-`khmerclip_eval.pipeline` runs the app pipeline in PyTorch (Mac `lineStrips`, plain 384x384 resize, greedy, repeat cap 4, max 128 ids). `bench.py --engine trocr-pipeline --variant k=v,...` toggles candidates. Parity: on the frozen 200 it reproduces the shipped v2 (`checkpoint-5/checkpoint-10000`) ui 0.0032 and mixed 0.0133 exactly.
+`khmerclipper_eval.pipeline` runs the app pipeline in PyTorch (Mac `lineStrips`, plain 384x384 resize, greedy, repeat cap 4, max 128 ids). `bench.py --engine trocr-pipeline --variant k=v,...` toggles candidates. Parity: on the frozen 200 it reproduces the shipped v2 (`checkpoint-5/checkpoint-10000`) ui 0.0032 and mixed 0.0133 exactly.
 
 ## Baseline: v2 on the screen set
 

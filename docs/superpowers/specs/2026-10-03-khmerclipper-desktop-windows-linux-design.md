@@ -1,12 +1,12 @@
-# KhmerClip Desktop (Windows + Linux) — Design
+# KhmerClipper Desktop (Windows + Linux) — Design
 
 **Date:** 2026-10-03
 **Status:** Approved decisions (stack, scope, hosting, CI) from user Q&A; implementation plan at
-`docs/superpowers/plans/2026-10-03-khmerclip-desktop-windows-linux.md`.
+`docs/superpowers/plans/2026-10-03-khmerclipper-desktop-windows-linux.md`.
 
 ## Problem
 
-KhmerClip ships only as a native macOS app (`apps/mac`, Swift/AppKit/CoreML/ScreenCaptureKit).
+KhmerClipper ships only as a native macOS app (`apps/mac`, Swift/AppKit/CoreML/ScreenCaptureKit).
 None of that code runs on Windows or Linux. Users on those OSes need the same core loop:
 select a screen region → Khmer(+English) OCR → text on clipboard.
 
@@ -19,16 +19,16 @@ select a screen region → Khmer(+English) OCR → text on clipboard.
 | v1 features | Tray app, region capture, OCR, auto-copy, result popup, history, preferences, image-file OCR, launch at login, **TrOCR engine**, **auto-update check** |
 | Out of v1 | QR/barcode, EasyOCR, text-to-speech, translate, window-picker capture, capture sound |
 | OCR engines | Tesseract (bundled/required, default) and TrOCR (ONNX, downloaded on first use) |
-| Model hosting | ONNX export of the Khmer TrOCR fine-tune on a **public Hugging Face repo** `KimChengSHEANG/khmerclip-trocr-khmer-onnx`, pinned by commit revision + SHA-256 in a committed manifest |
-| Installer + update hosting | **Public GitHub repo** `KimChengSHEANG/khmerclip-releases`; CI publishes releases there; app reads its `releases/latest` API |
+| Model hosting | ONNX export of the Khmer TrOCR fine-tune on a **public Hugging Face repo** `KimChengSHEANG/khmerclipper-trocr-khmer-onnx`, pinned by commit revision + SHA-256 in a committed manifest |
+| Installer + update hosting | **Public GitHub repo** `KimChengSHEANG/khmerclipper-releases`; CI publishes releases there; app reads its `releases/latest` API |
 | Build infra | GitHub Actions in this (private) repo: test matrix `windows-latest` + `ubuntu-22.04`; build artifacts; publish on tag `desktop-v*` |
-| Artifacts | Windows: Inno Setup installer `KhmerClip-<ver>-windows-x64-setup.exe` (per-user, no admin). Linux: `KhmerClip-<ver>-x86_64.AppImage` with Tesseract bundled |
+| Artifacts | Windows: Inno Setup installer `KhmerClipper-<ver>-windows-x64-setup.exe` (per-user, no admin). Linux: `KhmerClipper-<ver>-x86_64.AppImage` with Tesseract bundled |
 
 ## Architecture
 
 ```
 apps/desktop/
-  src/khmerclip/
+  src/khmerclipper/
     core (headless, testable everywhere): paths, errors, formatter, prefs, history,
       download, updater, autostart, hotkey (pure parts), ocr/{tesseract,trocr,tokenizer,
       preprocess,trocr_models}, capture/geometry
@@ -69,7 +69,7 @@ apps/desktop/
 ### Hotkey
 
 - Windows / X11: global hotkey via `pynput`, default `<ctrl>+<shift>+2`, configurable.
-- Wayland (no global hotkeys for apps): `khmerclip --capture` CLI; a running instance receives the
+- Wayland (no global hotkeys for apps): `khmerclipper --capture` CLI; a running instance receives the
   command over `QLocalSocket`. User binds it in their desktop's keyboard-shortcut settings.
 
 ### Persistence
@@ -80,14 +80,14 @@ app (corrupt history is moved to `history.json.bak`).
 
 ### Auto-update
 
-Daily (pref, default on) GET `https://api.github.com/repos/KimChengSHEANG/khmerclip-releases/releases/latest`.
-If its tag (`vX.Y.Z`) is newer than `khmerclip.__version__`, prompt and open the release page in the
+Daily (pref, default on) GET `https://api.github.com/repos/KimChengSHEANG/khmerclipper-releases/releases/latest`.
+If its tag (`vX.Y.Z`) is newer than `khmerclipper.__version__`, prompt and open the release page in the
 browser. No silent install. Network errors are silent.
 
 ### Launch at login
 
-Windows: `HKCU\Software\Microsoft\Windows\CurrentVersion\Run\KhmerClip`. Linux:
-`$XDG_CONFIG_HOME/autostart/khmerclip.desktop` (uses `$APPIMAGE` path when running from AppImage).
+Windows: `HKCU\Software\Microsoft\Windows\CurrentVersion\Run\KhmerClipper`. Linux:
+`$XDG_CONFIG_HOME/autostart/khmerclipper.desktop` (uses `$APPIMAGE` path when running from AppImage).
 
 ## Constraints
 
@@ -95,14 +95,14 @@ Windows: `HKCU\Software\Microsoft\Windows\CurrentVersion\Run\KhmerClip`. Linux:
 - Khmer text must render on stock systems → bundle Noto Sans Khmer and set it on every text widget.
 - Default engine Tesseract (works offline with zero setup). TrOCR option disabled while the manifest
   lists no files.
-- App name `KhmerClip`; version single-sourced in `khmerclip/__init__.py`; release tag in this repo
+- App name `KhmerClipper`; version single-sourced in `khmerclipper/__init__.py`; release tag in this repo
   `desktop-v<version>`, in the releases repo `v<version>`.
-- CI secret `RELEASES_TOKEN` (fine-grained PAT, contents:write on `khmerclip-releases`).
+- CI secret `RELEASES_TOKEN` (fine-grained PAT, contents:write on `khmerclipper-releases`).
 
 ## Known limitations (accepted for v1)
 
-- Wayland: the portal may save its screenshot file in the user's Pictures folder; KhmerClip doesn't
+- Wayland: the portal may save its screenshot file in the user's Pictures folder; KhmerClipper doesn't
   delete it. GNOME needs the AppIndicator extension (default on Ubuntu) for the tray icon.
-- Windows build is windowed (no console): `khmerclip ocr …` CLI output is for dev/Linux use.
+- Windows build is windowed (no console): `khmerclipper ocr …` CLI output is for dev/Linux use.
 - TrOCR model download is fp32 (~1.3 GB). int8 quantization is a follow-up after a CER check.
 - Installers are unsigned (SmartScreen warning on Windows).

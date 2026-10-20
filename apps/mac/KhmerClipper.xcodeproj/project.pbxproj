@@ -7,406 +7,426 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		0252425B38FFEFC59B9471E1 /* TrOCRTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C115C9430DAD2CC6BB91EBF /* TrOCRTests.swift */; };
-		028B8332AD6CA94EB8623526 /* LaunchAtLoginManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 940302DA2B8F3E9504A79E76 /* LaunchAtLoginManager.swift */; };
-		02B5A9DA5DED5F776368762D /* 6.png in Resources */ = {isa = PBXBuildFile; fileRef = D76B52BEC4C54A3AC5D3B454 /* 6.png */; };
-		04F79F673716A8816D1E8988 /* ReportOutbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DE93F9ADCA421C8C2616490 /* ReportOutbox.swift */; };
-		05F97A238434B520C7D4C0F4 /* TrOCREngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F28AC5556DD4873DAE816548 /* TrOCREngine.swift */; };
-		07BDE15F0DD21B40B1B12CA5 /* OCRTextFormatterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B17DFE7B3AB478CF3969F370 /* OCRTextFormatterTests.swift */; };
-		0BBBCFBB36E86714BBC36B4D /* OCRBenchMain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57E581094120BFEFFD8E2C66 /* OCRBenchMain.swift */; };
-		0F9EAD00BE67E31178E23F78 /* ScanRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51E97609987FE3C2F208125C /* ScanRecord.swift */; };
-		10DD34983E9839B89058D803 /* OCRProgressController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A4782CA77594238BAC91FB7 /* OCRProgressController.swift */; };
-		15D5F59B1F49A5147C614D91 /* TrOCRTokenizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E539C8C16E8B740DA8C6FB3 /* TrOCRTokenizer.swift */; };
-		1792A170B854F64D61D2C946 /* 4.txt in Resources */ = {isa = PBXBuildFile; fileRef = B857AA947B65E1CD8CDB1287 /* 4.txt */; };
-		1AF99412C9D309F149324AC6 /* FeedbackMerge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D5086445334FFEBEEFE98A1 /* FeedbackMerge.swift */; };
-		2870C79499EDFDD1E53E4C90 /* AppPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 274781FEA2AE0B22692F817A /* AppPreferences.swift */; };
-		2B3783F51D025DEF64804B9A /* KeepCapturesDefault.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1ED8BAC8C966CDF995222C3 /* KeepCapturesDefault.swift */; };
-		2CAF3C3EC3976DA8DDB82080 /* 1.txt in Resources */ = {isa = PBXBuildFile; fileRef = A5AB62B949E8AC21D02BA846 /* 1.txt */; };
-		2D553B5E08AF13B236F172BB /* 4.png in Resources */ = {isa = PBXBuildFile; fileRef = 29154C1ED53CEDAF183346A9 /* 4.png */; };
-		2D9F7E3A21CACC4B529B58A5 /* FeedbackMergeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E38B8C5C6067938CEDD0D82 /* FeedbackMergeTests.swift */; };
-		30000BA7D07A63444603170A /* TrOCRTokenizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E539C8C16E8B740DA8C6FB3 /* TrOCRTokenizer.swift */; };
-		33FE2451B4FF2F18577E8CBE /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AF7A56BB03B02B64B8EC329A /* Assets.xcassets */; };
-		367FBC107697BD0AEDD8E0B2 /* TrOCREngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F28AC5556DD4873DAE816548 /* TrOCREngine.swift */; };
-		3B6BE2B14B802E40CF9677EE /* 5.png in Resources */ = {isa = PBXBuildFile; fileRef = 6C57D6188A09D12382F4C53E /* 5.png */; };
-		4127D7D28758F5D87E8BBEA3 /* ClipboardManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0366075B3BF602C8EEF72939 /* ClipboardManager.swift */; };
-		416DD1874236F00F2A7C41EC /* CrashReporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 481E56854391B5A91CBBA59E /* CrashReporter.swift */; };
-		41B6E16B8A68760DCC969C98 /* TextToSpeechManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 590632F017F79C6EF7B86A1E /* TextToSpeechManager.swift */; };
-		47C85E4C6E588F111DD8E015 /* TrOCRTokenizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E539C8C16E8B740DA8C6FB3 /* TrOCRTokenizer.swift */; };
-		4A8FFF96FE052EA269EFC7DF /* TesseractEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30AD7270593AC4C9DC7B6CB8 /* TesseractEngine.swift */; };
-		4AE75FA35E53A70E10549043 /* 3.png in Resources */ = {isa = PBXBuildFile; fileRef = A33272AD306F1947AEE7F335 /* 3.png */; };
-		4EB2509868306F9AB81D895E /* Report.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED9F6261658E864DC7E77A36 /* Report.swift */; };
-		4EF98F2F0094EE8AC67E709E /* ScanRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51E97609987FE3C2F208125C /* ScanRecord.swift */; };
-		4F3E21076891B79EC1B5B2C3 /* ScreenCaptureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83EFA75EF7390F3761F3C80B /* ScreenCaptureManager.swift */; };
-		50533DCABA72E2298F0FF443 /* TrOCREngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = F28AC5556DD4873DAE816548 /* TrOCREngine.swift */; };
-		576D89E4CD2B3CC713B85168 /* CrashReporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 481E56854391B5A91CBBA59E /* CrashReporter.swift */; };
-		59B7550CD991690EDAD66F1A /* ReportSender.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C267D393D3CE9BD6C656F60 /* ReportSender.swift */; };
-		5BEDD79CAC327435065D2212 /* WindowPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84240B22CF5DC4369019FF7E /* WindowPicker.swift */; };
-		5E3547EBE713E72996F7F465 /* KeepCapturesDefault.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1ED8BAC8C966CDF995222C3 /* KeepCapturesDefault.swift */; };
-		6B0A9519786FD5AC3F30F198 /* TesseractEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30AD7270593AC4C9DC7B6CB8 /* TesseractEngine.swift */; };
-		6E7EDDC0E6D136C7BD84B3B1 /* TranslateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41ED3D7FEE65288F2A99A021 /* TranslateView.swift */; };
-		6F83B94BFB8C20AA457F237B /* FeedbackViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDBB53965898D04F32D3E691 /* FeedbackViewTests.swift */; };
-		720996C1FCC15EB1CBDC15AE /* FeedbackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BEB85B978198BEF7C4D6D68 /* FeedbackView.swift */; };
-		77732F84485C0420269D780E /* SelectionOverlayWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D8A9621D341C764E8B6BE2C /* SelectionOverlayWindow.swift */; };
-		7A09CCD0C906E6110CE4C3EF /* OCREngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A839A38973DE12649A2B49AE /* OCREngine.swift */; };
-		7B6184EC31E95213DB70B8E5 /* 6.txt in Resources */ = {isa = PBXBuildFile; fileRef = E7FB98C098DE34C4E947ACB8 /* 6.txt */; };
-		7CB1F50B8FC3E5E54EE7A5E5 /* ReportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CB4A1D92A3DAB78C58E307C /* ReportTests.swift */; };
-		7E3D61D7E4778991CA35C648 /* PreferencesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E5150C71AA76ACC1D0591016 /* PreferencesView.swift */; };
-		7E6089D818FE50C494A037C3 /* GeometryAndRecordTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3424A9D74DEB1E4A32924DA /* GeometryAndRecordTests.swift */; };
-		8075B37A149AB14884F7AA5A /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 487780CE994B91979E2E659C /* HistoryView.swift */; };
-		8240A87A75BA64758C709283 /* OnboardingWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5404D40E839772F5E2E80BF /* OnboardingWindowController.swift */; };
-		82EA2196132FC9257CE76A43 /* FeedbackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BEB85B978198BEF7C4D6D68 /* FeedbackView.swift */; };
-		87D1802D7FDAEA9661EE8D05 /* WindowPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84240B22CF5DC4369019FF7E /* WindowPicker.swift */; };
-		8874B577DDA552DF46293020 /* trocr in Resources */ = {isa = PBXBuildFile; fileRef = E6DEA5E0117C84B3F7FFA1D3 /* trocr */; };
-		89D02709813E8971EAEF8E6C /* MASShortcut in Frameworks */ = {isa = PBXBuildFile; productRef = 6CEB1675C9A8701A851B22C4 /* MASShortcut */; };
-		8AC42638CB9C219520CC4FEB /* ScanHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E4C8B0E890E4D78CB98AC0A /* ScanHistoryStore.swift */; };
-		8C7D5AC8D1C094DB4E95CA70 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C9B5F1471EF5A2C9F892644 /* AppDelegate.swift */; };
-		8E7C178EAC77905846106190 /* OCREngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A839A38973DE12649A2B49AE /* OCREngine.swift */; };
-		992C1FB1D87ED2116FD96615 /* tesseract in Resources */ = {isa = PBXBuildFile; fileRef = 430E4883CB7E3AD3F9DB5182 /* tesseract */; };
-		994BFAC817AB829C06680AA5 /* ImageOCRWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C792C562EEDC6F474AA04AFD /* ImageOCRWindowController.swift */; };
-		9AA71972954C5D83E6550B7F /* ReportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD548BDDCD2F9CF231E1A6B4 /* ReportView.swift */; };
-		A34CA6CC51CD3567396C60DA /* 5.txt in Resources */ = {isa = PBXBuildFile; fileRef = 275733D8BA12749124D5457B /* 5.txt */; };
-		A52326F246C6EB2B43DC952B /* OCRTextFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6902F6D94FB487C6EE888A7 /* OCRTextFormatter.swift */; };
-		A7A05BF6217CF3900EB4E324 /* HUDWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40237F6FFDC497014AC65F64 /* HUDWindowController.swift */; };
-		B2C94F79D7ADDBAD2ACD8396 /* HotKeyRecorderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96954E97899DE9E5DD7BFAC6 /* HotKeyRecorderView.swift */; };
-		B33ACA7CE1674E2331B6C030 /* 3.txt in Resources */ = {isa = PBXBuildFile; fileRef = F09B9657E5EE2EF73F7FB56F /* 3.txt */; };
-		B405762C8FC5CAC2E67980BA /* ReportOutbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DE93F9ADCA421C8C2616490 /* ReportOutbox.swift */; };
-		B63EEB182F93684045F43490 /* Report.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED9F6261658E864DC7E77A36 /* Report.swift */; };
-		BA47AF7E456BCF6A7EB62FF4 /* OCRTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF2FB2F7640462994F6BD3B5 /* OCRTests.swift */; };
-		C1A8FF3908EADEED8107F6BB /* 2.png in Resources */ = {isa = PBXBuildFile; fileRef = BA7D68CA7B298B49CA56E1C4 /* 2.png */; };
-		C22795622E2CD6145F872E34 /* 1.png in Resources */ = {isa = PBXBuildFile; fileRef = BB263D87A43A720A0D872BBA /* 1.png */; };
-		C321D1D92BD527D82CA7AED0 /* OCRTextFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6902F6D94FB487C6EE888A7 /* OCRTextFormatter.swift */; };
-		C402E54A9E2C79FFF5333AC3 /* printed-001.pil384.rgb in Resources */ = {isa = PBXBuildFile; fileRef = 71067B571A8F652733E03BA6 /* printed-001.pil384.rgb */; };
-		C6AF9F5EADE093C539977639 /* BarcodeEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AF42B15030FAE26DAE414CD /* BarcodeEngine.swift */; };
-		C73D3A37E257E1B1DC04FE64 /* FeedbackMerge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5D5086445334FFEBEEFE98A1 /* FeedbackMerge.swift */; };
-		CEFB376100563168C0BEB4B7 /* OCREngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A839A38973DE12649A2B49AE /* OCREngine.swift */; };
-		D257C17027A8D9C9057E1E38 /* TesseractEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30AD7270593AC4C9DC7B6CB8 /* TesseractEngine.swift */; };
-		DAF89C36D62AE66D43DF8E44 /* KeepCapturesDefaultTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1BD9C97F03D866937638FE5 /* KeepCapturesDefaultTests.swift */; };
-		E73DC34EC0FE9E533FA1FB64 /* CaptureCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42BBCFF88E9D2502006D7E0B /* CaptureCoordinator.swift */; };
-		EA0A88332A2E9405E693BAB9 /* 2.txt in Resources */ = {isa = PBXBuildFile; fileRef = 8D5C38E0BB5A699A763A1D0A /* 2.txt */; };
-		F35C1034EFAE67AD22785090 /* OCRTextFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6902F6D94FB487C6EE888A7 /* OCRTextFormatter.swift */; };
-		FFA91E591BE8C3E91D2794A0 /* KhmerClipApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98BBE395E59602CB64ED00E3 /* KhmerClipApp.swift */; };
+		01583F4319E7558282A3D898 /* LaunchAtLoginManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFF3395DD6AA4DECC7C17D02 /* LaunchAtLoginManager.swift */; };
+		08A927DA7E4CC08E446C7430 /* TrOCRTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6997AF8018846F9681D1687F /* TrOCRTests.swift */; };
+		0B355E9B04A39400E76E920C /* 6.txt in Resources */ = {isa = PBXBuildFile; fileRef = BBAC56991C54F828BE29B78F /* 6.txt */; };
+		0E7666874D072962DF0516BB /* WindowPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47C005D79038B8314EC0779F /* WindowPicker.swift */; };
+		0F8FEE0F6FABFA3C5D5E7D10 /* OCRTextFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA283F0A78347F4A274118AC /* OCRTextFormatter.swift */; };
+		108CA6A97E9DBC1C212D4AA2 /* OCREngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = E74BF85BA59312B818EC6348 /* OCREngine.swift */; };
+		121B5C8305F055E326D04B59 /* OCRTextFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA283F0A78347F4A274118AC /* OCRTextFormatter.swift */; };
+		126C0313137F3AD6C237AF5D /* OCRBenchMain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 139702847D03E9D680D61557 /* OCRBenchMain.swift */; };
+		127CA418ED837390E5223DF7 /* OCRTextFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA283F0A78347F4A274118AC /* OCRTextFormatter.swift */; };
+		15020B854D090DCB67E42A6B /* TesseractEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F999647331486F62483D03 /* TesseractEngine.swift */; };
+		16ADA182DBE0934167C21474 /* Report.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01D2137DE3BBEC6B1483157A /* Report.swift */; };
+		21C5B0CC35010491520F0E04 /* tesseract in Resources */ = {isa = PBXBuildFile; fileRef = F711F6C6E0CDDD330FA86B7D /* tesseract */; };
+		24388E7B35F6E1BF247FF6B7 /* KhmerClipperApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B94CCDA5B4ACB1D3E51C1D2C /* KhmerClipperApp.swift */; };
+		27A3156E18180FA96B4DF49B /* MASShortcut in Frameworks */ = {isa = PBXBuildFile; productRef = 416DC9BCDE6311C82CCCBB2B /* MASShortcut */; };
+		28F70975DD8632C9BD06EF9B /* 4.txt in Resources */ = {isa = PBXBuildFile; fileRef = E96518E422707D1CF605F8C5 /* 4.txt */; };
+		2BCEE34D6A0331AC044645BC /* GeometryAndRecordTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7248CA5685405542EBD33EE /* GeometryAndRecordTests.swift */; };
+		2D347DA31489D1FFDFC7C2EF /* ScreenCaptureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2EA862FC96CE1160CC267C6 /* ScreenCaptureManager.swift */; };
+		3069E24D00EAB9DF581D159B /* 5.txt in Resources */ = {isa = PBXBuildFile; fileRef = 91CA6A99A61D0BCF26CA7DBC /* 5.txt */; };
+		348257EAF1656ACBF8DEEB1B /* 4.png in Resources */ = {isa = PBXBuildFile; fileRef = F9F607AB237D3A9B73FAD81B /* 4.png */; };
+		37823F681783A9F0ED09DFC1 /* PreferencesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13738F779C5AE66BC03D7A83 /* PreferencesView.swift */; };
+		3A12F28B15D0134BF9E9FA18 /* SelectionOverlayWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42DF1D4250E7DE7B177495D8 /* SelectionOverlayWindow.swift */; };
+		40614E8A400577AC4C1CAA96 /* KeepCapturesDefault.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E184A2F4611ACA7C848314E /* KeepCapturesDefault.swift */; };
+		40C52C44226C2691E4EA6B20 /* ScanHistoryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55DFD0ED821232899F53FE2F /* ScanHistoryStore.swift */; };
+		4CF7DA914BDD7E522DC21954 /* OCRProgressController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A948E9FCD7F3077F884EA6DB /* OCRProgressController.swift */; };
+		4D74925E3380FF3923C8FF43 /* 3.png in Resources */ = {isa = PBXBuildFile; fileRef = 85E340B276EDEF1B00C9C147 /* 3.png */; };
+		4D7E76E9F757AA606AA7CF9E /* HotKeyRecorderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4E1B2B80DD2CBD46065095E /* HotKeyRecorderView.swift */; };
+		57187F219B48D986A775FE9A /* TrOCRTokenizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6D1374DFD716AC5E60B79CD /* TrOCRTokenizer.swift */; };
+		64DF380687A1D4D87A1C7C8C /* TrOCREngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A4281CD628AE0D3EC476EA8 /* TrOCREngine.swift */; };
+		6657094FEFBBCF2417AA1C4C /* BarcodeEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 81C1C4A49792FEDEC680D78E /* BarcodeEngine.swift */; };
+		6D5C4CE0AF6C7D9B3D2FF25A /* TesseractEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F999647331486F62483D03 /* TesseractEngine.swift */; };
+		6E4163B99C5E6FAA686B8F2D /* TranslateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4119F624486EB6C1B3DA796 /* TranslateView.swift */; };
+		6EBB260215C9EB05BB7AB01E /* FeedbackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E97F8FE5CC2AA03703A6684C /* FeedbackView.swift */; };
+		6F584930EA626B2EC579C4DC /* TrOCRTokenizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6D1374DFD716AC5E60B79CD /* TrOCRTokenizer.swift */; };
+		730DC20C04FA689E2692132E /* FeedbackViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3FECC9CEB57E3F01F093357 /* FeedbackViewTests.swift */; };
+		757986F800F8447FE59EE676 /* 5.png in Resources */ = {isa = PBXBuildFile; fileRef = B0C9A138713B0AB9217410C9 /* 5.png */; };
+		7B6FB1657E9479D57790FC39 /* ScanRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C91F52E34DDEFD0C5E1CC6C /* ScanRecord.swift */; };
+		84350A6623D7FE8812E0F12D /* ClipboardManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 530BADD45F5CE36B449912AD /* ClipboardManager.swift */; };
+		85EE2D6CDEDC464846F695FB /* OCRTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1837131B21CF32363BCBA736 /* OCRTests.swift */; };
+		8CCBD5927CC5AEA3A9DE850A /* TrOCREngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A4281CD628AE0D3EC476EA8 /* TrOCREngine.swift */; };
+		8FA9660157B9094F4F245802 /* FeedbackMerge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DEBB59EDF1BD6CCC2ED300A /* FeedbackMerge.swift */; };
+		91092AB51E9C2326F4DEC0E5 /* ReportOutbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 882BE8B5E58BB27AB8369741 /* ReportOutbox.swift */; };
+		947F537949BDBEA1A959CD04 /* ReportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80C1A251CD404635C9270B62 /* ReportView.swift */; };
+		94C0B5DFFC85FFB167599AEF /* 6.png in Resources */ = {isa = PBXBuildFile; fileRef = 72BCE0E31BBBAAA352D02F67 /* 6.png */; };
+		961B052DB40D5789BFD2681C /* KeepCapturesDefaultTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D79C87788F9C7CC8B15F0235 /* KeepCapturesDefaultTests.swift */; };
+		9879614BE4E8116CBF901478 /* TrOCRTokenizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = A6D1374DFD716AC5E60B79CD /* TrOCRTokenizer.swift */; };
+		9E3092099BB70E2F0CA00D8E /* TextToSpeechManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE9B9784250F64C2E4C70E8A /* TextToSpeechManager.swift */; };
+		A03D3BD9680AF7CE61E65828 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 28D6181D989A5DB8606891DE /* Assets.xcassets */; };
+		A1138598AD128D32FD2F0D45 /* OnboardingWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7420A21EAC6BCEE9130A2A8B /* OnboardingWindowController.swift */; };
+		A49D2CC1AD70AA21924C9F03 /* ReportSender.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE9A2FC16CE0FCC1952F0ED4 /* ReportSender.swift */; };
+		AB58FFF250D8BE75F4E5B23C /* 3.txt in Resources */ = {isa = PBXBuildFile; fileRef = BA3DD25D41E4DDE7E6DF8E84 /* 3.txt */; };
+		ACE1D389F260ED519A93F5BB /* TesseractEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F999647331486F62483D03 /* TesseractEngine.swift */; };
+		B836EEC3511D658B6D2406A7 /* 1.png in Resources */ = {isa = PBXBuildFile; fileRef = E050D0CCCF79AEE98BFF859E /* 1.png */; };
+		BA29238280EAEB2139583FB3 /* ImageOCRWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 458B770D9AC0A758D95ACD4D /* ImageOCRWindowController.swift */; };
+		BA8E4E4D902CE980150D7842 /* 2.txt in Resources */ = {isa = PBXBuildFile; fileRef = 0868D124473A4D641E6922EA /* 2.txt */; };
+		BAFDB74EC14969032F86BEED /* CaptureCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00697FDF97EFB7E036657ECF /* CaptureCoordinator.swift */; };
+		BD58A3FC7E42D29BB7E9BA47 /* ReportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 654AAC71829E6CF1F993459C /* ReportTests.swift */; };
+		BF93148FCE8FA2C1C49DF1FF /* CrashReporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D224D4470C97C2F88E019DCC /* CrashReporter.swift */; };
+		C6B99F5FCCB464CC150756EE /* OCRTextFormatterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D639D9B204D6E0FFCC56483B /* OCRTextFormatterTests.swift */; };
+		C6FD0C51A90B7EED32D1FECF /* CrashReporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D224D4470C97C2F88E019DCC /* CrashReporter.swift */; };
+		D096455ADA61EAAA46DFB02E /* trocr in Resources */ = {isa = PBXBuildFile; fileRef = EC0B7A5F4D9C25F4A3AF1B5D /* trocr */; };
+		D14947A315FDE8A5C6AE7319 /* TrOCREngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A4281CD628AE0D3EC476EA8 /* TrOCREngine.swift */; };
+		D552C5B74A5D81E15117A1D0 /* 2.png in Resources */ = {isa = PBXBuildFile; fileRef = AA68D7E40609A7FA4FC3A620 /* 2.png */; };
+		D6DA89FB70574E8D045BFA1B /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C2C2348F7CDD16CD3C32D8B /* HistoryView.swift */; };
+		D8CB37DBFA70A8E1074FE822 /* printed-001.pil384.rgb in Resources */ = {isa = PBXBuildFile; fileRef = 8D85D173203340BA36B1FBFA /* printed-001.pil384.rgb */; };
+		D9641A754BB4297ECF19C641 /* FeedbackMergeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66EBD74D025CD99255895471 /* FeedbackMergeTests.swift */; };
+		DD49AAC0E667B5A8107ABAF3 /* HUDWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4524E354A49A38EA6F905358 /* HUDWindowController.swift */; };
+		DDD9E2A068593E15A6F0BF2F /* OCREngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = E74BF85BA59312B818EC6348 /* OCREngine.swift */; };
+		DEDFB2792F60D304F68A5EA7 /* 1.txt in Resources */ = {isa = PBXBuildFile; fileRef = 93C9E04DFCAB0B0600BD45FD /* 1.txt */; };
+		E35E27B5ED619085C85F8587 /* Report.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01D2137DE3BBEC6B1483157A /* Report.swift */; };
+		E8F00D19302462C574643A8B /* ReportOutbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = 882BE8B5E58BB27AB8369741 /* ReportOutbox.swift */; };
+		EB90F6C2AA1D19EAA43853D5 /* ScanRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C91F52E34DDEFD0C5E1CC6C /* ScanRecord.swift */; };
+		EBECC38099C1FF8C622D0D37 /* OCREngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = E74BF85BA59312B818EC6348 /* OCREngine.swift */; };
+		F274C72B2FDA33071CEF17D6 /* KeepCapturesDefault.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E184A2F4611ACA7C848314E /* KeepCapturesDefault.swift */; };
+		F3A9D8B5E6E7584380A33666 /* FeedbackMerge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DEBB59EDF1BD6CCC2ED300A /* FeedbackMerge.swift */; };
+		F41EE8432653A334F09627F1 /* AppPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F3A532387023E34D19BE442 /* AppPreferences.swift */; };
+		F5918C12E1F53B06BA49960C /* FeedbackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E97F8FE5CC2AA03703A6684C /* FeedbackView.swift */; };
+		F59BA4D9D6FE5C57AE9116CC /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F74651FC42643E19AE83E29B /* AppDelegate.swift */; };
+		FB5717E9B95F33CC78BB3783 /* WindowPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47C005D79038B8314EC0779F /* WindowPicker.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		0366075B3BF602C8EEF72939 /* ClipboardManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardManager.swift; sourceTree = "<group>"; };
-		1AF42B15030FAE26DAE414CD /* BarcodeEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarcodeEngine.swift; sourceTree = "<group>"; };
-		274781FEA2AE0B22692F817A /* AppPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPreferences.swift; sourceTree = "<group>"; };
-		275733D8BA12749124D5457B /* 5.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = 5.txt; sourceTree = "<group>"; };
-		29154C1ED53CEDAF183346A9 /* 4.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = 4.png; sourceTree = "<group>"; };
-		30AD7270593AC4C9DC7B6CB8 /* TesseractEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TesseractEngine.swift; sourceTree = "<group>"; };
-		3DE93F9ADCA421C8C2616490 /* ReportOutbox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportOutbox.swift; sourceTree = "<group>"; };
-		40237F6FFDC497014AC65F64 /* HUDWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HUDWindowController.swift; sourceTree = "<group>"; };
-		41ED3D7FEE65288F2A99A021 /* TranslateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslateView.swift; sourceTree = "<group>"; };
-		42BBCFF88E9D2502006D7E0B /* CaptureCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureCoordinator.swift; sourceTree = "<group>"; };
-		430E4883CB7E3AD3F9DB5182 /* tesseract */ = {isa = PBXFileReference; lastKnownFileType = folder; name = tesseract; path = Vendor/tesseract; sourceTree = SOURCE_ROOT; };
-		481E56854391B5A91CBBA59E /* CrashReporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashReporter.swift; sourceTree = "<group>"; };
-		487780CE994B91979E2E659C /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
-		51E97609987FE3C2F208125C /* ScanRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanRecord.swift; sourceTree = "<group>"; };
-		57B0CFA4E0122085BB393B9B /* OCRBench */ = {isa = PBXFileReference; includeInIndex = 0; path = OCRBench; sourceTree = BUILT_PRODUCTS_DIR; };
-		57E581094120BFEFFD8E2C66 /* OCRBenchMain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCRBenchMain.swift; sourceTree = "<group>"; };
-		585D95869DEBE629545CF37B /* KhmerClip.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = KhmerClip.entitlements; sourceTree = "<group>"; };
-		590632F017F79C6EF7B86A1E /* TextToSpeechManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextToSpeechManager.swift; sourceTree = "<group>"; };
-		5A4782CA77594238BAC91FB7 /* OCRProgressController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCRProgressController.swift; sourceTree = "<group>"; };
-		5D5086445334FFEBEEFE98A1 /* FeedbackMerge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackMerge.swift; sourceTree = "<group>"; };
-		5E539C8C16E8B740DA8C6FB3 /* TrOCRTokenizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrOCRTokenizer.swift; sourceTree = "<group>"; };
-		6AB3F80AA3E5E885F03D3540 /* KhmerClip.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KhmerClip.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		6C57D6188A09D12382F4C53E /* 5.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = 5.png; sourceTree = "<group>"; };
-		6E4C8B0E890E4D78CB98AC0A /* ScanHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanHistoryStore.swift; sourceTree = "<group>"; };
-		705A93999820618E034AB26E /* KhmerClipTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KhmerClipTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		71067B571A8F652733E03BA6 /* printed-001.pil384.rgb */ = {isa = PBXFileReference; path = "printed-001.pil384.rgb"; sourceTree = "<group>"; };
-		7CB4A1D92A3DAB78C58E307C /* ReportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportTests.swift; sourceTree = "<group>"; };
-		83EFA75EF7390F3761F3C80B /* ScreenCaptureManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenCaptureManager.swift; sourceTree = "<group>"; };
-		84240B22CF5DC4369019FF7E /* WindowPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowPicker.swift; sourceTree = "<group>"; };
-		8C115C9430DAD2CC6BB91EBF /* TrOCRTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrOCRTests.swift; sourceTree = "<group>"; };
-		8C9B5F1471EF5A2C9F892644 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		8D5C38E0BB5A699A763A1D0A /* 2.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = 2.txt; sourceTree = "<group>"; };
-		940302DA2B8F3E9504A79E76 /* LaunchAtLoginManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginManager.swift; sourceTree = "<group>"; };
-		96954E97899DE9E5DD7BFAC6 /* HotKeyRecorderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotKeyRecorderView.swift; sourceTree = "<group>"; };
-		98BBE395E59602CB64ED00E3 /* KhmerClipApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KhmerClipApp.swift; sourceTree = "<group>"; };
-		9BEB85B978198BEF7C4D6D68 /* FeedbackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackView.swift; sourceTree = "<group>"; };
-		9C267D393D3CE9BD6C656F60 /* ReportSender.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportSender.swift; sourceTree = "<group>"; };
-		9D8A9621D341C764E8B6BE2C /* SelectionOverlayWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectionOverlayWindow.swift; sourceTree = "<group>"; };
-		9E38B8C5C6067938CEDD0D82 /* FeedbackMergeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackMergeTests.swift; sourceTree = "<group>"; };
-		A33272AD306F1947AEE7F335 /* 3.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = 3.png; sourceTree = "<group>"; };
-		A3424A9D74DEB1E4A32924DA /* GeometryAndRecordTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeometryAndRecordTests.swift; sourceTree = "<group>"; };
-		A5AB62B949E8AC21D02BA846 /* 1.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = 1.txt; sourceTree = "<group>"; };
-		A839A38973DE12649A2B49AE /* OCREngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCREngine.swift; sourceTree = "<group>"; };
-		AF7A56BB03B02B64B8EC329A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		B17DFE7B3AB478CF3969F370 /* OCRTextFormatterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCRTextFormatterTests.swift; sourceTree = "<group>"; };
-		B857AA947B65E1CD8CDB1287 /* 4.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = 4.txt; sourceTree = "<group>"; };
-		BA7D68CA7B298B49CA56E1C4 /* 2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = 2.png; sourceTree = "<group>"; };
-		BB263D87A43A720A0D872BBA /* 1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = 1.png; sourceTree = "<group>"; };
-		BC420EF6DDA5EAEEF969DB61 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
-		BD548BDDCD2F9CF231E1A6B4 /* ReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportView.swift; sourceTree = "<group>"; };
-		BDBB53965898D04F32D3E691 /* FeedbackViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackViewTests.swift; sourceTree = "<group>"; };
-		C1BD9C97F03D866937638FE5 /* KeepCapturesDefaultTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeepCapturesDefaultTests.swift; sourceTree = "<group>"; };
-		C792C562EEDC6F474AA04AFD /* ImageOCRWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageOCRWindowController.swift; sourceTree = "<group>"; };
-		D1ED8BAC8C966CDF995222C3 /* KeepCapturesDefault.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeepCapturesDefault.swift; sourceTree = "<group>"; };
-		D6902F6D94FB487C6EE888A7 /* OCRTextFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCRTextFormatter.swift; sourceTree = "<group>"; };
-		D76B52BEC4C54A3AC5D3B454 /* 6.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = 6.png; sourceTree = "<group>"; };
-		E5150C71AA76ACC1D0591016 /* PreferencesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesView.swift; sourceTree = "<group>"; };
-		E6DEA5E0117C84B3F7FFA1D3 /* trocr */ = {isa = PBXFileReference; lastKnownFileType = folder; name = trocr; path = Vendor/trocr; sourceTree = SOURCE_ROOT; };
-		E7FB98C098DE34C4E947ACB8 /* 6.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = 6.txt; sourceTree = "<group>"; };
-		ED9F6261658E864DC7E77A36 /* Report.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Report.swift; sourceTree = "<group>"; };
-		EF2FB2F7640462994F6BD3B5 /* OCRTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCRTests.swift; sourceTree = "<group>"; };
-		F09B9657E5EE2EF73F7FB56F /* 3.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = 3.txt; sourceTree = "<group>"; };
-		F28AC5556DD4873DAE816548 /* TrOCREngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrOCREngine.swift; sourceTree = "<group>"; };
-		F5404D40E839772F5E2E80BF /* OnboardingWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingWindowController.swift; sourceTree = "<group>"; };
+		00697FDF97EFB7E036657ECF /* CaptureCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureCoordinator.swift; sourceTree = "<group>"; };
+		01D2137DE3BBEC6B1483157A /* Report.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Report.swift; sourceTree = "<group>"; };
+		05F999647331486F62483D03 /* TesseractEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TesseractEngine.swift; sourceTree = "<group>"; };
+		0868D124473A4D641E6922EA /* 2.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = 2.txt; sourceTree = "<group>"; };
+		0DEBB59EDF1BD6CCC2ED300A /* FeedbackMerge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackMerge.swift; sourceTree = "<group>"; };
+		13738F779C5AE66BC03D7A83 /* PreferencesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesView.swift; sourceTree = "<group>"; };
+		139702847D03E9D680D61557 /* OCRBenchMain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCRBenchMain.swift; sourceTree = "<group>"; };
+		16219A88284F5335CCA5678C /* KhmerClipper.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = KhmerClipper.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		1837131B21CF32363BCBA736 /* OCRTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCRTests.swift; sourceTree = "<group>"; };
+		28D6181D989A5DB8606891DE /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		2C2C2348F7CDD16CD3C32D8B /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
+		2C91F52E34DDEFD0C5E1CC6C /* ScanRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanRecord.swift; sourceTree = "<group>"; };
+		2E184A2F4611ACA7C848314E /* KeepCapturesDefault.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeepCapturesDefault.swift; sourceTree = "<group>"; };
+		3A4281CD628AE0D3EC476EA8 /* TrOCREngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrOCREngine.swift; sourceTree = "<group>"; };
+		42DF1D4250E7DE7B177495D8 /* SelectionOverlayWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectionOverlayWindow.swift; sourceTree = "<group>"; };
+		4524E354A49A38EA6F905358 /* HUDWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HUDWindowController.swift; sourceTree = "<group>"; };
+		458B770D9AC0A758D95ACD4D /* ImageOCRWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageOCRWindowController.swift; sourceTree = "<group>"; };
+		47C005D79038B8314EC0779F /* WindowPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowPicker.swift; sourceTree = "<group>"; };
+		530BADD45F5CE36B449912AD /* ClipboardManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardManager.swift; sourceTree = "<group>"; };
+		55DFD0ED821232899F53FE2F /* ScanHistoryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanHistoryStore.swift; sourceTree = "<group>"; };
+		582246D25BC0D3239EC61A94 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		59705C7AABAB84138363C2A8 /* KhmerClipper.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = KhmerClipper.entitlements; sourceTree = "<group>"; };
+		654AAC71829E6CF1F993459C /* ReportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportTests.swift; sourceTree = "<group>"; };
+		66EBD74D025CD99255895471 /* FeedbackMergeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackMergeTests.swift; sourceTree = "<group>"; };
+		6997AF8018846F9681D1687F /* TrOCRTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrOCRTests.swift; sourceTree = "<group>"; };
+		6D64172325698296B37AF7F9 /* OCRBench */ = {isa = PBXFileReference; includeInIndex = 0; path = OCRBench; sourceTree = BUILT_PRODUCTS_DIR; };
+		72BCE0E31BBBAAA352D02F67 /* 6.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = 6.png; sourceTree = "<group>"; };
+		7420A21EAC6BCEE9130A2A8B /* OnboardingWindowController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingWindowController.swift; sourceTree = "<group>"; };
+		7F3A532387023E34D19BE442 /* AppPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPreferences.swift; sourceTree = "<group>"; };
+		80C1A251CD404635C9270B62 /* ReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportView.swift; sourceTree = "<group>"; };
+		81C1C4A49792FEDEC680D78E /* BarcodeEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarcodeEngine.swift; sourceTree = "<group>"; };
+		85E340B276EDEF1B00C9C147 /* 3.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = 3.png; sourceTree = "<group>"; };
+		882BE8B5E58BB27AB8369741 /* ReportOutbox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportOutbox.swift; sourceTree = "<group>"; };
+		8D85D173203340BA36B1FBFA /* printed-001.pil384.rgb */ = {isa = PBXFileReference; path = "printed-001.pil384.rgb"; sourceTree = "<group>"; };
+		91CA6A99A61D0BCF26CA7DBC /* 5.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = 5.txt; sourceTree = "<group>"; };
+		93C9E04DFCAB0B0600BD45FD /* 1.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = 1.txt; sourceTree = "<group>"; };
+		A6D1374DFD716AC5E60B79CD /* TrOCRTokenizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrOCRTokenizer.swift; sourceTree = "<group>"; };
+		A948E9FCD7F3077F884EA6DB /* OCRProgressController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCRProgressController.swift; sourceTree = "<group>"; };
+		AA68D7E40609A7FA4FC3A620 /* 2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = 2.png; sourceTree = "<group>"; };
+		AE9B9784250F64C2E4C70E8A /* TextToSpeechManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextToSpeechManager.swift; sourceTree = "<group>"; };
+		B0C9A138713B0AB9217410C9 /* 5.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = 5.png; sourceTree = "<group>"; };
+		B3FECC9CEB57E3F01F093357 /* FeedbackViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackViewTests.swift; sourceTree = "<group>"; };
+		B94CCDA5B4ACB1D3E51C1D2C /* KhmerClipperApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KhmerClipperApp.swift; sourceTree = "<group>"; };
+		BA283F0A78347F4A274118AC /* OCRTextFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCRTextFormatter.swift; sourceTree = "<group>"; };
+		BA3DD25D41E4DDE7E6DF8E84 /* 3.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = 3.txt; sourceTree = "<group>"; };
+		BBAC56991C54F828BE29B78F /* 6.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = 6.txt; sourceTree = "<group>"; };
+		BFD4A365236D9ACA1E77FAD0 /* KhmerClipperTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = KhmerClipperTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		C4119F624486EB6C1B3DA796 /* TranslateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslateView.swift; sourceTree = "<group>"; };
+		D224D4470C97C2F88E019DCC /* CrashReporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashReporter.swift; sourceTree = "<group>"; };
+		D2EA862FC96CE1160CC267C6 /* ScreenCaptureManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenCaptureManager.swift; sourceTree = "<group>"; };
+		D4E1B2B80DD2CBD46065095E /* HotKeyRecorderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotKeyRecorderView.swift; sourceTree = "<group>"; };
+		D639D9B204D6E0FFCC56483B /* OCRTextFormatterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCRTextFormatterTests.swift; sourceTree = "<group>"; };
+		D79C87788F9C7CC8B15F0235 /* KeepCapturesDefaultTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeepCapturesDefaultTests.swift; sourceTree = "<group>"; };
+		DE9A2FC16CE0FCC1952F0ED4 /* ReportSender.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportSender.swift; sourceTree = "<group>"; };
+		E050D0CCCF79AEE98BFF859E /* 1.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = 1.png; sourceTree = "<group>"; };
+		E74BF85BA59312B818EC6348 /* OCREngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCREngine.swift; sourceTree = "<group>"; };
+		E96518E422707D1CF605F8C5 /* 4.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = 4.txt; sourceTree = "<group>"; };
+		E97F8FE5CC2AA03703A6684C /* FeedbackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackView.swift; sourceTree = "<group>"; };
+		EC0B7A5F4D9C25F4A3AF1B5D /* trocr */ = {isa = PBXFileReference; lastKnownFileType = folder; name = trocr; path = Vendor/trocr; sourceTree = SOURCE_ROOT; };
+		F711F6C6E0CDDD330FA86B7D /* tesseract */ = {isa = PBXFileReference; lastKnownFileType = folder; name = tesseract; path = Vendor/tesseract; sourceTree = SOURCE_ROOT; };
+		F7248CA5685405542EBD33EE /* GeometryAndRecordTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeometryAndRecordTests.swift; sourceTree = "<group>"; };
+		F74651FC42643E19AE83E29B /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		F9F607AB237D3A9B73FAD81B /* 4.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = 4.png; sourceTree = "<group>"; };
+		FFF3395DD6AA4DECC7C17D02 /* LaunchAtLoginManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		3D982538BAA50385FC6D8CF3 /* Frameworks */ = {
+		2C1CC4424BF74B0BC02A68C4 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				89D02709813E8971EAEF8E6C /* MASShortcut in Frameworks */,
+				27A3156E18180FA96B4DF49B /* MASShortcut in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		01A00D27D49F79819520624D /* Products */ = {
+		049163A971A477CAFD1757B4 /* Tools */ = {
 			isa = PBXGroup;
 			children = (
-				6AB3F80AA3E5E885F03D3540 /* KhmerClip.app */,
-				705A93999820618E034AB26E /* KhmerClipTests.xctest */,
-				57B0CFA4E0122085BB393B9B /* OCRBench */,
-			);
-			name = Products;
-			sourceTree = "<group>";
-		};
-		3F63DA67129FEB0C4CD4A276 /* Sources */ = {
-			isa = PBXGroup;
-			children = (
-				E983FFBA55A04276DA5F5B2E /* App */,
-				FFCE6204E67F450A258F1443 /* Barcode */,
-				6FC42977626A50EF4F17CE9A /* Capture */,
-				76D3DDF9DD1D0A1BF23BE769 /* History */,
-				5D50A8A5344947D745C8A959 /* LaunchAtLogin */,
-				5C32345BA6FDD477C859E9EE /* OCR */,
-				E67818BD3D857A9A70891481 /* Onboarding */,
-				ECDB7B1BF5F5ED774421C8C9 /* Preferences */,
-				A12AA28AA9F7974BA60A92BB /* Reports */,
-				C8CB390A525B7C672A8BA2EA /* Speech */,
-				9FF5F1C0F10B539639C4F422 /* Translate */,
-			);
-			path = Sources;
-			sourceTree = "<group>";
-		};
-		47ED285EE87243438329A6C3 /* Tests */ = {
-			isa = PBXGroup;
-			children = (
-				9E38B8C5C6067938CEDD0D82 /* FeedbackMergeTests.swift */,
-				BDBB53965898D04F32D3E691 /* FeedbackViewTests.swift */,
-				A3424A9D74DEB1E4A32924DA /* GeometryAndRecordTests.swift */,
-				C1BD9C97F03D866937638FE5 /* KeepCapturesDefaultTests.swift */,
-				EF2FB2F7640462994F6BD3B5 /* OCRTests.swift */,
-				B17DFE7B3AB478CF3969F370 /* OCRTextFormatterTests.swift */,
-				7CB4A1D92A3DAB78C58E307C /* ReportTests.swift */,
-				8C115C9430DAD2CC6BB91EBF /* TrOCRTests.swift */,
-				8894677B6FDA2C26A0D44450 /* Fixtures */,
-			);
-			path = Tests;
-			sourceTree = "<group>";
-		};
-		5C32345BA6FDD477C859E9EE /* OCR */ = {
-			isa = PBXGroup;
-			children = (
-				A839A38973DE12649A2B49AE /* OCREngine.swift */,
-				D6902F6D94FB487C6EE888A7 /* OCRTextFormatter.swift */,
-				30AD7270593AC4C9DC7B6CB8 /* TesseractEngine.swift */,
-				F28AC5556DD4873DAE816548 /* TrOCREngine.swift */,
-				5E539C8C16E8B740DA8C6FB3 /* TrOCRTokenizer.swift */,
-			);
-			path = OCR;
-			sourceTree = "<group>";
-		};
-		5D50A8A5344947D745C8A959 /* LaunchAtLogin */ = {
-			isa = PBXGroup;
-			children = (
-				940302DA2B8F3E9504A79E76 /* LaunchAtLoginManager.swift */,
-			);
-			path = LaunchAtLogin;
-			sourceTree = "<group>";
-		};
-		6FC42977626A50EF4F17CE9A /* Capture */ = {
-			isa = PBXGroup;
-			children = (
-				42BBCFF88E9D2502006D7E0B /* CaptureCoordinator.swift */,
-				0366075B3BF602C8EEF72939 /* ClipboardManager.swift */,
-				40237F6FFDC497014AC65F64 /* HUDWindowController.swift */,
-				C792C562EEDC6F474AA04AFD /* ImageOCRWindowController.swift */,
-				5A4782CA77594238BAC91FB7 /* OCRProgressController.swift */,
-				83EFA75EF7390F3761F3C80B /* ScreenCaptureManager.swift */,
-				9D8A9621D341C764E8B6BE2C /* SelectionOverlayWindow.swift */,
-				84240B22CF5DC4369019FF7E /* WindowPicker.swift */,
-			);
-			path = Capture;
-			sourceTree = "<group>";
-		};
-		76A5D1AF64A38ADF6FE9CB7F = {
-			isa = PBXGroup;
-			children = (
-				430E4883CB7E3AD3F9DB5182 /* tesseract */,
-				E6DEA5E0117C84B3F7FFA1D3 /* trocr */,
-				F0962859F34C26F03D219AAA /* Resources */,
-				3F63DA67129FEB0C4CD4A276 /* Sources */,
-				47ED285EE87243438329A6C3 /* Tests */,
-				CA429A724C28CA1F70DE635C /* Tools */,
-				01A00D27D49F79819520624D /* Products */,
-			);
-			sourceTree = "<group>";
-		};
-		76D3DDF9DD1D0A1BF23BE769 /* History */ = {
-			isa = PBXGroup;
-			children = (
-				5D5086445334FFEBEEFE98A1 /* FeedbackMerge.swift */,
-				487780CE994B91979E2E659C /* HistoryView.swift */,
-				BD548BDDCD2F9CF231E1A6B4 /* ReportView.swift */,
-				6E4C8B0E890E4D78CB98AC0A /* ScanHistoryStore.swift */,
-				51E97609987FE3C2F208125C /* ScanRecord.swift */,
-			);
-			path = History;
-			sourceTree = "<group>";
-		};
-		8894677B6FDA2C26A0D44450 /* Fixtures */ = {
-			isa = PBXGroup;
-			children = (
-				E6C13F6BE05A8062195ACA9E /* ocr */,
-			);
-			path = Fixtures;
-			sourceTree = "<group>";
-		};
-		9FF5F1C0F10B539639C4F422 /* Translate */ = {
-			isa = PBXGroup;
-			children = (
-				41ED3D7FEE65288F2A99A021 /* TranslateView.swift */,
-			);
-			path = Translate;
-			sourceTree = "<group>";
-		};
-		A12AA28AA9F7974BA60A92BB /* Reports */ = {
-			isa = PBXGroup;
-			children = (
-				481E56854391B5A91CBBA59E /* CrashReporter.swift */,
-				9BEB85B978198BEF7C4D6D68 /* FeedbackView.swift */,
-				ED9F6261658E864DC7E77A36 /* Report.swift */,
-				3DE93F9ADCA421C8C2616490 /* ReportOutbox.swift */,
-				9C267D393D3CE9BD6C656F60 /* ReportSender.swift */,
-			);
-			path = Reports;
-			sourceTree = "<group>";
-		};
-		C8CB390A525B7C672A8BA2EA /* Speech */ = {
-			isa = PBXGroup;
-			children = (
-				590632F017F79C6EF7B86A1E /* TextToSpeechManager.swift */,
-			);
-			path = Speech;
-			sourceTree = "<group>";
-		};
-		CA429A724C28CA1F70DE635C /* Tools */ = {
-			isa = PBXGroup;
-			children = (
-				57E581094120BFEFFD8E2C66 /* OCRBenchMain.swift */,
+				139702847D03E9D680D61557 /* OCRBenchMain.swift */,
 			);
 			name = Tools;
 			path = Sources/Tools;
 			sourceTree = "<group>";
 		};
-		E67818BD3D857A9A70891481 /* Onboarding */ = {
+		1C36811B82C7DD08ADDD4D88 /* Barcode */ = {
 			isa = PBXGroup;
 			children = (
-				F5404D40E839772F5E2E80BF /* OnboardingWindowController.swift */,
+				81C1C4A49792FEDEC680D78E /* BarcodeEngine.swift */,
 			);
-			path = Onboarding;
+			path = Barcode;
 			sourceTree = "<group>";
 		};
-		E6C13F6BE05A8062195ACA9E /* ocr */ = {
+		1F270891D5451B54938AE24E = {
 			isa = PBXGroup;
 			children = (
-				BB263D87A43A720A0D872BBA /* 1.png */,
-				A5AB62B949E8AC21D02BA846 /* 1.txt */,
-				BA7D68CA7B298B49CA56E1C4 /* 2.png */,
-				8D5C38E0BB5A699A763A1D0A /* 2.txt */,
-				A33272AD306F1947AEE7F335 /* 3.png */,
-				F09B9657E5EE2EF73F7FB56F /* 3.txt */,
-				29154C1ED53CEDAF183346A9 /* 4.png */,
-				B857AA947B65E1CD8CDB1287 /* 4.txt */,
-				6C57D6188A09D12382F4C53E /* 5.png */,
-				275733D8BA12749124D5457B /* 5.txt */,
-				D76B52BEC4C54A3AC5D3B454 /* 6.png */,
-				E7FB98C098DE34C4E947ACB8 /* 6.txt */,
-				71067B571A8F652733E03BA6 /* printed-001.pil384.rgb */,
+				F711F6C6E0CDDD330FA86B7D /* tesseract */,
+				EC0B7A5F4D9C25F4A3AF1B5D /* trocr */,
+				E4EAAF98E5B7B82CC5AED761 /* Resources */,
+				A2D52DC9BDA37B27512FD60B /* Sources */,
+				95834746D0A25BFBF9D3C8EA /* Tests */,
+				049163A971A477CAFD1757B4 /* Tools */,
+				A3CFF4A9E67D534D6C5BEFEC /* Products */,
 			);
-			path = ocr;
 			sourceTree = "<group>";
 		};
-		E983FFBA55A04276DA5F5B2E /* App */ = {
+		24AF2C38CA1B1ABBB27A7FF0 /* App */ = {
 			isa = PBXGroup;
 			children = (
-				8C9B5F1471EF5A2C9F892644 /* AppDelegate.swift */,
-				98BBE395E59602CB64ED00E3 /* KhmerClipApp.swift */,
+				F74651FC42643E19AE83E29B /* AppDelegate.swift */,
+				B94CCDA5B4ACB1D3E51C1D2C /* KhmerClipperApp.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
 		};
-		ECDB7B1BF5F5ED774421C8C9 /* Preferences */ = {
+		504166AD4EA782C554B2E3C3 /* Speech */ = {
 			isa = PBXGroup;
 			children = (
-				274781FEA2AE0B22692F817A /* AppPreferences.swift */,
-				96954E97899DE9E5DD7BFAC6 /* HotKeyRecorderView.swift */,
-				D1ED8BAC8C966CDF995222C3 /* KeepCapturesDefault.swift */,
-				E5150C71AA76ACC1D0591016 /* PreferencesView.swift */,
+				AE9B9784250F64C2E4C70E8A /* TextToSpeechManager.swift */,
+			);
+			path = Speech;
+			sourceTree = "<group>";
+		};
+		6A7B8DE4FCBF6FBCCB12629B /* LaunchAtLogin */ = {
+			isa = PBXGroup;
+			children = (
+				FFF3395DD6AA4DECC7C17D02 /* LaunchAtLoginManager.swift */,
+			);
+			path = LaunchAtLogin;
+			sourceTree = "<group>";
+		};
+		95834746D0A25BFBF9D3C8EA /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				66EBD74D025CD99255895471 /* FeedbackMergeTests.swift */,
+				B3FECC9CEB57E3F01F093357 /* FeedbackViewTests.swift */,
+				F7248CA5685405542EBD33EE /* GeometryAndRecordTests.swift */,
+				D79C87788F9C7CC8B15F0235 /* KeepCapturesDefaultTests.swift */,
+				1837131B21CF32363BCBA736 /* OCRTests.swift */,
+				D639D9B204D6E0FFCC56483B /* OCRTextFormatterTests.swift */,
+				654AAC71829E6CF1F993459C /* ReportTests.swift */,
+				6997AF8018846F9681D1687F /* TrOCRTests.swift */,
+				E51BC0820F7E2A7B28B4378D /* Fixtures */,
+			);
+			path = Tests;
+			sourceTree = "<group>";
+		};
+		9B7132CB7B80FCE925FCFBD1 /* History */ = {
+			isa = PBXGroup;
+			children = (
+				0DEBB59EDF1BD6CCC2ED300A /* FeedbackMerge.swift */,
+				2C2C2348F7CDD16CD3C32D8B /* HistoryView.swift */,
+				80C1A251CD404635C9270B62 /* ReportView.swift */,
+				55DFD0ED821232899F53FE2F /* ScanHistoryStore.swift */,
+				2C91F52E34DDEFD0C5E1CC6C /* ScanRecord.swift */,
+			);
+			path = History;
+			sourceTree = "<group>";
+		};
+		A2D52DC9BDA37B27512FD60B /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				24AF2C38CA1B1ABBB27A7FF0 /* App */,
+				1C36811B82C7DD08ADDD4D88 /* Barcode */,
+				B615054D9A62F20699A3241B /* Capture */,
+				9B7132CB7B80FCE925FCFBD1 /* History */,
+				6A7B8DE4FCBF6FBCCB12629B /* LaunchAtLogin */,
+				A87431E874513CC0E3F54A20 /* OCR */,
+				A3BC77A572C979AA5B109C5F /* Onboarding */,
+				DA6BFFF119FEE02E2C4ECFFB /* Preferences */,
+				CEFA446F06634C39125819D2 /* Reports */,
+				504166AD4EA782C554B2E3C3 /* Speech */,
+				ECA86E3CCEB73083999B7177 /* Translate */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		A3BC77A572C979AA5B109C5F /* Onboarding */ = {
+			isa = PBXGroup;
+			children = (
+				7420A21EAC6BCEE9130A2A8B /* OnboardingWindowController.swift */,
+			);
+			path = Onboarding;
+			sourceTree = "<group>";
+		};
+		A3CFF4A9E67D534D6C5BEFEC /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				16219A88284F5335CCA5678C /* KhmerClipper.app */,
+				BFD4A365236D9ACA1E77FAD0 /* KhmerClipperTests.xctest */,
+				6D64172325698296B37AF7F9 /* OCRBench */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A87431E874513CC0E3F54A20 /* OCR */ = {
+			isa = PBXGroup;
+			children = (
+				E74BF85BA59312B818EC6348 /* OCREngine.swift */,
+				BA283F0A78347F4A274118AC /* OCRTextFormatter.swift */,
+				05F999647331486F62483D03 /* TesseractEngine.swift */,
+				3A4281CD628AE0D3EC476EA8 /* TrOCREngine.swift */,
+				A6D1374DFD716AC5E60B79CD /* TrOCRTokenizer.swift */,
+			);
+			path = OCR;
+			sourceTree = "<group>";
+		};
+		B615054D9A62F20699A3241B /* Capture */ = {
+			isa = PBXGroup;
+			children = (
+				00697FDF97EFB7E036657ECF /* CaptureCoordinator.swift */,
+				530BADD45F5CE36B449912AD /* ClipboardManager.swift */,
+				4524E354A49A38EA6F905358 /* HUDWindowController.swift */,
+				458B770D9AC0A758D95ACD4D /* ImageOCRWindowController.swift */,
+				A948E9FCD7F3077F884EA6DB /* OCRProgressController.swift */,
+				D2EA862FC96CE1160CC267C6 /* ScreenCaptureManager.swift */,
+				42DF1D4250E7DE7B177495D8 /* SelectionOverlayWindow.swift */,
+				47C005D79038B8314EC0779F /* WindowPicker.swift */,
+			);
+			path = Capture;
+			sourceTree = "<group>";
+		};
+		CEFA446F06634C39125819D2 /* Reports */ = {
+			isa = PBXGroup;
+			children = (
+				D224D4470C97C2F88E019DCC /* CrashReporter.swift */,
+				E97F8FE5CC2AA03703A6684C /* FeedbackView.swift */,
+				01D2137DE3BBEC6B1483157A /* Report.swift */,
+				882BE8B5E58BB27AB8369741 /* ReportOutbox.swift */,
+				DE9A2FC16CE0FCC1952F0ED4 /* ReportSender.swift */,
+			);
+			path = Reports;
+			sourceTree = "<group>";
+		};
+		DA6BFFF119FEE02E2C4ECFFB /* Preferences */ = {
+			isa = PBXGroup;
+			children = (
+				7F3A532387023E34D19BE442 /* AppPreferences.swift */,
+				D4E1B2B80DD2CBD46065095E /* HotKeyRecorderView.swift */,
+				2E184A2F4611ACA7C848314E /* KeepCapturesDefault.swift */,
+				13738F779C5AE66BC03D7A83 /* PreferencesView.swift */,
 			);
 			path = Preferences;
 			sourceTree = "<group>";
 		};
-		F0962859F34C26F03D219AAA /* Resources */ = {
+		E4EAAF98E5B7B82CC5AED761 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				AF7A56BB03B02B64B8EC329A /* Assets.xcassets */,
-				BC420EF6DDA5EAEEF969DB61 /* Info.plist */,
-				585D95869DEBE629545CF37B /* KhmerClip.entitlements */,
+				28D6181D989A5DB8606891DE /* Assets.xcassets */,
+				582246D25BC0D3239EC61A94 /* Info.plist */,
+				59705C7AABAB84138363C2A8 /* KhmerClipper.entitlements */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
 		};
-		FFCE6204E67F450A258F1443 /* Barcode */ = {
+		E51BC0820F7E2A7B28B4378D /* Fixtures */ = {
 			isa = PBXGroup;
 			children = (
-				1AF42B15030FAE26DAE414CD /* BarcodeEngine.swift */,
+				F8D83CABFA3BC8A78DD00AED /* ocr */,
 			);
-			path = Barcode;
+			path = Fixtures;
+			sourceTree = "<group>";
+		};
+		ECA86E3CCEB73083999B7177 /* Translate */ = {
+			isa = PBXGroup;
+			children = (
+				C4119F624486EB6C1B3DA796 /* TranslateView.swift */,
+			);
+			path = Translate;
+			sourceTree = "<group>";
+		};
+		F8D83CABFA3BC8A78DD00AED /* ocr */ = {
+			isa = PBXGroup;
+			children = (
+				E050D0CCCF79AEE98BFF859E /* 1.png */,
+				93C9E04DFCAB0B0600BD45FD /* 1.txt */,
+				AA68D7E40609A7FA4FC3A620 /* 2.png */,
+				0868D124473A4D641E6922EA /* 2.txt */,
+				85E340B276EDEF1B00C9C147 /* 3.png */,
+				BA3DD25D41E4DDE7E6DF8E84 /* 3.txt */,
+				F9F607AB237D3A9B73FAD81B /* 4.png */,
+				E96518E422707D1CF605F8C5 /* 4.txt */,
+				B0C9A138713B0AB9217410C9 /* 5.png */,
+				91CA6A99A61D0BCF26CA7DBC /* 5.txt */,
+				72BCE0E31BBBAAA352D02F67 /* 6.png */,
+				BBAC56991C54F828BE29B78F /* 6.txt */,
+				8D85D173203340BA36B1FBFA /* printed-001.pil384.rgb */,
+			);
+			path = ocr;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		476A1CC699AA1ACF4346B41F /* KhmerClipTests */ = {
+		95B47F36E904F4A40E5E220A /* KhmerClipperTests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = AA0A406DBC87B7DE995655D2 /* Build configuration list for PBXNativeTarget "KhmerClipTests" */;
+			buildConfigurationList = 0D2F8FAA1AAB2C5BEDE5B593 /* Build configuration list for PBXNativeTarget "KhmerClipperTests" */;
 			buildPhases = (
-				C2B032251D7B8F4F6A014A71 /* Sources */,
-				C878FE2A755F0FA405EADAE4 /* Resources */,
+				8CDFE47E1BDF231FA7E51EED /* Sources */,
+				33A8452EB1EAC4E10C8776D5 /* Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
-			name = KhmerClipTests;
+			name = KhmerClipperTests;
 			packageProductDependencies = (
 			);
-			productName = KhmerClipTests;
-			productReference = 705A93999820618E034AB26E /* KhmerClipTests.xctest */;
+			productName = KhmerClipperTests;
+			productReference = BFD4A365236D9ACA1E77FAD0 /* KhmerClipperTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
-		5CC6FE56F87D32557C91BDC0 /* OCRBench */ = {
+		E290F63942CC0E8DEE8928DD /* KhmerClipper */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 0A4A252E49D7A651E0D3FB7D /* Build configuration list for PBXNativeTarget "OCRBench" */;
+			buildConfigurationList = 1290EBE5AD75A66A6B490EF3 /* Build configuration list for PBXNativeTarget "KhmerClipper" */;
 			buildPhases = (
-				48496E96EA81F7CC6DCBAB57 /* Sources */,
+				7339140B0CBD38FEFBEDA886 /* Sources */,
+				58B4C80850B22DCD94D5009E /* Resources */,
+				2C1CC4424BF74B0BC02A68C4 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = KhmerClipper;
+			packageProductDependencies = (
+				416DC9BCDE6311C82CCCBB2B /* MASShortcut */,
+			);
+			productName = KhmerClipper;
+			productReference = 16219A88284F5335CCA5678C /* KhmerClipper.app */;
+			productType = "com.apple.product-type.application";
+		};
+		FD1847AD83D96FE8FE23BF43 /* OCRBench */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 56429135649FEE8F4FCE8481 /* Build configuration list for PBXNativeTarget "OCRBench" */;
+			buildPhases = (
+				43C8D84DA24249D233DE9FD9 /* Sources */,
 			);
 			buildRules = (
 			);
@@ -416,187 +436,237 @@
 			packageProductDependencies = (
 			);
 			productName = OCRBench;
-			productReference = 57B0CFA4E0122085BB393B9B /* OCRBench */;
+			productReference = 6D64172325698296B37AF7F9 /* OCRBench */;
 			productType = "com.apple.product-type.tool";
-		};
-		DB62448898408809F1A64B3D /* KhmerClip */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = CE3B755AF17C072731A493EE /* Build configuration list for PBXNativeTarget "KhmerClip" */;
-			buildPhases = (
-				9F4466D900543D11A4D7CE9A /* Sources */,
-				102FE1845F375B8EE278AF2C /* Resources */,
-				3D982538BAA50385FC6D8CF3 /* Frameworks */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = KhmerClip;
-			packageProductDependencies = (
-				6CEB1675C9A8701A851B22C4 /* MASShortcut */,
-			);
-			productName = KhmerClip;
-			productReference = 6AB3F80AA3E5E885F03D3540 /* KhmerClip.app */;
-			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		8A8EBF62FDF299EA20E0D9CC /* Project object */ = {
+		0C59C9B7B4FE129233C3D640 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
-					DB62448898408809F1A64B3D = {
+					E290F63942CC0E8DEE8928DD = {
 						ProvisioningStyle = Automatic;
 					};
 				};
 			};
-			buildConfigurationList = 082AFC55A94951D21F8A033C /* Build configuration list for PBXProject "KhmerClip" */;
+			buildConfigurationList = F55F9712E2D9112D370C83E8 /* Build configuration list for PBXProject "KhmerClipper" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				Base,
 				en,
 			);
-			mainGroup = 76A5D1AF64A38ADF6FE9CB7F;
+			mainGroup = 1F270891D5451B54938AE24E;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				ED841BCABAF34FD9257FEE53 /* XCRemoteSwiftPackageReference "MASShortcut" */,
+				9F592BA2CA2E048CBC8EB91D /* XCRemoteSwiftPackageReference "MASShortcut" */,
 			);
 			preferredProjectObjectVersion = 77;
-			productRefGroup = 01A00D27D49F79819520624D /* Products */;
+			productRefGroup = A3CFF4A9E67D534D6C5BEFEC /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				DB62448898408809F1A64B3D /* KhmerClip */,
-				5CC6FE56F87D32557C91BDC0 /* OCRBench */,
-				476A1CC699AA1ACF4346B41F /* KhmerClipTests */,
+				E290F63942CC0E8DEE8928DD /* KhmerClipper */,
+				FD1847AD83D96FE8FE23BF43 /* OCRBench */,
+				95B47F36E904F4A40E5E220A /* KhmerClipperTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		102FE1845F375B8EE278AF2C /* Resources */ = {
+		33A8452EB1EAC4E10C8776D5 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				33FE2451B4FF2F18577E8CBE /* Assets.xcassets in Resources */,
-				992C1FB1D87ED2116FD96615 /* tesseract in Resources */,
-				8874B577DDA552DF46293020 /* trocr in Resources */,
+				B836EEC3511D658B6D2406A7 /* 1.png in Resources */,
+				DEDFB2792F60D304F68A5EA7 /* 1.txt in Resources */,
+				D552C5B74A5D81E15117A1D0 /* 2.png in Resources */,
+				BA8E4E4D902CE980150D7842 /* 2.txt in Resources */,
+				4D74925E3380FF3923C8FF43 /* 3.png in Resources */,
+				AB58FFF250D8BE75F4E5B23C /* 3.txt in Resources */,
+				348257EAF1656ACBF8DEEB1B /* 4.png in Resources */,
+				28F70975DD8632C9BD06EF9B /* 4.txt in Resources */,
+				757986F800F8447FE59EE676 /* 5.png in Resources */,
+				3069E24D00EAB9DF581D159B /* 5.txt in Resources */,
+				94C0B5DFFC85FFB167599AEF /* 6.png in Resources */,
+				0B355E9B04A39400E76E920C /* 6.txt in Resources */,
+				D8CB37DBFA70A8E1074FE822 /* printed-001.pil384.rgb in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		C878FE2A755F0FA405EADAE4 /* Resources */ = {
+		58B4C80850B22DCD94D5009E /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				C22795622E2CD6145F872E34 /* 1.png in Resources */,
-				2CAF3C3EC3976DA8DDB82080 /* 1.txt in Resources */,
-				C1A8FF3908EADEED8107F6BB /* 2.png in Resources */,
-				EA0A88332A2E9405E693BAB9 /* 2.txt in Resources */,
-				4AE75FA35E53A70E10549043 /* 3.png in Resources */,
-				B33ACA7CE1674E2331B6C030 /* 3.txt in Resources */,
-				2D553B5E08AF13B236F172BB /* 4.png in Resources */,
-				1792A170B854F64D61D2C946 /* 4.txt in Resources */,
-				3B6BE2B14B802E40CF9677EE /* 5.png in Resources */,
-				A34CA6CC51CD3567396C60DA /* 5.txt in Resources */,
-				02B5A9DA5DED5F776368762D /* 6.png in Resources */,
-				7B6184EC31E95213DB70B8E5 /* 6.txt in Resources */,
-				C402E54A9E2C79FFF5333AC3 /* printed-001.pil384.rgb in Resources */,
+				A03D3BD9680AF7CE61E65828 /* Assets.xcassets in Resources */,
+				21C5B0CC35010491520F0E04 /* tesseract in Resources */,
+				D096455ADA61EAAA46DFB02E /* trocr in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		48496E96EA81F7CC6DCBAB57 /* Sources */ = {
+		43C8D84DA24249D233DE9FD9 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				0BBBCFBB36E86714BBC36B4D /* OCRBenchMain.swift in Sources */,
-				8E7C178EAC77905846106190 /* OCREngine.swift in Sources */,
-				A52326F246C6EB2B43DC952B /* OCRTextFormatter.swift in Sources */,
-				4A8FFF96FE052EA269EFC7DF /* TesseractEngine.swift in Sources */,
-				367FBC107697BD0AEDD8E0B2 /* TrOCREngine.swift in Sources */,
-				30000BA7D07A63444603170A /* TrOCRTokenizer.swift in Sources */,
+				126C0313137F3AD6C237AF5D /* OCRBenchMain.swift in Sources */,
+				108CA6A97E9DBC1C212D4AA2 /* OCREngine.swift in Sources */,
+				0F8FEE0F6FABFA3C5D5E7D10 /* OCRTextFormatter.swift in Sources */,
+				6D5C4CE0AF6C7D9B3D2FF25A /* TesseractEngine.swift in Sources */,
+				64DF380687A1D4D87A1C7C8C /* TrOCREngine.swift in Sources */,
+				57187F219B48D986A775FE9A /* TrOCRTokenizer.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		9F4466D900543D11A4D7CE9A /* Sources */ = {
+		7339140B0CBD38FEFBEDA886 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				8C7D5AC8D1C094DB4E95CA70 /* AppDelegate.swift in Sources */,
-				2870C79499EDFDD1E53E4C90 /* AppPreferences.swift in Sources */,
-				C6AF9F5EADE093C539977639 /* BarcodeEngine.swift in Sources */,
-				E73DC34EC0FE9E533FA1FB64 /* CaptureCoordinator.swift in Sources */,
-				4127D7D28758F5D87E8BBEA3 /* ClipboardManager.swift in Sources */,
-				576D89E4CD2B3CC713B85168 /* CrashReporter.swift in Sources */,
-				C73D3A37E257E1B1DC04FE64 /* FeedbackMerge.swift in Sources */,
-				720996C1FCC15EB1CBDC15AE /* FeedbackView.swift in Sources */,
-				A7A05BF6217CF3900EB4E324 /* HUDWindowController.swift in Sources */,
-				8075B37A149AB14884F7AA5A /* HistoryView.swift in Sources */,
-				B2C94F79D7ADDBAD2ACD8396 /* HotKeyRecorderView.swift in Sources */,
-				994BFAC817AB829C06680AA5 /* ImageOCRWindowController.swift in Sources */,
-				2B3783F51D025DEF64804B9A /* KeepCapturesDefault.swift in Sources */,
-				FFA91E591BE8C3E91D2794A0 /* KhmerClipApp.swift in Sources */,
-				028B8332AD6CA94EB8623526 /* LaunchAtLoginManager.swift in Sources */,
-				CEFB376100563168C0BEB4B7 /* OCREngine.swift in Sources */,
-				10DD34983E9839B89058D803 /* OCRProgressController.swift in Sources */,
-				F35C1034EFAE67AD22785090 /* OCRTextFormatter.swift in Sources */,
-				8240A87A75BA64758C709283 /* OnboardingWindowController.swift in Sources */,
-				7E3D61D7E4778991CA35C648 /* PreferencesView.swift in Sources */,
-				B63EEB182F93684045F43490 /* Report.swift in Sources */,
-				B405762C8FC5CAC2E67980BA /* ReportOutbox.swift in Sources */,
-				59B7550CD991690EDAD66F1A /* ReportSender.swift in Sources */,
-				9AA71972954C5D83E6550B7F /* ReportView.swift in Sources */,
-				8AC42638CB9C219520CC4FEB /* ScanHistoryStore.swift in Sources */,
-				4EF98F2F0094EE8AC67E709E /* ScanRecord.swift in Sources */,
-				4F3E21076891B79EC1B5B2C3 /* ScreenCaptureManager.swift in Sources */,
-				77732F84485C0420269D780E /* SelectionOverlayWindow.swift in Sources */,
-				6B0A9519786FD5AC3F30F198 /* TesseractEngine.swift in Sources */,
-				41B6E16B8A68760DCC969C98 /* TextToSpeechManager.swift in Sources */,
-				05F97A238434B520C7D4C0F4 /* TrOCREngine.swift in Sources */,
-				15D5F59B1F49A5147C614D91 /* TrOCRTokenizer.swift in Sources */,
-				6E7EDDC0E6D136C7BD84B3B1 /* TranslateView.swift in Sources */,
-				5BEDD79CAC327435065D2212 /* WindowPicker.swift in Sources */,
+				F59BA4D9D6FE5C57AE9116CC /* AppDelegate.swift in Sources */,
+				F41EE8432653A334F09627F1 /* AppPreferences.swift in Sources */,
+				6657094FEFBBCF2417AA1C4C /* BarcodeEngine.swift in Sources */,
+				BAFDB74EC14969032F86BEED /* CaptureCoordinator.swift in Sources */,
+				84350A6623D7FE8812E0F12D /* ClipboardManager.swift in Sources */,
+				BF93148FCE8FA2C1C49DF1FF /* CrashReporter.swift in Sources */,
+				8FA9660157B9094F4F245802 /* FeedbackMerge.swift in Sources */,
+				6EBB260215C9EB05BB7AB01E /* FeedbackView.swift in Sources */,
+				DD49AAC0E667B5A8107ABAF3 /* HUDWindowController.swift in Sources */,
+				D6DA89FB70574E8D045BFA1B /* HistoryView.swift in Sources */,
+				4D7E76E9F757AA606AA7CF9E /* HotKeyRecorderView.swift in Sources */,
+				BA29238280EAEB2139583FB3 /* ImageOCRWindowController.swift in Sources */,
+				40614E8A400577AC4C1CAA96 /* KeepCapturesDefault.swift in Sources */,
+				24388E7B35F6E1BF247FF6B7 /* KhmerClipperApp.swift in Sources */,
+				01583F4319E7558282A3D898 /* LaunchAtLoginManager.swift in Sources */,
+				EBECC38099C1FF8C622D0D37 /* OCREngine.swift in Sources */,
+				4CF7DA914BDD7E522DC21954 /* OCRProgressController.swift in Sources */,
+				121B5C8305F055E326D04B59 /* OCRTextFormatter.swift in Sources */,
+				A1138598AD128D32FD2F0D45 /* OnboardingWindowController.swift in Sources */,
+				37823F681783A9F0ED09DFC1 /* PreferencesView.swift in Sources */,
+				16ADA182DBE0934167C21474 /* Report.swift in Sources */,
+				E8F00D19302462C574643A8B /* ReportOutbox.swift in Sources */,
+				A49D2CC1AD70AA21924C9F03 /* ReportSender.swift in Sources */,
+				947F537949BDBEA1A959CD04 /* ReportView.swift in Sources */,
+				40C52C44226C2691E4EA6B20 /* ScanHistoryStore.swift in Sources */,
+				EB90F6C2AA1D19EAA43853D5 /* ScanRecord.swift in Sources */,
+				2D347DA31489D1FFDFC7C2EF /* ScreenCaptureManager.swift in Sources */,
+				3A12F28B15D0134BF9E9FA18 /* SelectionOverlayWindow.swift in Sources */,
+				15020B854D090DCB67E42A6B /* TesseractEngine.swift in Sources */,
+				9E3092099BB70E2F0CA00D8E /* TextToSpeechManager.swift in Sources */,
+				8CCBD5927CC5AEA3A9DE850A /* TrOCREngine.swift in Sources */,
+				6F584930EA626B2EC579C4DC /* TrOCRTokenizer.swift in Sources */,
+				6E4163B99C5E6FAA686B8F2D /* TranslateView.swift in Sources */,
+				FB5717E9B95F33CC78BB3783 /* WindowPicker.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		C2B032251D7B8F4F6A014A71 /* Sources */ = {
+		8CDFE47E1BDF231FA7E51EED /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				416DD1874236F00F2A7C41EC /* CrashReporter.swift in Sources */,
-				1AF99412C9D309F149324AC6 /* FeedbackMerge.swift in Sources */,
-				2D9F7E3A21CACC4B529B58A5 /* FeedbackMergeTests.swift in Sources */,
-				82EA2196132FC9257CE76A43 /* FeedbackView.swift in Sources */,
-				6F83B94BFB8C20AA457F237B /* FeedbackViewTests.swift in Sources */,
-				7E6089D818FE50C494A037C3 /* GeometryAndRecordTests.swift in Sources */,
-				5E3547EBE713E72996F7F465 /* KeepCapturesDefault.swift in Sources */,
-				DAF89C36D62AE66D43DF8E44 /* KeepCapturesDefaultTests.swift in Sources */,
-				7A09CCD0C906E6110CE4C3EF /* OCREngine.swift in Sources */,
-				BA47AF7E456BCF6A7EB62FF4 /* OCRTests.swift in Sources */,
-				C321D1D92BD527D82CA7AED0 /* OCRTextFormatter.swift in Sources */,
-				07BDE15F0DD21B40B1B12CA5 /* OCRTextFormatterTests.swift in Sources */,
-				4EB2509868306F9AB81D895E /* Report.swift in Sources */,
-				04F79F673716A8816D1E8988 /* ReportOutbox.swift in Sources */,
-				7CB1F50B8FC3E5E54EE7A5E5 /* ReportTests.swift in Sources */,
-				0F9EAD00BE67E31178E23F78 /* ScanRecord.swift in Sources */,
-				D257C17027A8D9C9057E1E38 /* TesseractEngine.swift in Sources */,
-				50533DCABA72E2298F0FF443 /* TrOCREngine.swift in Sources */,
-				0252425B38FFEFC59B9471E1 /* TrOCRTests.swift in Sources */,
-				47C85E4C6E588F111DD8E015 /* TrOCRTokenizer.swift in Sources */,
-				87D1802D7FDAEA9661EE8D05 /* WindowPicker.swift in Sources */,
+				C6FD0C51A90B7EED32D1FECF /* CrashReporter.swift in Sources */,
+				F3A9D8B5E6E7584380A33666 /* FeedbackMerge.swift in Sources */,
+				D9641A754BB4297ECF19C641 /* FeedbackMergeTests.swift in Sources */,
+				F5918C12E1F53B06BA49960C /* FeedbackView.swift in Sources */,
+				730DC20C04FA689E2692132E /* FeedbackViewTests.swift in Sources */,
+				2BCEE34D6A0331AC044645BC /* GeometryAndRecordTests.swift in Sources */,
+				F274C72B2FDA33071CEF17D6 /* KeepCapturesDefault.swift in Sources */,
+				961B052DB40D5789BFD2681C /* KeepCapturesDefaultTests.swift in Sources */,
+				DDD9E2A068593E15A6F0BF2F /* OCREngine.swift in Sources */,
+				85EE2D6CDEDC464846F695FB /* OCRTests.swift in Sources */,
+				127CA418ED837390E5223DF7 /* OCRTextFormatter.swift in Sources */,
+				C6B99F5FCCB464CC150756EE /* OCRTextFormatterTests.swift in Sources */,
+				E35E27B5ED619085C85F8587 /* Report.swift in Sources */,
+				91092AB51E9C2326F4DEC0E5 /* ReportOutbox.swift in Sources */,
+				BD58A3FC7E42D29BB7E9BA47 /* ReportTests.swift in Sources */,
+				7B6FB1657E9479D57790FC39 /* ScanRecord.swift in Sources */,
+				ACE1D389F260ED519A93F5BB /* TesseractEngine.swift in Sources */,
+				D14947A315FDE8A5C6AE7319 /* TrOCREngine.swift in Sources */,
+				08A927DA7E4CC08E446C7430 /* TrOCRTests.swift in Sources */,
+				9879614BE4E8116CBF901478 /* TrOCRTokenizer.swift in Sources */,
+				0E7666874D072962DF0516BB /* WindowPicker.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		5D4CB92C2A02157A9CE03516 /* Debug */ = {
+		13D237885CC56999C42B8CCB /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Resources/KhmerClipper.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.khmerclipper.app;
+				PRODUCT_NAME = KhmerClipper;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		19F39A2711D486E04051DDDD /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.khmerclipper.tests;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		2FE44ABB22CBD00967A0EA7A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Resources/KhmerClipper.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.khmerclipper.app;
+				PRODUCT_NAME = KhmerClipper;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		A54C1AA0460601E49C1D4180 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				OTHER_CODE_SIGN_FLAGS = "--options=runtime";
+				PRODUCT_BUNDLE_IDENTIFIER = com.khmerclipper.ocrbench;
+				PRODUCT_NAME = OCRBench;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		B263C2E68ED4C0C17A940712 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -659,7 +729,24 @@
 			};
 			name = Debug;
 		};
-		7EC7664E400D2A3F0FD5689F /* Release */ = {
+		BC6367D3EBB8B9651699E0F4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				OTHER_CODE_SIGN_FLAGS = "--options=runtime";
+				PRODUCT_BUNDLE_IDENTIFIER = com.khmerclipper.ocrbench;
+				PRODUCT_NAME = OCRBench;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		FB69B7051125F697A16D7B7F /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -715,7 +802,7 @@
 			};
 			name = Release;
 		};
-		902D7C5F8C1232818961BAB6 /* Debug */ = {
+		FFE56E7E3F908C61E1DDC1C1 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
@@ -725,133 +812,46 @@
 					"@executable_path/../Frameworks",
 					"@loader_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.khmerclip.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.khmerclipper.tests;
 				SDKROOT = macosx;
 			};
 			name = Debug;
-		};
-		9F1B6C1944C7A8581913F632 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_IDENTITY = "-";
-				COMBINE_HIDPI_IMAGES = YES;
-				ENABLE_HARDENED_RUNTIME = YES;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-				);
-				OTHER_CODE_SIGN_FLAGS = "--options=runtime";
-				PRODUCT_BUNDLE_IDENTIFIER = com.khmerclip.ocrbench;
-				PRODUCT_NAME = OCRBench;
-				SDKROOT = macosx;
-			};
-			name = Debug;
-		};
-		A2657E368F29B624F419DF5E /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = Resources/KhmerClip.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				COMBINE_HIDPI_IMAGES = YES;
-				ENABLE_HARDENED_RUNTIME = YES;
-				INFOPLIST_FILE = Resources/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.khmerclip.app;
-				PRODUCT_NAME = KhmerClip;
-				SDKROOT = macosx;
-			};
-			name = Debug;
-		};
-		D5AE798ED877A1C319F00311 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_IDENTITY = "-";
-				COMBINE_HIDPI_IMAGES = YES;
-				ENABLE_HARDENED_RUNTIME = YES;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-				);
-				OTHER_CODE_SIGN_FLAGS = "--options=runtime";
-				PRODUCT_BUNDLE_IDENTIFIER = com.khmerclip.ocrbench;
-				PRODUCT_NAME = OCRBench;
-				SDKROOT = macosx;
-			};
-			name = Release;
-		};
-		DAEB1A580DA0627EA547CDB9 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				COMBINE_HIDPI_IMAGES = YES;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-					"@loader_path/../Frameworks",
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.khmerclip.tests;
-				SDKROOT = macosx;
-			};
-			name = Release;
-		};
-		E0AF5073CA789E83E71F2ADF /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = Resources/KhmerClip.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				COMBINE_HIDPI_IMAGES = YES;
-				ENABLE_HARDENED_RUNTIME = YES;
-				INFOPLIST_FILE = Resources/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.khmerclip.app;
-				PRODUCT_NAME = KhmerClip;
-				SDKROOT = macosx;
-			};
-			name = Release;
 		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		082AFC55A94951D21F8A033C /* Build configuration list for PBXProject "KhmerClip" */ = {
+		0D2F8FAA1AAB2C5BEDE5B593 /* Build configuration list for PBXNativeTarget "KhmerClipperTests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				5D4CB92C2A02157A9CE03516 /* Debug */,
-				7EC7664E400D2A3F0FD5689F /* Release */,
+				FFE56E7E3F908C61E1DDC1C1 /* Debug */,
+				19F39A2711D486E04051DDDD /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
-		0A4A252E49D7A651E0D3FB7D /* Build configuration list for PBXNativeTarget "OCRBench" */ = {
+		1290EBE5AD75A66A6B490EF3 /* Build configuration list for PBXNativeTarget "KhmerClipper" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				9F1B6C1944C7A8581913F632 /* Debug */,
-				D5AE798ED877A1C319F00311 /* Release */,
+				13D237885CC56999C42B8CCB /* Debug */,
+				2FE44ABB22CBD00967A0EA7A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
-		AA0A406DBC87B7DE995655D2 /* Build configuration list for PBXNativeTarget "KhmerClipTests" */ = {
+		56429135649FEE8F4FCE8481 /* Build configuration list for PBXNativeTarget "OCRBench" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				902D7C5F8C1232818961BAB6 /* Debug */,
-				DAEB1A580DA0627EA547CDB9 /* Release */,
+				BC6367D3EBB8B9651699E0F4 /* Debug */,
+				A54C1AA0460601E49C1D4180 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
-		CE3B755AF17C072731A493EE /* Build configuration list for PBXNativeTarget "KhmerClip" */ = {
+		F55F9712E2D9112D370C83E8 /* Build configuration list for PBXProject "KhmerClipper" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				A2657E368F29B624F419DF5E /* Debug */,
-				E0AF5073CA789E83E71F2ADF /* Release */,
+				B263C2E68ED4C0C17A940712 /* Debug */,
+				FB69B7051125F697A16D7B7F /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
@@ -859,7 +859,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		ED841BCABAF34FD9257FEE53 /* XCRemoteSwiftPackageReference "MASShortcut" */ = {
+		9F592BA2CA2E048CBC8EB91D /* XCRemoteSwiftPackageReference "MASShortcut" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/cocoabits/MASShortcut";
 			requirement = {
@@ -870,12 +870,12 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		6CEB1675C9A8701A851B22C4 /* MASShortcut */ = {
+		416DC9BCDE6311C82CCCBB2B /* MASShortcut */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = ED841BCABAF34FD9257FEE53 /* XCRemoteSwiftPackageReference "MASShortcut" */;
+			package = 9F592BA2CA2E048CBC8EB91D /* XCRemoteSwiftPackageReference "MASShortcut" */;
 			productName = MASShortcut;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
-	rootObject = 8A8EBF62FDF299EA20E0D9CC /* Project object */;
+	rootObject = 0C59C9B7B4FE129233C3D640 /* Project object */;
 }

@@ -1,6 +1,6 @@
 from PIL import Image, ImageDraw
 
-from khmerclip_eval.pipeline import blocked_token, line_strips, split_wide
+from khmerclipper_eval.pipeline import blocked_token, line_strips, split_wide
 
 
 def blocks(size, boxes, fg="black", bg="white"):
@@ -100,7 +100,7 @@ def test_split_wide_never_emits_a_piece_without_core_ink():
 
 
 def test_cycle_blocked_token():
-    from khmerclip_eval.pipeline import cycle_blocked_token
+    from khmerclipper_eval.pipeline import cycle_blocked_token
 
     assert cycle_blocked_token([0, 7, 9, 7, 9, 7, 9, 7, 9, 7]) == 9  # a 5th "7 9" would follow
     assert cycle_blocked_token([0, 7, 9, 7, 9, 7, 9, 7]) is None  # ". . . " stays legal
