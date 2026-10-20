@@ -91,8 +91,8 @@ def test_prefs_window_saves_changes(qtbot, tmp_path):
         window.checks["auto_copy"].setChecked(False)
     assert blocker.args == ["auto_copy"]
     assert Prefs.load(tmp_path / "prefs.json").auto_copy is False
-    window.engine.setCurrentIndex(window.engine.findData("trocr"))
-    assert Prefs.load(tmp_path / "prefs.json").engine == "trocr"
+    window.engine.setCurrentIndex(window.engine.findData("tesseract"))
+    assert Prefs.load(tmp_path / "prefs.json").engine == "tesseract"
 
 
 def test_prefs_window_disables_unpublished_trocr_and_wayland_hotkey(qtbot, tmp_path):

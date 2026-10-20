@@ -30,11 +30,11 @@ Apple's Vision framework, and most OCR tools, can't read Khmer. KhmerClipper shi
 | Auto-copy to clipboard, result popup, history | ✅ | ✅ |
 | OCR an image file | — | ✅ |
 | Launch at login, update check | ✅ | ✅ |
-| Engines: Tesseract (default) and Khmer TrOCR | ✅ CoreML | ✅ ONNX, downloaded on first use |
+| Engines: Khmer TrOCR (default) and Tesseract | ✅ CoreML | ✅ ONNX, downloaded when the app first opens |
 | Capture a whole window (Space while selecting) | ✅ | — |
 | Khmer text-to-speech, on-device translation | ✅ | — |
 
-Choose the engine in **Preferences → OCR Engine**. Tesseract is the default. **TrOCR** is far more accurate on Khmer (see [Results](#results)).
+Choose the engine in **Preferences → OCR Engine**. **TrOCR** is the default and is far more accurate on Khmer (see [Results](#results)).
 
 ## Download
 

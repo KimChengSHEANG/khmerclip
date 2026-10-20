@@ -12,7 +12,7 @@ class Prefs:
     auto_copy: bool = True
     show_result: bool = True
     preserve_linebreaks: bool = True
-    engine: str = "tesseract"
+    engine: str = "trocr"
     hotkey: str = "<ctrl>+<shift>+2"
     launch_at_login: bool = False
     check_updates: bool = True
@@ -43,7 +43,7 @@ class Prefs:
             if type(value) is type(default) or (type(default) is float and type(value) is int):
                 setattr(prefs, f.name, type(default)(value))
         if prefs.engine not in ENGINES:
-            prefs.engine = "tesseract"
+            prefs.engine = "trocr"
         return prefs
 
     def save(self) -> None:

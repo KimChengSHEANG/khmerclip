@@ -86,6 +86,7 @@ class Controller(QObject):
         self.selector = RegionSelector()
         self.selector.selected.connect(self.run_ocr)
         self._tasks: dict[Task, _Relay] = {}
+        self.model_download: Task | None = None  # startup TrOCR download, while running
         self.capture_requested.connect(self.start_capture)
 
     # --- capture -------------------------------------------------------------
@@ -118,6 +119,9 @@ class Controller(QObject):
         manifest = trocr_models.load_manifest()
         if os.environ.get("KHMERCLIPPER_TROCR_DIR") or trocr_models.is_installed(manifest):
             return True
+        if self.model_download is not None:
+            self.popup.show_message("The TrOCR model is still downloading. Try again in a few minutes.")
+            return False
         if not manifest.available:
             self.popup.show_message("The TrOCR model isn't published yet. Switch to Tesseract in Preferences.")
             return False
@@ -130,6 +134,27 @@ class Controller(QObject):
                         manifest, progress=lambda done, total: progress((done, total)), cancel=cancel),
                     on_done=lambda _dir: self.run_ocr(image), dialog=dialog)
         return False
+
+    def download_trocr_model(self) -> int:
+        """Start fetching the TrOCR model in the background (no prompt) when it's the chosen
+        engine and missing. Returns the download size in MB, or 0 if nothing was started.
+        A failure (e.g. offline) is silent: the next capture offers the download again."""
+        manifest = trocr_models.load_manifest()
+        if (self.prefs.engine != Engine.TROCR or self.model_download is not None or not manifest.available
+                or os.environ.get("KHMERCLIP_TROCR_DIR") or trocr_models.is_installed(manifest)):
+            return 0
+
+        def fetch(progress, cancel) -> None:
+            try:
+                trocr_models.install(manifest, cancel=cancel)
+            except KhmerClipError:  # includes Cancelled
+                pass
+
+        def done(_result) -> None:
+            self.model_download = None
+
+        self.model_download = self.submit(fetch, on_done=done)
+        return max(1, manifest.total_size // 1_000_000)
 
     def handle_text(self, text: str, kind: str = "text", image=None) -> None:
         if not text.strip():
@@ -256,6 +281,9 @@ class TrayApp(QObject):
             prefs.save()
         if prefs.check_updates and updater.due(prefs.last_update_check, time.time()):
             self.check_updates(False)
+        if size_mb := controller.download_trocr_model():
+            self.tray.showMessage(f"Downloading the TrOCR model ({size_mb} MB)",
+                                  "It runs in the background. Text capture uses it once the download finishes.")
 
     def register_hotkey(self) -> bool:
         return self.hotkeys.start(self.c.prefs.hotkey, self.c.capture_requested.emit)
@@ -403,6 +431,8 @@ def run_gui(capture: bool = False) -> int:
     tray = TrayApp(controller)
     server.command.connect(tray.on_command)
     qapp.aboutToQuit.connect(tray.hotkeys.stop)
+    if controller.model_download is not None:  # the pool waits for running tasks on exit
+        qapp.aboutToQuit.connect(controller.model_download.cancel.set)
     qapp.aboutToQuit.connect(server.close)  # drop client sockets before Qt tears the server down
     if capture:
         QTimer.singleShot(0, controller.start_capture)

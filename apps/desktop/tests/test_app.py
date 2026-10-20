@@ -15,7 +15,9 @@ from khmerclipper.ui.app import Controller, TrayApp, preferred_qpa
 @pytest.fixture
 def controller(qtbot, tmp_path):
     copied = []
-    c = Controller(Prefs.load(tmp_path / "prefs.json"), HistoryStore(tmp_path / "h.json"), set_clipboard=copied.append)
+    prefs = Prefs.load(tmp_path / "prefs.json")
+    prefs.engine = "tesseract"  # the TrOCR default would prompt for (or start) a real model download
+    c = Controller(prefs, HistoryStore(tmp_path / "h.json"), set_clipboard=copied.append)
     c.copied = copied
     qtbot.addWidget(c.popup)
     return c
@@ -82,6 +84,30 @@ def test_trocr_unpublished_explains_instead_of_crashing(controller, monkeypatch)
     controller.run_ocr(Image.new("RGB", (20, 20), "white"))
     assert "isn't published" in controller.popup.label.text()
     assert controller.history.records == []
+
+
+def test_startup_downloads_missing_trocr_model_once(controller, qtbot, monkeypatch):
+    monkeypatch.delenv("KHMERCLIP_TROCR_DIR", raising=False)
+    manifest = trocr_models.Manifest("khmer-v3", (trocr_models.RemoteFile("a", "u", "h", 5_000_000),))
+    monkeypatch.setattr(trocr_models, "load_manifest", lambda path=None: manifest)
+    monkeypatch.setattr(trocr_models, "is_installed", lambda m, root=None: False)
+    release, installs = threading.Event(), []
+
+    def install(m, root=None, progress=None, cancel=None):
+        installs.append(m)
+        release.wait(3)
+        raise KhmerClipError("offline")  # a failed background download stays silent
+
+    monkeypatch.setattr(trocr_models, "install", install)
+    assert controller.download_trocr_model() == 0  # Tesseract chosen: nothing to fetch
+    controller.prefs.engine = "trocr"
+    assert controller.download_trocr_model() == 5
+    assert controller.download_trocr_model() == 0  # already running
+    controller.run_ocr(Image.new("RGB", (20, 20), "white"))
+    assert "still downloading" in controller.popup.label.text()
+    release.set()
+    qtbot.waitUntil(lambda: controller.model_download is None, timeout=3000)
+    assert len(installs) == 1 and "still downloading" in controller.popup.label.text()
 
 
 def test_tray_menu_and_commands(controller, monkeypatch):

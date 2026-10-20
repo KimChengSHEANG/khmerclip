@@ -2,7 +2,7 @@
 
 Khmer OCR menu bar app for macOS — grab-select any text on screen, get instant Khmer (and mixed Khmer/English) text extraction. A TextSniper clone with Khmer support as the primary focus.
 
-**Quick start:** clone → `brew install xcodegen` → `make run`. Tesseract OCR works immediately (default engine after the 2026-10-03 Mac CoreML gate). TrOCR needs extra setup — see [Build and run](#build-and-run) and [OCR engines](#ocr-engines).
+**Quick start:** clone → `brew install xcodegen` → `make run`. TrOCR is the default engine and needs extra setup (`make trocr-khmer`); switch to Tesseract in Preferences for OCR without it. TrOCR setup — see [Build and run](#build-and-run) and [OCR engines](#ocr-engines).
 
 ## Features
 
@@ -26,7 +26,7 @@ Khmer OCR menu bar app for macOS — grab-select any text on screen, get instant
 
 ## OCR engines
 
-All three backends handle Khmer text mixed with English words/numerals (e.g. `"ដក language ផ្សេងទៀត"`). Pick one in **Preferences → OCR Engine**. Default is **Tesseract** after the 2026-10-03 Mac CoreML gate (TrOCR failed mixed-subset CER only); see [Mac CoreML gate policy](#mac-coreml-gate-default-engine).
+All three backends handle Khmer text mixed with English words/numerals (e.g. `"ដក language ផ្សេងទៀត"`). Pick one in **Preferences → OCR Engine**. Default is **TrOCR** (the 2026-10-03 Mac CoreML gate failed on mixed-subset CER only); see [Mac CoreML gate policy](#mac-coreml-gate-default-engine).
 
 | Engine | Runtime | Setup | Notes |
 |--------|---------|-------|-------|
@@ -77,8 +77,8 @@ After conversion, rebuild the app (`make build`) so Xcode bundles the new `.mlpa
 
 Gate recorded **2026-10-03** on the frozen 200-fixture set with KV-cache CoreML
 TrOCR (Release `OCRBench`). Outcome: **FAIL** on mixed-subset CER only (overall
-CER and latency passed). New installs default to **Tesseract**; TrOCR remains
-available after `make trocr-khmer`. When TrOCR runs, CoreML compute units
+CER and latency passed). New installs nevertheless default to **TrOCR** (bundled in release builds; dev builds
+need `make trocr-khmer`). When TrOCR runs, CoreML compute units
 default to **GPU** (`.cpuAndGPU`).
 
 Operator checklist:
