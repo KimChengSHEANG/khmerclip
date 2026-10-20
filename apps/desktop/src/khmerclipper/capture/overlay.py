@@ -7,8 +7,8 @@ from collections.abc import Callable
 from functools import partial
 
 from PIL import Image
-from PySide6.QtCore import QBuffer, QIODevice, QObject, QRect, Qt, Signal
-from PySide6.QtGui import QColor, QGuiApplication, QImage, QPainter, QPen, QPixmap, QRegion, QScreen
+from PySide6.QtCore import QBuffer, QIODevice, QObject, QPointF, QRect, QRectF, Qt, Signal
+from PySide6.QtGui import QColor, QFont, QGuiApplication, QImage, QPainter, QPen, QPixmap, QScreen
 from PySide6.QtWidgets import QWidget
 
 from khmerclipper.capture.geometry import normalize_drag, to_physical
@@ -48,15 +48,28 @@ class _Overlay(QWidget):
         painter = QPainter(self)
         painter.drawPixmap(self.rect(), self.pixmap)
         selection = self._selection()
-        dimmed = QRegion(self.rect())
-        if selection:
-            dimmed = dimmed.subtracted(QRegion(selection))
-        painter.setClipRegion(dimmed)
-        painter.fillRect(self.rect(), QColor(0, 0, 0, 100))
-        painter.setClipping(False)
-        if selection:
-            painter.setPen(QPen(QColor("#4da3ff"), 1))
-            painter.drawRect(selection)
+        if not selection:
+            return
+        # Match the macOS overlay: screen stays undimmed, only the selection is shaded.
+        painter.fillRect(selection, QColor(0, 0, 0, 77))
+        painter.setPen(QPen(QColor("white"), 1.5))
+        painter.drawRect(selection)
+        self._draw_label(painter, f"{selection.width()} × {selection.height()}")
+
+    def _draw_label(self, painter: QPainter, text: str) -> None:
+        font = QFont()
+        font.setPointSize(12)
+        font.setWeight(QFont.Weight.Medium)
+        painter.setFont(font)
+        metrics = painter.fontMetrics()
+        box = QRectF(0, 0, metrics.horizontalAdvance(text) + 16, metrics.height() + 8)
+        box.moveBottomLeft(self._current + QPointF(14, -14))
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.setBrush(QColor(0, 0, 0, 191))
+        painter.drawRoundedRect(box, 4, 4)
+        painter.setPen(QColor("white"))
+        painter.drawText(box, Qt.AlignmentFlag.AlignCenter, text)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
