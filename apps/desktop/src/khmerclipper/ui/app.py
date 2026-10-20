@@ -141,13 +141,13 @@ class Controller(QObject):
         A failure (e.g. offline) is silent: the next capture offers the download again."""
         manifest = trocr_models.load_manifest()
         if (self.prefs.engine != Engine.TROCR or self.model_download is not None or not manifest.available
-                or os.environ.get("KHMERCLIP_TROCR_DIR") or trocr_models.is_installed(manifest)):
+                or os.environ.get("KHMERCLIPPER_TROCR_DIR") or trocr_models.is_installed(manifest)):
             return 0
 
         def fetch(progress, cancel) -> None:
             try:
                 trocr_models.install(manifest, cancel=cancel)
-            except KhmerClipError:  # includes Cancelled
+            except KhmerClipperError:  # includes Cancelled
                 pass
 
         def done(_result) -> None:

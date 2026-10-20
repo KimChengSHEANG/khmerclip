@@ -87,7 +87,7 @@ def test_trocr_unpublished_explains_instead_of_crashing(controller, monkeypatch)
 
 
 def test_startup_downloads_missing_trocr_model_once(controller, qtbot, monkeypatch):
-    monkeypatch.delenv("KHMERCLIP_TROCR_DIR", raising=False)
+    monkeypatch.delenv("KHMERCLIPPER_TROCR_DIR", raising=False)
     manifest = trocr_models.Manifest("khmer-v3", (trocr_models.RemoteFile("a", "u", "h", 5_000_000),))
     monkeypatch.setattr(trocr_models, "load_manifest", lambda path=None: manifest)
     monkeypatch.setattr(trocr_models, "is_installed", lambda m, root=None: False)
@@ -96,7 +96,7 @@ def test_startup_downloads_missing_trocr_model_once(controller, qtbot, monkeypat
     def install(m, root=None, progress=None, cancel=None):
         installs.append(m)
         release.wait(3)
-        raise KhmerClipError("offline")  # a failed background download stays silent
+        raise KhmerClipperError("offline")  # a failed background download stays silent
 
     monkeypatch.setattr(trocr_models, "install", install)
     assert controller.download_trocr_model() == 0  # Tesseract chosen: nothing to fetch
