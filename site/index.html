@@ -135,6 +135,7 @@
       <div class="cta">
         <a class="btn primary" href="https://github.com/KimChengSHEANG/khmerclipper/releases/latest">Download</a>
         <a class="btn ghost" href="https://github.com/KimChengSHEANG/khmerclipper">View source</a>
+        <a class="btn ghost" href="https://huggingface.co/kcsheang/khmerclipper-trocr-khmer">Get the model</a>
       </div>
       <div class="platforms">macOS 15+ (Apple Silicon) · Windows · Linux · Free and open source</div>
     </div>
@@ -198,7 +199,7 @@
 <section id="how">
   <div class="wrap">
     <h2>How it works</h2>
-    <p class="sub">A TrOCR model fine-tuned on over a million Khmer and English text lines, exported to run locally on each platform.</p>
+    <p class="sub">A TrOCR model fine-tuned on over a million Khmer and English text lines, exported to run locally on each platform. The weights are <a href="https://huggingface.co/kcsheang/khmerclipper-trocr-khmer">on Hugging Face</a> for your own fine-tuning.</p>
     <div class="steps">
       <div class="card"><h3>Split into lines</h3><p>Khmer subscripts of one line touch the marks of the next, so the app cuts touching lines at the line pitch and crops each piece to its ink.</p></div>
       <div class="card"><h3>Read each line</h3><p>A ViT encoder and a decoder with one token per Khmer character, trained on public datasets plus about 750k synthetic lines rendered in dozens of Khmer and Latin fonts.</p></div>
@@ -238,7 +239,7 @@ cd apps/desktop && python3.12 -m venv .venv && .venv/bin/pip install -e '.[dev]'
 <div class="wrap">
   <footer>
     <span>KhmerClipper · open source, see <a href="https://github.com/KimChengSHEANG/khmerclipper/blob/main/LICENSE">LICENSE</a></span>
-    <span>Model on <a href="https://huggingface.co/kcsheang/khmerclipper-trocr-khmer-onnx">Hugging Face</a> · Thanks to the authors of the public Khmer OCR datasets</span>
+    <span>Model on <a href="https://huggingface.co/kcsheang/khmerclipper-trocr-khmer">Hugging Face</a> · Thanks to the authors of the public Khmer OCR datasets</span>
   </footer>
 </div>
 </body>
