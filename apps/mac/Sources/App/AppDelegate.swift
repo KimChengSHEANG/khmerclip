@@ -47,7 +47,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private func setUpStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        statusItem.button?.image = NSImage(systemSymbolName: "text.viewfinder", accessibilityDescription: "KhmerClipper")
+        statusItem.button?.image = Self.makeStatusIcon()
+        statusItem.button?.image?.accessibilityDescription = "KhmerClipper"
 
         let menu = NSMenu()
         menu.delegate = self
@@ -69,6 +70,42 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             item.target = self
         }
         statusItem.menu = menu
+    }
+
+    /// The app icon's scan brackets and ក (Resources/icon.svg coordinates), drawn as a template
+    /// so the menu bar tints it for light/dark.
+    private static func makeStatusIcon() -> NSImage {
+        let image = NSImage(size: NSSize(width: 18, height: 18), flipped: true) { _ in
+            let transform = NSAffineTransform()
+            transform.scale(by: 18.0 / 564.0)
+            transform.translateX(by: -230, yBy: -230)
+            transform.concat()
+
+            let brackets = NSBezierPath()
+            let corners: [(NSPoint, NSPoint, NSPoint, NSPoint)] = [
+                (NSPoint(x: 250, y: 370), NSPoint(x: 250, y: 250), NSPoint(x: 320, y: 250), NSPoint(x: 370, y: 250)),
+                (NSPoint(x: 654, y: 250), NSPoint(x: 774, y: 250), NSPoint(x: 774, y: 320), NSPoint(x: 774, y: 370)),
+                (NSPoint(x: 774, y: 654), NSPoint(x: 774, y: 774), NSPoint(x: 704, y: 774), NSPoint(x: 654, y: 774)),
+                (NSPoint(x: 370, y: 774), NSPoint(x: 250, y: 774), NSPoint(x: 250, y: 704), NSPoint(x: 250, y: 654)),
+            ]
+            for (start, corner, arcEnd, end) in corners {
+                brackets.move(to: start)
+                brackets.appendArc(from: corner, to: arcEnd, radius: 70)
+                brackets.line(to: end)
+            }
+            brackets.lineWidth = 44
+            brackets.lineCapStyle = .round
+            brackets.lineJoinStyle = .round
+            NSColor.black.setStroke()
+            brackets.stroke()
+
+            let font = NSFont(name: "KhmerMN-Bold", size: 400) ?? .boldSystemFont(ofSize: 400)
+            let glyph = NSAttributedString(string: "ក", attributes: [.font: font, .foregroundColor: NSColor.black])
+            glyph.draw(at: NSPoint(x: 512 - glyph.size().width / 2, y: 640 - font.ascender))
+            return true
+        }
+        image.isTemplate = true
+        return image
     }
 
     private func registerHotKeys() {
