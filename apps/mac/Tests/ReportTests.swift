@@ -211,16 +211,16 @@ final class ReportTests: XCTestCase {
 
     private let signalLog = """
         Signal 11
-        0   KhmerClipper                           0x0000000100a1c75c $s9KhmerClipper13CrashReporterO7install10pendingURLy10Foundation3URLV_tFZySicfU0_To + 120
+        0   KhmerClipper                           0x0000000100a1c75c $s12KhmerClipper13CrashReporterO7install10pendingURLy10Foundation3URLV_tFZySicfU0_To + 120
         1   libsystem_platform.dylib            0x000000019a1b2584 _sigtramp + 56
         2   AppKit                              0x000000019d001234 -[NSApplication run] + 400
-        3   KhmerClipper                           0x0000000100a10040 $s9KhmerClipper18CaptureCoordinatorC6handleyyF + 36
+        3   KhmerClipper                           0x0000000100a10040 $s12KhmerClipper18CaptureCoordinatorC6handleyyF + 36
         4   KhmerClipper                           0x0000000100a10100 main + 12
         """
 
     func testSignalSignatureNamesFirstAppFrameOutsideTheHandler() {
         XCTAssertEqual(CrashReporter.signature(fromPending: signalLog),
-                       "Signal 11 at $s9KhmerClipper18CaptureCoordinatorC6handleyyF")
+                       "Signal 11 at $s12KhmerClipper18CaptureCoordinatorC6handleyyF")
     }
 
     func testSignalSignatureSkipsHandlerFramesBeforeSigtramp() {
@@ -228,17 +228,17 @@ final class ReportTests: XCTestCase {
         // app sit between the handler and _sigtramp and must not become the signature.
         let real = """
             Signal 11
-            0   KhmerClipper                           0x0000000100bfb72c $s9KhmerClipper13CrashReporterO7install10pendingURLy10Foundation0G0V_tFZys5Int32VcfU0_ySrySvSgGXEfU0_ + 60
-            1   KhmerClipper                           0x0000000100bfddd4 $s9KhmerClipper13CrashReporterO7install10pendingURLy10Foundation0G0V_tFZys5Int32VcfU0_ySrySvSgGXEfU0_TA + 28
+            0   KhmerClipper                           0x0000000100bfb72c $s12KhmerClipper13CrashReporterO7install10pendingURLy10Foundation0G0V_tFZys5Int32VcfU0_ySrySvSgGXEfU0_ + 60
+            1   KhmerClipper                           0x0000000100bfddd4 $s12KhmerClipper13CrashReporterO7install10pendingURLy10Foundation0G0V_tFZys5Int32VcfU0_ySrySvSgGXEfU0_TA + 28
             2   KhmerClipper                           0x0000000100bfdd68 $ss29withUnsafeTemporaryAllocation2of8capacity_q_xm_Siq_SryxGq0_YKXEtq0_YKs5ErrorR0_Ri_zRi__r1_lFq_Bpq0_YKXEfU_ + 152
-            3   KhmerClipper                           0x0000000100bfadd4 $s9KhmerClipper13CrashReporterO7install10pendingURLy10Foundation0G0V_tFZys5Int32VcfU0_ + 544
-            4   KhmerClipper                           0x0000000100bfb794 $s9KhmerClipper13CrashReporterO7install10pendingURLy10Foundation0G0V_tFZys5Int32VcfU0_To + 12
+            3   KhmerClipper                           0x0000000100bfadd4 $s12KhmerClipper13CrashReporterO7install10pendingURLy10Foundation0G0V_tFZys5Int32VcfU0_ + 544
+            4   KhmerClipper                           0x0000000100bfb794 $s12KhmerClipper13CrashReporterO7install10pendingURLy10Foundation0G0V_tFZys5Int32VcfU0_To + 12
             5   libsystem_platform.dylib            0x00000001924f0144 _sigtramp + 56
-            6   KhmerClipper                           0x0000000100bf9504 $s9KhmerClipper7crashMeyyF + 700
+            6   KhmerClipper                           0x0000000100bf9504 $s12KhmerClipper7crashMeyyF + 700
             7   KhmerClipper                           0x0000000100bf9504 main + 700
             8   dyld                                0x000000019210fe80 start + 6688
             """
-        XCTAssertEqual(CrashReporter.signature(fromPending: real), "Signal 11 at $s9KhmerClipper7crashMeyyF")
+        XCTAssertEqual(CrashReporter.signature(fromPending: real), "Signal 11 at $s12KhmerClipper7crashMeyyF")
     }
 
     func testSignalSignatureFallsBackWithoutAppSymbol() {
@@ -269,7 +269,7 @@ final class ReportTests: XCTestCase {
         let pending = try writePending(signalLog)
         CrashReporter.collect(pendingURL: pending, outbox: outbox, engine: "tesseract", enabled: true)
         XCTAssertEqual(payloads().first?["signature"] as? String,
-                       "Signal 11 at $s9KhmerClipper18CaptureCoordinatorC6handleyyF")
+                       "Signal 11 at $s12KhmerClipper18CaptureCoordinatorC6handleyyF")
     }
 
     // MARK: - Crash dedup and cap
