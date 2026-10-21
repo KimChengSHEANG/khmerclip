@@ -85,3 +85,14 @@ From v2 step 10k, lr 1e-5, 1 epoch, `--augment --max_aspect 32`. New sources: `s
 Mid-train CER (mixed holdout) picked early steps both times, as it did for v2; the late checkpoint was better on every gate set.
 
 On device (CoreML, `OCRBench`), v3b vs v2 with the same app changes: frozen CER 0.0039 -> **0.0034** (14 -> 11 errors), screen 0.0260 -> **0.0215** (-17.9%, 85 / 35), slices 0.0141 -> **0.0109** (-14.9%); frozen median 102 ms. Desktop ONNX export parity max abs diff 2.9e-5.
+
+## Follow-ups (2026-10-21, on-device CoreML, v3 model unchanged)
+
+| Change | frozen 200 | screen 450 | slices 320 |
+|---|---|---|---|
+| Cross-attention K/V once per line + up to 4 lines decoded concurrently | identical text; median 102 -> 100 ms | identical text; median 634 -> 401 ms | identical text; median 349 -> 292 ms |
+| Two-line cut when no pitch is found (`twoLineCut`) | 15 -> 15 errors | CER 0.0215 -> **0.0163** (997 -> 755 errors, 6 better / 0 worse) | 171 -> 171 errors |
+
+- Segmentation: 7 of 68 two-line screen clips came out as one strip because `linePitch` found no autocorrelation peak (the wrapped second line is often short). Strips now correct on 445 of 450 screen clips (was 439), still 200/200 frozen and 319/320 slices.
+- Capture resolution: `SCDisplay.width` is in points, so Retina captures were taken at 1x. Paired on the 225 2x screen clips, downscaling to 1x gives CER 0.0232 vs 0.0199 at 2x. The app now captures the selection at the screen's backing scale.
+- Residual errors (screen + slices, excluding ្ដ/្ត and deprecated-character label noise): CER 0.0178. Worst slices: font Khmer MN 0.0273, size <= 13 px 0.0244, bold 0.0228, dark 0.0210. Most common confusions are dropped/added vowel signs (ុ, េ, ែ, ើ->ី) and `:` read as `ៈ`. Next training data: more `synth_screen` strips in Khmer MN-like fonts at 11-13 px, bold and dark, and mixed Latin punctuation.

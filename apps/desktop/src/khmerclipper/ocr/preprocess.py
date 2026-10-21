@@ -74,6 +74,25 @@ def touching_cuts(profile: np.ndarray, pitch: int) -> list[int]:
     return cuts
 
 
+TWO_LINE_VALLEY = 0.15  # no pitch found: a mid-run cut must be this sparse vs the lighter line
+TWO_LINE_BAND = 0.3     # ... and the lighter line's densest row this dense vs the run's
+
+
+def two_line_cut(profile: np.ndarray) -> int | None:
+    """Row to cut a run holding two touching lines when line_pitch finds no pitch (two lines,
+    the second often short, are too little repetition for the autocorrelation): the sparsest
+    row in the middle 35-65%, kept only when both sides carry a real line of ink."""
+    h = len(profile)
+    a, b = max(1, int(h * 0.35)), min(h - 1, int(h * 0.65) + 1)
+    if h < 9 or b - a < 2:
+        return None
+    c = a + int(np.argmin(profile[a:b]))
+    weak = min(profile[:c].max(), profile[c + 1:].max())
+    if weak < TWO_LINE_BAND * profile.max() or profile[c] > TWO_LINE_VALLEY * weak:
+        return None
+    return c
+
+
 def merge_marks(runs: list[list[int]]) -> list[list[int]]:
     """A run < 35% of the tallest, or < 50% within a quarter of the tallest's height of a
     neighbour, is a detached Khmer mark: merge it into the nearer neighbour.
@@ -116,10 +135,15 @@ def line_strips(image: Image.Image) -> list[Image.Image]:
         else:
             runs.append([y, y])
     profile = np.convolve(counts.astype(float), np.ones(3) / 3, "same")
-    if runs and (pitch := line_pitch(profile)):
+    if runs:
+        pitch = line_pitch(profile)
         split = []
         for lo, hi in runs:
-            cuts = touching_cuts(profile[lo:hi + 1], pitch) if hi - lo + 1 >= 1.5 * pitch else []
+            seg = profile[lo:hi + 1]
+            if pitch:
+                cuts = touching_cuts(seg, pitch) if hi - lo + 1 >= 1.5 * pitch else []
+            else:
+                cuts = [c] if (c := two_line_cut(seg)) is not None else []
             edges = [lo] + [lo + c for c in cuts] + [hi + 1]
             split += [[edges[k], edges[k + 1] - 1] for k in range(len(edges) - 1)]
         runs = split

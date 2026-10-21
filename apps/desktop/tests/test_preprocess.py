@@ -1,7 +1,7 @@
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
-from khmerclipper.ocr.preprocess import content_crop, ink_mask, line_strips, pixel_values
+from khmerclipper.ocr.preprocess import content_crop, ink_mask, line_strips, pixel_values, two_line_cut
 from khmerclipper.paths import resource_dir
 
 
@@ -120,3 +120,12 @@ def test_split_wide_ignores_blank_tail_and_neighbour_marks():
     assert len(split_wide(wide((400, 24), [(0, 6, 69, 18), (80, 6, 150, 18)]), 10)) == 1
     pieces = split_wide(wide((600, 24), [(0, 6, 140, 18), (160, 6, 300, 18), (420, 0, 440, 2), (520, 21, 540, 23)]), 8)
     assert len(pieces) == 2 and all(p.width <= 320 for _, p in pieces)
+
+
+def test_two_line_cut_splits_a_long_and_a_short_line_but_not_one_line():
+    # A full line, a 2-row bridge where marks touch, then a short wrapped line.
+    two = np.array([100.0] * 10 + [5.0] * 2 + [40.0] * 10)
+    assert two_line_cut(two) == 10
+    # One line: sparse above-marks, a dense core across the middle, sparse subscripts.
+    one = np.array([10.0] * 6 + [100.0] * 10 + [10.0] * 6)
+    assert two_line_cut(one) is None

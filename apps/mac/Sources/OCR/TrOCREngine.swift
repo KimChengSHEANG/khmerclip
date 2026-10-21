@@ -348,11 +348,17 @@ enum TrOCREngine {
         let profile = counts.indices.map { y in
             ((y > 0 ? counts[y - 1] : 0) + counts[y] + (y + 1 < counts.count ? counts[y + 1] : 0)) / 3
         }
-        if !runs.isEmpty, let pitch = linePitch(profile) {
+        if !runs.isEmpty {
+            let pitch = linePitch(profile)
             runs = runs.flatMap { run -> [(lo: Int, hi: Int)] in
-                let h = run.hi - run.lo + 1
-                guard Double(h) >= 1.5 * Double(pitch) else { return [run] }
-                let edges = [run.lo] + touchingCuts(Array(profile[run.lo...run.hi]), pitch: pitch).map { run.lo + $0 } + [run.hi + 1]
+                let seg = Array(profile[run.lo...run.hi])
+                let cuts: [Int]
+                if let pitch {
+                    cuts = Double(seg.count) >= 1.5 * Double(pitch) ? touchingCuts(seg, pitch: pitch) : []
+                } else {
+                    cuts = twoLineCut(seg).map { [$0] } ?? []
+                }
+                let edges = [run.lo] + cuts.map { run.lo + $0 } + [run.hi + 1]
                 return (0..<(edges.count - 1)).map { (edges[$0], edges[$0 + 1] - 1) }
             }
         }
@@ -413,6 +419,27 @@ enum TrOCREngine {
             if profile[c] <= touchingValley * peak { cuts.append(c) }
         }
         return cuts
+    }
+
+    /// A mid-run cut with no pitch must be this sparse vs the lighter line, and
+    /// the lighter line's densest row this dense vs the run's.
+    static let twoLineValley = 0.15
+    static let twoLineBand = 0.3
+
+    /// Row to cut a run holding two touching lines when linePitch finds no
+    /// pitch (two lines, the second often short, are too little repetition
+    /// for the autocorrelation): the sparsest row in the middle 35-65%, kept
+    /// only when both sides carry a real line of ink. Screen set: 439 -> 445
+    /// of 450 clips segmented right, no new splits on the frozen 200 or slices.
+    static func twoLineCut(_ profile: [Double]) -> Int? {
+        let h = profile.count
+        let a = max(1, Int(Double(h) * 0.35)), b = min(h - 1, Int(Double(h) * 0.65) + 1)
+        guard h >= 9, b - a >= 2, let peak = profile.max() else { return nil }
+        var c = a
+        for y in a..<b where profile[y] < profile[c] { c = y }
+        let weak = min(profile[..<c].max() ?? 0, profile[(c + 1)...].max() ?? 0)
+        guard weak >= twoLineBand * peak, profile[c] <= twoLineValley * weak else { return nil }
+        return c
     }
 
     /// ponytail: fixed cutoffs. Merge a run < 35% of the tallest, or < 50%
