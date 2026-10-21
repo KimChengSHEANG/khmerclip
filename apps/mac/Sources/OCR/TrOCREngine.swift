@@ -629,8 +629,12 @@ enum TrOCREngine {
             if let cached = loaded[size] { return (cached.encoder, cached.decoder, cached.tokenizer) }
 
             let dir = resourceRoot.appendingPathComponent(size.rawValue, isDirectory: true)
-            let encoder = try Self.loadCompiled(packageURL: dir.appendingPathComponent("encoder.mlpackage"), name: "\(size.rawValue)-encoder")
-            let decoder = try Self.loadCompiled(packageURL: dir.appendingPathComponent("decoder.mlpackage"), name: "\(size.rawValue)-decoder")
+            // The tag names the model I/O contract: a cache compiled from an older
+            // package (encoder_hidden_states input) must never be matched, even if
+            // its mtime is newer than the package (DMG copies keep mtimes).
+            let tag = "\(size.rawValue)-xkv"
+            let encoder = try Self.loadCompiled(packageURL: dir.appendingPathComponent("encoder.mlpackage"), name: "\(tag)-encoder")
+            let decoder = try Self.loadCompiled(packageURL: dir.appendingPathComponent("decoder.mlpackage"), name: "\(tag)-decoder")
             let tokenizerData = try Data(contentsOf: dir.appendingPathComponent("tokenizer.json"))
             let tokenizer = try TrOCRTokenizer(data: tokenizerData)
 
