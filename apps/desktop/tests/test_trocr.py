@@ -19,23 +19,25 @@ TOKENIZER = TrOCRTokenizer({"kind": "bpe", "bos_id": 0, "eos_id": 2, "pad_id": 1
 class FakeEncoder:
     def run(self, names, feeds):
         assert feeds["pixel_values"].shape == (1, 3, 384, 384)
-        return [np.zeros((1, 4, 8), np.float32)]
+        cross = np.zeros((2, 1, 2, 4, 3), np.float32)  # [L, 1, H, S, D]
+        return [cross, cross]
 
 
 class ScriptedDecoder:
-    """Emits script[seq_len - 1] as the next token (last entry repeats)."""
+    """Emits script[position] as the next token (last entry repeats), growing the cache by one."""
 
     def __init__(self, script):
         self.script, self.calls = script, 0
 
     def run(self, names, feeds):
         self.calls += 1
-        ids = feeds["input_ids"]
-        assert ids.dtype == np.int64
-        seq = ids.shape[1]
-        logits = np.zeros((1, seq, 6), np.float32)
-        logits[0, -1, self.script[min(seq - 1, len(self.script) - 1)]] = 1.0
-        return [logits]
+        ids, pos, past = feeds["input_ids"], int(feeds["position"][0]), feeds["past_k"]
+        assert ids.dtype == np.int64 and ids.shape == (1, 1)
+        assert past.shape[3] == pos  # one cached row per earlier token
+        logits = np.zeros((1, 1, 6), np.float32)
+        logits[0, -1, self.script[min(pos, len(self.script) - 1)]] = 1.0
+        grown = np.zeros((*past.shape[:3], pos + 1, past.shape[4]), np.float32)
+        return [logits, grown, grown]
 
 
 def session(script):

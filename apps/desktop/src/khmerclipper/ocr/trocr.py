@@ -116,13 +116,17 @@ def recognize_with_session(session, image: Image.Image, progress: Callable[[str]
         # A long line squashed into 384x384 loses its thin marks; decode it in pieces.
         text = ""
         for sep, piece in split_wide(strip):
-            hidden = session.encoder.run(["encoder_hidden_states"], {"pixel_values": pixel_values(piece)})[0]
+            # Cross-attention K/V once per piece; self-attention K/V carried step to step.
+            cross_k, cross_v = session.encoder.run(None, {"pixel_values": pixel_values(piece)})
+            past_k = past_v = np.zeros((*cross_k.shape[:3], 0, cross_k.shape[4]), np.float32)
             ids = [tok.decoder_start_id]
             while len(ids) < MAX_LENGTH:
                 if cancel is not None and cancel.is_set():
                     raise Cancelled()
-                logits = session.decoder.run(
-                    ["logits"], {"input_ids": np.array([ids], dtype=np.int64), "encoder_hidden_states": hidden})[0]
+                logits, past_k, past_v = session.decoder.run(None, {
+                    "input_ids": np.array([ids[-1:]], dtype=np.int64),
+                    "position": np.array([len(ids) - 1], dtype=np.int64),
+                    "cross_k": cross_k, "cross_v": cross_v, "past_k": past_k, "past_v": past_v})
                 step = logits[0, -1].copy()
                 if (blocked := blocked_token(ids)) is not None:
                     step[blocked] = -np.inf

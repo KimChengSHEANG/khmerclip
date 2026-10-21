@@ -19,22 +19,74 @@ from transformers.models.trocr.modeling_trocr import TrOCRSinusoidalPositionalEm
 PARITY_TOLERANCE = 1e-3
 
 
+class Reference(torch.nn.Module):
+    """Full-sequence decoder, no cache: the parity reference."""
+
+    def __init__(self, model):
+        super().__init__()
+        self.model = model
+
+    def forward(self, pixel_values, input_ids):
+        hidden = self.model.encoder(pixel_values=pixel_values).last_hidden_state
+        return self.model.decoder(input_ids=input_ids, encoder_hidden_states=hidden, use_cache=False).logits
+
+
 class Encoder(torch.nn.Module):
+    """Image -> the decoder's cross-attention K/V (2 x [L, 1, H, S, D]), once per line."""
+
     def __init__(self, model):
         super().__init__()
         self.encoder = model.encoder
+        self.layers = model.decoder.model.decoder.layers
 
     def forward(self, pixel_values):
-        return self.encoder(pixel_values=pixel_values).last_hidden_state
+        h = self.encoder(pixel_values=pixel_values).last_hidden_state
+        ks = [heads(layer.encoder_attn, layer.encoder_attn.k_proj(h)) for layer in self.layers]
+        vs = [heads(layer.encoder_attn, layer.encoder_attn.v_proj(h)) for layer in self.layers]
+        return torch.stack(ks), torch.stack(vs)
+
+
+def heads(attn, x):  # [1, T, E] -> [1, H, T, D]
+    return x.view(1, -1, attn.num_heads, attn.head_dim).transpose(1, 2)
+
+
+def attend(attn, q, k, v):
+    out = (q @ k.transpose(-1, -2)).softmax(dim=-1) @ v
+    return out.transpose(1, 2).reshape(1, -1, attn.num_heads * attn.head_dim)
 
 
 class DecoderStep(torch.nn.Module):
+    """One token per call: self-attention K/V of the earlier tokens come in as past_k/past_v
+    ([L, 1, H, t, D], t = 0 on the first step) and go out one longer. Re-implements
+    transformers' TrOCRDecoder layer (post-LN) like the mac app's kv_decoder.py."""
+
     def __init__(self, model):
         super().__init__()
-        self.decoder = model.decoder
+        dec = model.decoder.model.decoder
+        self.embed_tokens, self.layernorm_embedding, self.layers = dec.embed_tokens, dec.layernorm_embedding, dec.layers
+        self.output_projection = model.decoder.output_projection
+        if dec.config.use_learned_position_embeddings:
+            self.pos_table, self.pos_offset = dec.embed_positions.weight, dec.embed_positions.offset
+        else:
+            self.pos_table, self.pos_offset = dec.embed_positions.weights, dec.embed_positions.padding_idx + 1
 
-    def forward(self, input_ids, encoder_hidden_states):
-        return self.decoder(input_ids=input_ids, encoder_hidden_states=encoder_hidden_states, use_cache=False).logits
+    def forward(self, input_ids, position, cross_k, cross_v, past_k, past_v):
+        h = self.embed_tokens(input_ids) + self.pos_table.index_select(0, position + self.pos_offset).unsqueeze(0)
+        if self.layernorm_embedding is not None:
+            h = self.layernorm_embedding(h)
+        new_k, new_v = [], []
+        for i, layer in enumerate(self.layers):
+            sa = layer.self_attn
+            k = torch.cat([past_k[i], heads(sa, sa.k_proj(h))], dim=2)
+            v = torch.cat([past_v[i], heads(sa, sa.v_proj(h))], dim=2)
+            new_k.append(k)
+            new_v.append(v)
+            h = layer.self_attn_layer_norm(h + sa.out_proj(attend(sa, heads(sa, sa.q_proj(h) * sa.scaling), k, v)))
+            ca = layer.encoder_attn
+            h = layer.encoder_attn_layer_norm(
+                h + ca.out_proj(attend(ca, heads(ca, ca.q_proj(h) * ca.scaling), cross_k[i], cross_v[i])))
+            h = layer.final_layer_norm(h + layer.fc2(layer.activation_fn(layer.fc1(h))))
+        return self.output_projection(h), torch.stack(new_k), torch.stack(new_v)
 
 
 def load_model(ckpt: str) -> VisionEncoderDecoderModel:
@@ -81,33 +133,39 @@ def main() -> None:
     model = load_model(args.checkpoint)
     processor = TrOCRProcessor.from_pretrained(args.checkpoint)
     size = processor.image_processor.size
-    img = size["height"] if isinstance(size, dict) else size
+    img = size["height"] if isinstance(size, dict) else getattr(size, "height", size)
     enc, dec = Encoder(model), DecoderStep(model)
 
     pixel = torch.rand(1, 3, img, img)
-    with torch.no_grad():
-        hidden = enc(pixel)
     start = decoder_start_id(model)
-    ids = torch.tensor([[start, 100]], dtype=torch.int64)
+    seq = [start, 100, 200, 300]
     # Torch reference before export: tracing leaves the in-memory model producing different
     # logits afterwards, so a post-export reference reports a bogus divergence.
-    ids3 = torch.tensor([[start, 100, 200]], dtype=torch.int64)
     with torch.no_grad():
-        ref = dec(ids3, hidden).numpy()
+        ref = Reference(model)(pixel, torch.tensor([seq])).numpy()[0]
+        cross_k, cross_v = enc(pixel)
+        past = torch.zeros(cross_k.shape[0], 1, cross_k.shape[2], 1, cross_k.shape[4])
+        example = (torch.tensor([[100]]), torch.tensor([1]), cross_k, cross_v, past, past)
 
     torch.onnx.export(enc, (pixel,), out / "encoder.onnx", input_names=["pixel_values"],
-                      output_names=["encoder_hidden_states"], opset_version=17, dynamo=False)
-    torch.onnx.export(dec, (ids, hidden), out / "decoder.onnx",
-                      input_names=["input_ids", "encoder_hidden_states"], output_names=["logits"],
-                      dynamic_axes={"input_ids": {1: "seq"}, "logits": {1: "seq"}},
+                      output_names=["cross_k", "cross_v"], opset_version=17, dynamo=False)
+    torch.onnx.export(dec, example, out / "decoder.onnx",
+                      input_names=["input_ids", "position", "cross_k", "cross_v", "past_k", "past_v"],
+                      output_names=["logits", "present_k", "present_v"],
+                      dynamic_axes={"past_k": {3: "t"}, "past_v": {3: "t"},
+                                    "present_k": {3: "t1"}, "present_v": {3: "t1"}},
                       opset_version=17, dynamo=False)
     export_tokenizer(processor, model, out / "tokenizer.json")
 
-    # Parity: onnxruntime vs torch, with a longer sequence than traced to prove the dynamic axis.
-    ort_hidden = ort.InferenceSession(str(out / "encoder.onnx")).run(None, {"pixel_values": pixel.numpy()})[0]
-    got = ort.InferenceSession(str(out / "decoder.onnx")).run(
-        None, {"input_ids": ids3.numpy(), "encoder_hidden_states": ort_hidden})[0]
-    diff = float(np.abs(got - ref).max())
+    # Parity: step-by-step onnxruntime (from an empty cache) vs the full-sequence torch decoder.
+    ck, cv = ort.InferenceSession(str(out / "encoder.onnx")).run(None, {"pixel_values": pixel.numpy()})
+    step = ort.InferenceSession(str(out / "decoder.onnx"))
+    pk = pv = np.zeros((ck.shape[0], 1, ck.shape[2], 0, ck.shape[4]), np.float32)
+    diff = 0.0
+    for pos, tok in enumerate(seq):
+        logits, pk, pv = step.run(None, {"input_ids": np.array([[tok]]), "position": np.array([pos]),
+                                         "cross_k": ck, "cross_v": cv, "past_k": pk, "past_v": pv})
+        diff = max(diff, float(np.abs(logits[0, 0] - ref[pos]).max()))
     print(f"parity max abs diff: {diff:.2e}")
     if diff > PARITY_TOLERANCE:
         raise SystemExit(f"ONNX output diverges from torch ({diff:.2e} > {PARITY_TOLERANCE})")
