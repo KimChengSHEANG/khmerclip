@@ -1,5 +1,5 @@
 #!/bin/sh
-# v4: continue from v3 (checkpoint-8 final) with screen strips aimed at v3's weakest on-device
+# v4: continue from v3 as shipped (checkpoint-8 step 16000) with screen strips aimed at v3's weakest on-device
 # slices (training/eval/results/accuracy_v3.md, Follow-ups): text <= 13 px, bold, dark panels,
 # and Latin ':' next to Khmer (read as U+17C8). Replays the v3b mix at lower weights so
 # English UI accuracy and the other domains hold.
@@ -7,7 +7,9 @@
 # Ship gate (same as v3): paired errors on frozen 200, screen 450 and slices 320 no worse, and
 # English UI line accuracy >= v3 (eval_english.py), before converting for the apps.
 set -e
-V3=${V3:-experiments/checkpoint-8/final}
+# checkpoint-8/final is the best mid-train step (8k), not the shipped 16k; v3_16k is
+# checkpoint-16000's weights plus final/'s tokenizer files (same layout as v2_10k).
+V3=${V3:-experiments/v3_16k}
 [ -d "$V3" ] || { echo "v3 checkpoint not found at $V3 (set V3=...)"; exit 1; }
 for i in 0 1 2 3 5 6 7 8; do
   python scripts/render_synth.py --screen --out cache/synth_screen_v4/train/p$i --count 20000 --seed $((400 + i)) \
