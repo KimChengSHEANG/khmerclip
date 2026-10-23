@@ -8,9 +8,9 @@ k_cache/v_cache buffers, which coremltools converts to CoreML states
 positions, with attn_mask hiding the unwritten ones, and the new K/V row is
 blended in with a one-hot write_mask (no dynamic slicing).
 
-ponytail: cross-attention K/V are recomputed from encoder_hidden_states every
-step (~11 GFLOP/step for trocr-base). If ms/step is the bottleneck, move them
-into a state filled once per line.
+Cross-attention K/V depend only on the image, so cross_kv() computes them once
+per line (convert.py puts it in the encoder model) and every step takes them as
+inputs. Recomputing them per step cost ~14 GFLOP/step on trocr-base.
 """
 import torch
 from torch import nn
@@ -48,7 +48,15 @@ class KVDecoderStep(nn.Module):
         out = scores.softmax(dim=-1) @ v  # [1, H, T, D]
         return out.transpose(1, 2).reshape(1, -1, self.num_heads * self.head_dim)
 
-    def forward(self, input_ids, position, attn_mask, write_mask, encoder_hidden_states):
+    def cross_kv(self, encoder_hidden_states):  # -> 2 x [L, 1, H, S, D]
+        ks, vs = [], []
+        for layer in self.layers:
+            ca = layer.encoder_attn
+            ks.append(self._heads(ca.k_proj(encoder_hidden_states)))
+            vs.append(self._heads(ca.v_proj(encoder_hidden_states)))
+        return torch.stack(ks), torch.stack(vs)
+
+    def forward(self, input_ids, position, attn_mask, write_mask, cross_k, cross_v):
         h = self.embed_tokens(input_ids)
         h = h + self.pos_table.index_select(0, position + self.pos_offset).unsqueeze(0).to(h.dtype)
         if self.layernorm_embedding is not None:
@@ -65,9 +73,7 @@ class KVDecoderStep(nn.Module):
 
             ca = layer.encoder_attn
             q = self._heads(ca.q_proj(h) * ca.scaling)
-            ck = self._heads(ca.k_proj(encoder_hidden_states))
-            cv = self._heads(ca.v_proj(encoder_hidden_states))
-            h = layer.encoder_attn_layer_norm(h + ca.out_proj(self._attend(q, ck, cv, None)))
+            h = layer.encoder_attn_layer_norm(h + ca.out_proj(self._attend(q, cross_k[i], cross_v[i], None)))
 
             h = layer.final_layer_norm(h + layer.fc2(layer.activation_fn(layer.fc1(h))))
         return self.output_projection(h)

@@ -136,6 +136,15 @@ final class TrOCRLineSplitTests: XCTestCase {
     /// above-marks of the next, so no blank row separates them. Four such
     /// lines (mirrors training/eval/tests/test_pipeline.py touching_lines)
     /// must still come out as four strips covering the whole image.
+    func testTwoLineCutSplitsALongAndAShortLineButNotOneLine() {
+        // A full line, a 2-row bridge where marks touch, then a short wrapped line.
+        let two = [Double](repeating: 100, count: 10) + [5, 5] + [Double](repeating: 40, count: 10)
+        XCTAssertEqual(TrOCREngine.twoLineCut(two), 10)
+        // One line: sparse above-marks, a dense core across the middle, sparse subscripts.
+        let one = [Double](repeating: 10, count: 6) + [Double](repeating: 100, count: 10) + [Double](repeating: 10, count: 6)
+        XCTAssertNil(TrOCREngine.twoLineCut(one))
+    }
+
     func testLineStripsSplitsTouchingLinesAtThePitch() throws {
         let width = 260, pitch = 22, n = 4, height = n * pitch + 4
         let ctx = try XCTUnwrap(CGContext(data: nil, width: width, height: height, bitsPerComponent: 8,
