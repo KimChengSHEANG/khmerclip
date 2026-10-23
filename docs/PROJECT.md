@@ -160,6 +160,7 @@ Newer `train.py` options:
 - **Early stopping.** `--early_stopping_patience N`.
 - **Continue from a finished run.** Pass its `final/` as `--model_name`. That starts a fresh optimizer and LR schedule and reuses the saved Khmer tokenizer, refusing to load if the vocab would change. Don't use `--resume_from_checkpoint` for this: it restores the old global step, so a finished run stops immediately.
 - **Remote runs.** `scripts/remote.sh '<cmd>'` rsyncs `training/trocr` and `training/eval` to the 3090 box (`TROCR_HOST`, default `kim@192.168.1.25`) under the same `~/Sync` path and runs the command there.
+- **Render on the Mac.** `scripts/render_push.sh NAME PROCS COUNT -- <render_synth args>` renders a synthetic set in parallel on the Mac, which has more cores than the box's CPU, then rsyncs `cache/NAME` into the box's `training/trocr/cache`. Then start only training there with `remote.sh`. `remote.sh` never copies `cache/`.
 
 ### 4.3 Datasets
 
