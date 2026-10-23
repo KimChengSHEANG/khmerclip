@@ -11,7 +11,7 @@ REMOTE_TRAINING=/home/kim/${PWD#"$HOME"/}
 ssh "$HOST" "mkdir -p $REMOTE_TRAINING"
 rsync -a \
   --exclude experiments --exclude cache --exclude __pycache__ --exclude .pytest_cache \
-  --exclude venv --exclude .venv --exclude '*.egg-info' \
+  --exclude venv --exclude .venv --exclude '*.egg-info' --exclude fixtures_real \
   trocr eval "$HOST:$REMOTE_TRAINING/"
 # PYTHONPATH beats the venv's editable trocr_khmer install, which points at main's src.
 ssh "$HOST" "cd $REMOTE_TRAINING/trocr && export PATH=\$HOME/.pyenv/versions/khmerclipper/bin:\$PATH && export PYTHONPATH=src:../eval/src && $1"
