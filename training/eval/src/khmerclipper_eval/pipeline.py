@@ -87,12 +87,17 @@ def clip_background(px: np.ndarray, robust_bg: bool = False) -> np.ndarray:
     return bg
 
 
+FILL_GROW = 1  # grow the painted area by this many mask px to cover anti-aliased edges
+
+
 def fill_removed(image: Image.Image, removed: np.ndarray, scale: int, bg: np.ndarray) -> Image.Image:
     """Paint the full-resolution pixels under `removed` (a mask at 1/scale, grown by one mask
     pixel to cover anti-aliasing) with the background colour, so the model never sees the noise."""
     grown = removed.copy()
-    grown[1:] |= removed[:-1]; grown[:-1] |= removed[1:]
-    grown[:, 1:] |= grown[:, :-1].copy(); grown[:, :-1] |= grown[:, 1:].copy()
+    for _ in range(FILL_GROW):
+        g = grown.copy()
+        g[1:] |= grown[:-1]; g[:-1] |= grown[1:]; g[:, 1:] |= grown[:, :-1]; g[:, :-1] |= grown[:, 1:]
+        grown = g
     full = np.repeat(np.repeat(grown, scale, axis=0), scale, axis=1)
     px = np.array(image.convert("RGB"))
     h, w = min(px.shape[0], full.shape[0]), min(px.shape[1], full.shape[1])
@@ -281,16 +286,24 @@ def components(mask: np.ndarray) -> tuple[np.ndarray, list[tuple[int, int, int, 
 def text_mask(mask: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """Split an ink mask into (kept, removed): borders, underlines and grid lines, solid image or
     avatar blocks, and stray blobs far from everything else are removed; glyphs and Khmer marks stay."""
+    kept, ruled, dropped = text_mask_parts(mask)
+    return kept, ruled | dropped
+
+
+def text_mask_parts(mask: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """`text_mask` with the removed ink split into (kept, ruled, dropped): rule pixels (long thin
+    strokes) and dropped components (blocks, stray blobs, short lines)."""
+    none = np.zeros_like(mask)
     if mask.mean() > MAX_INK:
-        return mask.copy(), np.zeros_like(mask)
+        return mask.copy(), none, none
     _, first = components(mask)
     if not first:
-        return mask.copy(), np.zeros_like(mask)
+        return mask.copy(), none, none
     med0 = glyph_height(first)
     ruled = rules(mask, med0)
     labels, boxes = components(mask & ~ruled)
     if not boxes:
-        return mask.copy(), np.zeros_like(mask)
+        return mask.copy(), none, none
     drop = set()
     thick = line_thick(med0)
     for k, (x0, y0, x1, y1, area) in enumerate(boxes):
@@ -322,11 +335,11 @@ def text_mask(mask: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
             if gap > ISOLATED_GAP * med:
                 drop.add(k)
     if len(drop) == len(boxes):  # nothing text-like left: keep the clip as it was
-        return mask.copy(), np.zeros_like(mask)
-    removed = ruled | np.isin(labels, [k + 1 for k in drop])
-    if (mask & ~removed).sum() < MIN_KEPT * mask.sum():
-        return mask.copy(), np.zeros_like(mask)
-    return mask & ~removed, removed
+        return mask.copy(), none, none
+    dropped = np.isin(labels, [k + 1 for k in drop])
+    if (mask & ~(ruled | dropped)).sum() < MIN_KEPT * mask.sum():
+        return mask.copy(), none, none
+    return mask & ~(ruled | dropped), ruled, dropped
 
 
 EDGE_FRAGMENT = 0.6  # an edge-touching run shorter than this x the median other run is a cut-off line
@@ -362,7 +375,9 @@ def line_strips(image: Image.Image, split_touching: bool = False, robust_bg: boo
         return [image]
     mask, s = m
     if drop_noise:
-        mask, removed = text_mask(mask)
+        mask, _, removed = text_mask_parts(mask)
+        # Paint out dropped components only. Rules stay for the model: painting underlines out
+        # cost errors (noisy_underline +3-5%, results/noise_preprocessing.md), it reads them fine.
         if fill_noise and removed.any():
             small = image.convert("RGB")
             if s > 1:

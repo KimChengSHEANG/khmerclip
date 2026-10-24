@@ -181,10 +181,15 @@ def test_fill_noise_is_identical_on_a_clean_clip():
            [s.tobytes() for s in P.line_strips(img, **flags)]
 
 
-def test_fill_noise_paints_out_an_underline_in_the_strip():
-    img = draw_line("ការអប់រំ និងបច្ចេកវិទ្យា")
-    w, h = img.size
-    ImageDraw.Draw(img).line((0, h - 6, w - 1, h - 6), fill="black", width=2)  # underline across the clip
+def test_fill_noise_leaves_an_underline_for_the_model_but_paints_an_avatar():
+    line = draw_line("ការអប់រំ និងបច្ចេកវិទ្យា")
+    w, h = line.size
+    img = Image.new("RGB", (w + 70, h), "white")
+    img.paste(line, (70, 0))
+    d = ImageDraw.Draw(img)
+    d.ellipse((8, 6, 8 + h - 12, h - 6), fill=(90, 120, 200))  # avatar
+    d.line((70, h - 6, w + 69, h - 6), fill="black", width=2)  # underline
     strip = P.line_strips(img, split_touching=True, robust_bg=True, drop_noise=True, fill_noise=True)[0]
-    row = np.asarray(strip.convert("L"))[h - 6]
-    assert row.min() > 200  # the underline row is background now
+    px = np.asarray(strip.convert("L"))
+    assert px[h // 2, 8 + (h - 12) // 2] > 200  # avatar centre painted with background
+    assert px[h - 6, 80:w].min() < 100  # underline still there for the model
