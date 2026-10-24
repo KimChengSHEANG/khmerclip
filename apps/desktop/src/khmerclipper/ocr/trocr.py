@@ -13,7 +13,7 @@ from PIL import Image
 
 from khmerclipper.errors import Cancelled, EngineUnavailable, KhmerClipperError
 from khmerclipper.ocr import trocr_models
-from khmerclipper.ocr.preprocess import line_strips, pixel_values, split_wide
+from khmerclipper.ocr.preprocess import content_crop, line_strips, pixel_values, split_wide
 from khmerclipper.ocr.tokenizer import TrOCRTokenizer
 
 # Total decoded ids incl. the start token; matches training MAX_LABEL_LEN and the mac
@@ -138,6 +138,7 @@ def recognize_with_session(session, image: Image.Image, progress: Callable[[str]
             done += len(ids)
             if piece_text := tok.decode(ids).strip():
                 text += (sep if text else "") + piece_text
-        if line := latin_fallback(strip, text):
+        # Tesseract gets the noise-free crop the model saw (avatars, borders, icons left out).
+        if line := latin_fallback(content_crop(strip), text):
             lines.append(line)
     return "\n".join(lines)
