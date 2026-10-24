@@ -193,3 +193,47 @@ def test_fill_noise_leaves_an_underline_for_the_model_but_paints_an_avatar():
     px = np.asarray(strip.convert("L"))
     assert px[h // 2, 8 + (h - 12) // 2] > 200  # avatar centre painted with background
     assert px[h - 6, 80:w].min() < 100  # underline still there for the model
+
+
+def test_robust_bg_does_not_pick_bold_light_text_on_a_noisy_dark_background():
+    # Review I1: heavy light text tightly cropped on a dark gradient with per-pixel noise (a photo,
+    # the lock screen). The noisy background spreads over many colour bins; the flat text wins the mode.
+    font = ImageFont.truetype(str(FONT), 90)
+    txt = "ការអប់រំ"
+    w, h = int(font.getlength(txt)) + 40, 144
+    g = np.zeros((h, w, 3), int)
+    for x in range(w):
+        g[:, x] = (20 + 100 * x // w, 30 + 60 * x // w, 60 + 80 * x // w)
+    g = np.clip(g + np.random.default_rng(0).integers(-12, 12, g.shape), 0, 255).astype(np.uint8)
+    img = Image.fromarray(g)
+    ImageDraw.Draw(img).text((10, 0), txt, font=font, fill=(250, 250, 250), stroke_width=2, stroke_fill=(250, 250, 250))
+    ys, xs = np.nonzero(np.asarray(img).min(axis=2) > 200)
+    tight = img.crop((xs.min(), ys.min(), xs.max() + 1, ys.max() + 1))
+    assert P.ink_mask(tight, None, robust_bg=True)[0].mean() <= P.ink_mask(tight, None)[0].mean()
+
+
+def test_text_mask_keeps_a_lone_digit_away_from_other_text():
+    m = np.zeros((110, 300), bool)
+    for y0 in (5, 30):
+        for x in range(10, 280, 12):
+            m[y0:y0 + 14, x:x + 7] = True  # two lines of glyphs
+    m[90:104, 140:148] = True  # a page number well below (gap 46 > 2 x glyph height)
+    assert P.text_mask(m)[0][90:104, 140:148].all()
+
+
+def test_edge_fragment_keeps_a_short_real_last_line_whose_edge_row_is_sparse():
+    # Three lines in a tight crop; the last is x-height only (shorter), its bottom row = sparse stroke ends.
+    profile = np.zeros(80)
+    profile[0:20] = profile[30:50] = 100.0  # two full lines
+    profile[60:71] = 90.0
+    profile[71:80] = 40.0
+    profile[79] = 8.0  # bottom row: a few stroke ends, not a slice through glyph bodies
+    runs = [[0, 19], [30, 49], [60, 79]]
+    assert P.drop_edge_fragments(runs, 80, profile) == runs
+
+
+def test_edge_fragment_dropped_when_its_edge_row_slices_glyphs():
+    profile = np.zeros(80)
+    profile[0:5] = 60.0  # bottom half of a line above, cut through the glyph bodies at row 0
+    profile[10:31] = profile[40:61] = 100.0
+    assert P.drop_edge_fragments([[0, 4], [10, 30], [40, 60]], 80, profile) == [[10, 30], [40, 60]]

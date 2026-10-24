@@ -125,3 +125,36 @@ def test_line_strips_drops_a_cut_line_at_the_top():
 def test_clean_line_is_unchanged():
     img = draw_line("ការអប់រំ និងបច្ចេកវិទ្យា")
     assert len(P.line_strips(img)) == 1 and P.line_strips(img)[0].size == img.size
+
+
+def test_text_mask_keeps_a_lone_digit_away_from_other_text():
+    m = np.zeros((110, 300), bool)
+    for y0 in (5, 30):
+        for x in range(10, 280, 12):
+            m[y0:y0 + 14, x:x + 7] = True
+    m[90:104, 140:148] = True
+    assert P.text_mask(m)[0][90:104, 140:148].all()
+
+
+def test_edge_fragment_needs_a_sliced_edge_row():
+    keep = np.zeros(80)
+    keep[0:20] = keep[30:50] = 100.0
+    keep[60:71], keep[71:80], keep[79] = 90.0, 40.0, 8.0
+    assert P.drop_edge_fragments([[0, 19], [30, 49], [60, 79]], 80, keep) == [[0, 19], [30, 49], [60, 79]]
+    cut = np.zeros(80)
+    cut[0:5] = 60.0
+    cut[10:31] = cut[40:61] = 100.0
+    assert P.drop_edge_fragments([[0, 4], [10, 30], [40, 60]], 80, cut) == [[10, 30], [40, 60]]
+
+
+def test_band_background_needs_to_explain_more_of_the_clip():
+    # Review I1: on a noisy dark photo the background spreads over many colour bins, so flat light
+    # text touching the edges wins the band's mode. That colour makes the photo "ink": keep the corners.
+    px = np.clip(np.random.default_rng(0).normal(40, 12, (60, 200, 3)), 0, 255).astype(int)
+    for x in range(10, 190):
+        if (x // 10) % 5 in (0, 1):
+            px[:, x] = 250  # tall light strokes crossing the top and bottom edge band
+    corner = np.stack([px[0, 0], px[0, -1], px[-1, 0], px[-1, -1]]).sum(axis=0) // 4
+    assert np.abs(P.background_color(px) - corner).max() > 40  # the band mode is the text colour
+    ink = lambda bg: int((np.abs(px - bg) > 40).any(axis=2).sum())
+    assert ink(P.clip_background(px)) <= ink(corner)

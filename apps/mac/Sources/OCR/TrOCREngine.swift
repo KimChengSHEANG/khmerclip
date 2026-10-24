@@ -357,16 +357,28 @@ enum TrOCREngine {
         let corner = (c.map(\.0).reduce(0, +) / 4, c.map(\.1).reduce(0, +) / 4, c.map(\.2).reduce(0, +) / 4)
         let band = backgroundColor(px, width: w, height: h)
         let diff = max(abs(band.0 - corner.0), abs(band.1 - corner.1), abs(band.2 - corner.2))
-        return diff > inkThreshold ? band : corner
+        guard diff > inkThreshold else { return corner }
+        // ...and only when it explains more of the clip as background: on a noisy photo or
+        // gradient, flat bold text can win the band's colour mode instead (review I1).
+        func inkCount(_ bg: (Int, Int, Int)) -> Int {
+            var n = 0
+            for i in 0..<(w * h) {
+                let p = i * 4
+                if abs(Int(px[p]) - bg.0) > inkThreshold || abs(Int(px[p + 1]) - bg.1) > inkThreshold
+                    || abs(Int(px[p + 2]) - bg.2) > inkThreshold { n += 1 }
+            }
+            return n
+        }
+        return inkCount(band) < inkCount(corner) ? band : corner
     }
 
     // Non-text components (noise spec step 3). ponytail: fixed cutoffs tuned on
     // the eval sets (training/eval/results/noise_preprocessing.md); same values as
     // pipeline.py and apps/desktop preprocess.py.
     static let lineAspect = 8.0, lineThick = 3, lineThickRel = 0.2
-    static let blockFill = 0.6, blockHeight = 1.8, isolatedGap = 2.0, ruleLength = 3.0
-    static let maxInk = 0.3, minKept = 0.3, heightPct = 90.0, isolatedSize = 0.8
-    static let edgeFragment = 0.6
+    static let blockFill = 0.6, blockHeight = 1.8, ruleLength = 3.0
+    static let maxInk = 0.3, minKept = 0.3, heightPct = 90.0
+    static let edgeFragment = 0.6, edgeCut = 0.5
 
     typealias Box = (x0: Int, y0: Int, x1: Int, y1: Int, area: Int)
 
@@ -416,12 +428,14 @@ enum TrOCREngine {
         return (labels, boxes)
     }
 
-    /// numpy.percentile with linear interpolation.
+    /// numpy.percentile (linear), bit for bit: index = (p / 100) * (n - 1) and numpy's
+    /// two-sided lerp, so threshold comparisons can't flip between platforms (review M1).
     static func percentile(_ v: [Int], _ p: Double) -> Double {
         let s = v.sorted()
-        let pos = Double(s.count - 1) * p / 100
+        let pos = (p / 100) * Double(s.count - 1)
         let lo = Int(pos.rounded(.down)), hi = min(lo + 1, s.count - 1)
-        return Double(s[lo]) + (Double(s[hi]) - Double(s[lo])) * (pos - Double(lo))
+        let a = Double(s[lo]), b = Double(s[hi]), t = pos - Double(lo), d = b - a
+        return t >= 0.5 ? b - d * (1 - t) : a + d * t
     }
 
     /// Typical glyph height over components >= 3 px tall with 6+ px of ink.
@@ -438,14 +452,14 @@ enum TrOCREngine {
     static func rules(_ m: [Bool], width w: Int, height h: Int, med: Double) -> [Bool] {
         let thick = lineThickness(med)
         let long = max(ruleLength * med, lineAspect * Double(thick))
-        var hLen = [Int](repeating: 0, count: w * h), vLen = [Int](repeating: 0, count: w * h)
+        var hLen = [Int32](repeating: 0, count: w * h), vLen = [Int32](repeating: 0, count: w * h)
         for y in 0..<h {
             var x = 0
             while x < w {
                 guard m[y * w + x] else { x += 1; continue }
                 let x0 = x
                 while x < w, m[y * w + x] { x += 1 }
-                for i in x0..<x { hLen[y * w + i] = x - x0 }
+                for i in x0..<x { hLen[y * w + i] = Int32(x - x0) }
             }
         }
         for x in 0..<w {
@@ -454,17 +468,17 @@ enum TrOCREngine {
                 guard m[y * w + x] else { y += 1; continue }
                 let y0 = y
                 while y < h, m[y * w + x] { y += 1 }
-                for i in y0..<y { vLen[i * w + x] = y - y0 }
+                for i in y0..<y { vLen[i * w + x] = Int32(y - y0) }
             }
         }
         return (0..<(w * h)).map { i in
-            m[i] && ((Double(hLen[i]) >= long && vLen[i] <= thick) || (Double(vLen[i]) >= long && hLen[i] <= thick))
+            m[i] && ((Double(hLen[i]) >= long && Int(vLen[i]) <= thick) || (Double(vLen[i]) >= long && Int(hLen[i]) <= thick))
         }
     }
 
-    /// Splits an ink mask into (kept, removed): borders, underlines and grid lines,
-    /// solid image or avatar blocks, and stray blobs far from everything else are
-    /// removed; glyphs and Khmer marks stay. Mirrors pipeline.text_mask.
+    /// Splits an ink mask into (kept, removed): borders, underlines and grid lines
+    /// and solid image or avatar blocks are removed; glyphs and Khmer marks stay.
+    /// Mirrors pipeline.text_mask.
     static func textMask(_ m: [Bool], width w: Int, height h: Int) -> (kept: [Bool], removed: [Bool]) {
         let none = [Bool](repeating: false, count: m.count)
         let inked = m.reduce(0) { $0 + ($1 ? 1 : 0) }
@@ -490,18 +504,6 @@ enum TrOCREngine {
             let bw = b.x1 - b.x0 + 1, bh = b.y1 - b.y0 + 1
             if Double(b.area) >= blockFill * Double(bw * bh), Double(bh) > blockHeight * med { drop.insert(k) }
         }
-        let live = boxes.indices.filter { !drop.contains($0) }
-        if live.count > 1 {
-            for k in live {
-                let b = boxes[k]
-                if Double(b.y1 - b.y0 + 1) < isolatedSize * med || onEdge(b) { continue }
-                let gap = live.filter { $0 != k }.map { o -> Int in
-                    let c = boxes[o]
-                    return max(c.x0 - b.x1, b.x0 - c.x1, c.y0 - b.y1, b.y0 - c.y1, 0)
-                }.min()!
-                if Double(gap) > isolatedGap * med { drop.insert(k) }
-            }
-        }
         guard drop.count < boxes.count else { return (m, none) }
         let removed = (0..<m.count).map { ruled[$0] || (labels[$0] > 0 && drop.contains(Int(labels[$0]) - 1)) }
         let kept = zip(m, removed).map { $0 && !$1 }
@@ -513,15 +515,23 @@ enum TrOCREngine {
     /// touches the bottom, if shorter than edgeFragment x the median of the other
     /// runs: what is left of a line the selection sliced through. Never drops the
     /// only line or a full-height one. Mirrors pipeline.drop_edge_fragments.
-    static func dropEdgeFragments(_ runs: [(lo: Int, hi: Int)], height: Int) -> [(lo: Int, hi: Int)] {
+    static func dropEdgeFragments(_ runs: [(lo: Int, hi: Int)], height: Int, profile: [Double]?) -> [(lo: Int, hi: Int)] {
         let inner = runs.enumerated().filter { k, r in
             !(k == 0 && r.lo == 0) && !(k == runs.count - 1 && r.hi == height - 1)
         }.map { $0.element.hi - $0.element.lo + 1 }
         guard !inner.isEmpty else { return runs }
         let cut = edgeFragment * percentile(inner, 50)
+        // A cut line's edge row slices through glyph bodies; a real short line in a tight crop
+        // ends in sparse stroke tips (review I2).
+        func sliced(_ r: (lo: Int, hi: Int), _ edge: Int) -> Bool {
+            guard let profile else { return true }
+            return profile[edge] >= edgeCut * profile[r.lo...r.hi].max()!
+        }
         var out = runs
-        if let last = out.last, last.hi == height - 1, Double(last.hi - last.lo + 1) < cut { out.removeLast() }
-        if let first = out.first, first.lo == 0, Double(first.hi - first.lo + 1) < cut { out.removeFirst() }
+        if let last = out.last, last.hi == height - 1, Double(last.hi - last.lo + 1) < cut, sliced(last, height - 1) {
+            out.removeLast()
+        }
+        if let first = out.first, first.lo == 0, Double(first.hi - first.lo + 1) < cut, sliced(first, 0) { out.removeFirst() }
         return out.isEmpty ? runs : out
     }
 
@@ -573,7 +583,7 @@ enum TrOCREngine {
             }
         }
         runs = mergeMarks(runs)
-        let keep = dropEdgeFragments(runs, height: mask.height)  // lines the selection sliced through
+        let keep = dropEdgeFragments(runs, height: mask.height, profile: counts)  // lines the selection sliced through
         guard runs.count > 1 else { return [image] }
 
         return runs.indices.compactMap { k in

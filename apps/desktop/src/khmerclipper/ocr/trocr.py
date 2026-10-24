@@ -49,7 +49,8 @@ def latin_fallback(strip: Image.Image, line: str) -> str:
     from khmerclipper.ocr import tesseract
 
     try:
-        text, min_conf = tesseract.recognize_line(strip)
+        # The noise-free crop the model saw (avatars, borders left out); only for Latin lines.
+        text, min_conf = tesseract.recognize_line(content_crop(strip))
     except KhmerClipperError:
         return line
     return text if text and min_conf >= TESSERACT_MIN_CONFIDENCE else line
@@ -138,7 +139,6 @@ def recognize_with_session(session, image: Image.Image, progress: Callable[[str]
             done += len(ids)
             if piece_text := tok.decode(ids).strip():
                 text += (sep if text else "") + piece_text
-        # Tesseract gets the noise-free crop the model saw (avatars, borders, icons left out).
-        if line := latin_fallback(content_crop(strip), text):
+        if line := latin_fallback(strip, text):
             lines.append(line)
     return "\n".join(lines)

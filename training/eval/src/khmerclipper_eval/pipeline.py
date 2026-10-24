@@ -82,7 +82,10 @@ def clip_background(px: np.ndarray, robust_bg: bool = False) -> np.ndarray:
     bg = np.stack([px[0, 0], px[0, -1], px[-1, 0], px[-1, -1]]).sum(axis=0) // 4
     if robust_bg:
         band = background_color(px)
-        if np.abs(band - bg).max() > THRESHOLD:
+        # ...and only when it explains more of the clip as background: on a noisy photo or
+        # gradient, flat bold text can win the band's colour mode instead (review I1).
+        if np.abs(band - bg).max() > THRESHOLD and \
+                (np.abs(px - band) > THRESHOLD).any(axis=2).sum() < (np.abs(px - bg) > THRESHOLD).any(axis=2).sum():
             bg = band
     return bg
 
@@ -192,7 +195,6 @@ LINE_THICK = 3       # ... and at most max(this, LINE_THICK_REL x median height)
 LINE_THICK_REL = 0.2  # underline / grid line (a 2 px CSS border is 4 px at 2x)
 BLOCK_FILL = 0.6     # a component filling this share of its box ...
 BLOCK_HEIGHT = 1.8   # ... and taller than this x the median component height is an image / avatar
-ISOLATED_GAP = 2.0   # a component farther than this x the median height from every other is stray
 RULE_LENGTH = 3.0    # a <= LINE_THICK-thick ink run this many x the median height long is a rule
 MAX_INK = 0.3        # a mask more than this share ink means the background was misread or is a noisy
                      # scan: filter nothing (frozen 200: 23 -> 16 clips losing ink at 0.5 -> 0.3)
@@ -206,7 +208,6 @@ def glyph_height(boxes) -> float:
     return float(np.percentile(hs, HEIGHT_PCT)) if hs else 0.0
 
 
-ISOLATED_SIZE = 0.8  # only components at least this x the median height can be stray icons (marks are small)
 
 
 def run_lengths(mask: np.ndarray) -> np.ndarray:
@@ -284,15 +285,16 @@ def components(mask: np.ndarray) -> tuple[np.ndarray, list[tuple[int, int, int, 
 
 
 def text_mask(mask: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    """Split an ink mask into (kept, removed): borders, underlines and grid lines, solid image or
-    avatar blocks, and stray blobs far from everything else are removed; glyphs and Khmer marks stay."""
+    """Split an ink mask into (kept, removed): borders, underlines and grid lines and solid image or
+    avatar blocks are removed; glyphs and Khmer marks stay. (A stray-blob rule was dropped: it never
+    helped the icon clips and deleted lone digits, review I3/I4.)"""
     kept, ruled, dropped = text_mask_parts(mask)
     return kept, ruled | dropped
 
 
 def text_mask_parts(mask: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """`text_mask` with the removed ink split into (kept, ruled, dropped): rule pixels (long thin
-    strokes) and dropped components (blocks, stray blobs, short lines)."""
+    strokes) and dropped components (blocks, short lines)."""
     none = np.zeros_like(mask)
     if mask.mean() > MAX_INK:
         return mask.copy(), none, none
@@ -324,16 +326,6 @@ def text_mask_parts(mask: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarra
         bw, bh = x1 - x0 + 1, y1 - y0 + 1
         if area >= BLOCK_FILL * bw * bh and bh > BLOCK_HEIGHT * med:
             drop.add(k)
-    live = [k for k in range(len(boxes)) if k not in drop]
-    if len(live) > 1:
-        for k in live:
-            x0, y0, x1, y1, _ = boxes[k]
-            if y1 - y0 + 1 < ISOLATED_SIZE * med or on_edge(boxes[k]):
-                continue
-            gap = min(max(boxes[o][0] - x1, x0 - boxes[o][2], boxes[o][1] - y1, y0 - boxes[o][3], 0)
-                      for o in live if o != k)
-            if gap > ISOLATED_GAP * med:
-                drop.add(k)
     if len(drop) == len(boxes):  # nothing text-like left: keep the clip as it was
         return mask.copy(), none, none
     dropped = np.isin(labels, [k + 1 for k in drop])
@@ -342,22 +334,29 @@ def text_mask_parts(mask: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarra
     return mask & ~(ruled | dropped), ruled, dropped
 
 
-EDGE_FRAGMENT = 0.6  # an edge-touching run shorter than this x the median other run is a cut-off line
+EDGE_FRAGMENT = 0.6  # an edge-touching run shorter than this x the median other run is a cut-off line ...
+EDGE_CUT = 0.5       # ... if its edge row is this dense vs its densest row (the cut sliced through glyphs)
 
 
-def drop_edge_fragments(runs: list[list[int]], height: int) -> list[list[int]]:
+def drop_edge_fragments(runs: list[list[int]], height: int, profile: np.ndarray | None = None) -> list[list[int]]:
     """Drop the first run when it touches the top edge, and the last when it touches the bottom,
-    if it is shorter than EDGE_FRAGMENT x the median height of the runs not on an edge: what is
-    left of a line the selection sliced through. Never drops the only line or a full-height one."""
+    if it is shorter than EDGE_FRAGMENT x the median height of the runs not on an edge and (given
+    the row-ink `profile`) its edge row is dense: what is left of a line the selection sliced
+    through. A real short line in a tight crop ends in sparse stroke tips (review I2). Never drops
+    the only line or a full-height one."""
     inner = [hi - lo + 1 for k, (lo, hi) in enumerate(runs)
              if not (k == 0 and lo == 0) and not (k == len(runs) - 1 and hi == height - 1)]
     if not inner:
         return runs
     cut = EDGE_FRAGMENT * float(np.median(inner))
+
+    def sliced(lo: int, hi: int, edge: int) -> bool:
+        return profile is None or profile[edge] >= EDGE_CUT * profile[lo:hi + 1].max()
+
     out = list(runs)
-    if out[-1][1] == height - 1 and out[-1][1] - out[-1][0] + 1 < cut:
+    if out[-1][1] == height - 1 and out[-1][1] - out[-1][0] + 1 < cut and sliced(*out[-1], height - 1):
         out.pop()
-    if out and out[0][0] == 0 and out[0][1] - out[0][0] + 1 < cut:
+    if out and out[0][0] == 0 and out[0][1] - out[0][0] + 1 < cut and sliced(*out[0], 0):
         out.pop(0)
     return out or runs
 
@@ -404,7 +403,7 @@ def line_strips(image: Image.Image, split_touching: bool = False, robust_bg: boo
             split += [[edges[k], edges[k + 1] - 1] for k in range(len(edges) - 1)]
         runs = split
     runs = merge_marks(runs)
-    keep = drop_edge_fragments(runs, mask.shape[0]) if drop_edge else runs
+    keep = drop_edge_fragments(runs, mask.shape[0], mask.sum(axis=1)) if drop_edge else runs
     if len(runs) <= 1:
         return [image]
     mh = mask.shape[0]

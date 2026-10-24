@@ -411,11 +411,56 @@ final class TrOCRNoiseTests: XCTestCase {
         XCTAssertFalse(removed.contains(true))
     }
 
+    func testTextMaskKeepsALoneDigitAwayFromOtherText() {
+        let w = 300, h = 110
+        var boxes: [(Int, Int, Int, Int)] = []
+        for y0 in [5, 30] { boxes += stride(from: 10, to: 280, by: 12).map { ($0, y0, $0 + 7, y0 + 14) } }
+        boxes.append((140, 90, 148, 104))
+        XCTAssertTrue(allSet(TrOCREngine.textMask(mask(w, h, boxes), width: w, height: h).kept, w, (140, 90, 148, 104)))
+    }
+
+    func testEdgeFragmentNeedsASlicedEdgeRow() {
+        func pairs(_ r: [(lo: Int, hi: Int)]) -> [[Int]] { r.map { [$0.lo, $0.hi] } }
+        var keep = [Double](repeating: 0, count: 80)
+        for y in 0..<20 { keep[y] = 100 }; for y in 30..<50 { keep[y] = 100 }
+        for y in 60..<71 { keep[y] = 90 }; for y in 71..<80 { keep[y] = 40 }; keep[79] = 8
+        XCTAssertEqual(pairs(TrOCREngine.dropEdgeFragments([(0, 19), (30, 49), (60, 79)], height: 80, profile: keep)),
+                       [[0, 19], [30, 49], [60, 79]])
+        var cut = [Double](repeating: 0, count: 80)
+        for y in 0..<5 { cut[y] = 60 }; for y in 10..<31 { cut[y] = 100 }; for y in 40..<61 { cut[y] = 100 }
+        XCTAssertEqual(pairs(TrOCREngine.dropEdgeFragments([(0, 4), (10, 30), (40, 60)], height: 80, profile: cut)),
+                       [[10, 30], [40, 60]])
+    }
+
+    func testBandBackgroundNeedsToExplainMoreOfTheClip() {
+        // Review I1: noisy dark photo, flat light strokes crossing the edge band; corners on background.
+        let w = 200, h = 60
+        var px = [UInt8](repeating: 255, count: w * h * 4)
+        var seed: UInt64 = 7
+        for i in 0..<(w * h) {
+            for c in 0..<3 {
+                seed = seed &* 6364136223846793005 &+ 1442695040888963407
+                px[i * 4 + c] = UInt8(16 + Int(seed >> 60) * 3)  // 16...61: spread over several 16-level bins
+            }
+        }
+        for y in 0..<h { for x in 10..<190 where (x / 10) % 5 < 2 { for c in 0..<3 { px[(y * w + x) * 4 + c] = 250 } } }
+        let band = TrOCREngine.backgroundColor(px, width: w, height: h)
+        XCTAssertEqual(band.0, 250)  // the band mode is the text colour
+        let bg = TrOCREngine.clipBackground(px, width: w, height: h)
+        XCTAssertLessThan(bg.0, 200)  // the corners' dark background is kept
+    }
+
+    func testPercentileMatchesNumpy() {
+        // numpy 2.x: 30.00000000000001 for p90 of these heights (review M1)
+        let hs = [3, 4, 6, 7, 9, 12, 15, 20, 21, 21, 22, 23, 33, 39]
+        XCTAssertEqual(TrOCREngine.percentile(hs, 90), 30.00000000000001)
+    }
+
     func testDropEdgeFragments() {
         func pairs(_ r: [(lo: Int, hi: Int)]) -> [[Int]] { r.map { [$0.lo, $0.hi] } }
-        XCTAssertEqual(pairs(TrOCREngine.dropEdgeFragments([(0, 4), (10, 30), (40, 60), (70, 79)], height: 80)), [[10, 30], [40, 60]])
-        XCTAssertEqual(pairs(TrOCREngine.dropEdgeFragments([(0, 22)], height: 23)), [[0, 22]])
-        XCTAssertEqual(pairs(TrOCREngine.dropEdgeFragments([(0, 20), (30, 50)], height: 51)), [[0, 20], [30, 50]])
-        XCTAssertEqual(pairs(TrOCREngine.dropEdgeFragments([(0, 4), (70, 79)], height: 80)), [[0, 4], [70, 79]])
+        XCTAssertEqual(pairs(TrOCREngine.dropEdgeFragments([(0, 4), (10, 30), (40, 60), (70, 79)], height: 80, profile: nil)), [[10, 30], [40, 60]])
+        XCTAssertEqual(pairs(TrOCREngine.dropEdgeFragments([(0, 22)], height: 23, profile: nil)), [[0, 22]])
+        XCTAssertEqual(pairs(TrOCREngine.dropEdgeFragments([(0, 20), (30, 50)], height: 51, profile: nil)), [[0, 20], [30, 50]])
+        XCTAssertEqual(pairs(TrOCREngine.dropEdgeFragments([(0, 4), (70, 79)], height: 80, profile: nil)), [[0, 4], [70, 79]])
     }
 }
