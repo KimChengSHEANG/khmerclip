@@ -67,3 +67,41 @@ def test_loader_accepts_slice_subsets(tmp_path: Path):
     (tmp_path / "labels.jsonl").write_text(
         json.dumps({"id": "a", "image": "a.png", "text": "ក", "subset": "slice_small"}) + "\n", encoding="utf-8")
     assert load_fixtures(tmp_path)[0].subset == "slice_small"
+
+
+def test_noisy_jobs_cover_every_kind_deterministically():
+    from collections import Counter
+
+    pool = ["សួស្តី ពិភពលោក", "ការអប់រំ និងបច្ចេកវិទ្យា", "Settings ការកំណត់"] * 20
+    a = screen.noisy_jobs(pool, random.Random(1), per_kind=5)
+    b = screen.noisy_jobs(pool, random.Random(1), per_kind=5)
+    assert a == b
+    assert Counter(j["kind"] for j in a) == {k: 5 for k in screen.NOISE_KINDS}
+    assert all(j["subset"] == f"noisy_{j['kind']}" for j in a)
+
+
+def test_noisy_labels_hold_only_the_text():
+    for job in screen.noisy_jobs(["សួស្តី ពិភពលោក"] * 40, random.Random(2), per_kind=3):
+        assert job["lines"] == ["សួស្តី ពិភពលោក"] or all(l in ("សួស្តី ពិភពលោក",) + tuple(screen.LATIN) for l in job["lines"])
+
+
+def test_noisy_page_draws_the_noise_around_the_text():
+    jobs = screen.noisy_jobs(["សួស្តី"] * 40, random.Random(3), per_kind=2)
+    for job in jobs:
+        html = screen.noisy_page(job)
+        assert all(l in html for l in job["lines"])
+    under = next(j for j in jobs if j["kind"] == "underline")
+    assert "underline" in screen.noisy_page(under) or "border" in screen.noisy_page(under)
+
+
+def test_some_background_and_chrome_clips_are_latin_only():
+    jobs = screen.noisy_jobs(["សួស្តី ពិភពលោក"] * 40, random.Random(4), per_kind=20)
+    assert any(j["kind"] in ("background", "chrome") and all(l in screen.LATIN for l in j["lines"]) for j in jobs)
+
+
+def test_noisy_subsets_load(tmp_path):
+    (tmp_path / "noisy_icons").mkdir()
+    Image.new("RGB", (20, 10), "white").save(tmp_path / "noisy_icons/noisy-icons-001.png")
+    row = {"id": "noisy-icons-001", "image": "noisy_icons/noisy-icons-001.png", "text": "ក", "subset": "noisy_icons"}
+    (tmp_path / "labels.jsonl").write_text(json.dumps(row, ensure_ascii=False) + "\n", encoding="utf-8")
+    assert [f.subset for f in load_fixtures(tmp_path)] == ["noisy_icons"]

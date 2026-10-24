@@ -29,8 +29,11 @@ def test_line_strips_splits_two_bars():
 
 
 def test_line_strips_merges_small_mark_into_nearest_line():
-    # 4-row dot (< 35% of the 31-row line) sits 5 rows below line 1, 42 above line 2.
-    strips = line_strips(bars((400, 200), [(20, 50), (55, 58), (100, 130)]))
+    # 4-row dot (< 35% of the 31-row line) sits 5 rows below line 1, 42 above line 2. Mark-sized
+    # (40 px wide): a full-width 4 px bar is a divider, which text_mask removes.
+    img = bars((400, 200), [(20, 50), (100, 130)])
+    ImageDraw.Draw(img).rectangle((100, 55, 139, 58), fill="black")
+    strips = line_strips(img)
     assert [s.size for s in strips] == [(400, 79), (400, 121)]
 
 

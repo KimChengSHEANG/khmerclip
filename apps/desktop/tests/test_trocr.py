@@ -126,3 +126,22 @@ def test_real_model_reads_fixture():
     with Image.open(FIXTURES / "1.png") as img:
         text = trocr.recognize(img)
     assert text.strip()
+
+
+def test_latin_fallback_gets_the_noise_free_crop(monkeypatch):
+    from PIL import ImageDraw
+
+    from khmerclipper.ocr import tesseract
+
+    img = Image.new("RGB", (400, 60), "white")
+    d = ImageDraw.Draw(img)
+    d.ellipse((6, 8, 50, 52), fill=(90, 120, 200))  # avatar left of an English line
+    for x in range(120, 380, 14):
+        d.rectangle((x, 22, x + 8, 38), fill="black")  # glyphs
+    seen = []
+    monkeypatch.setattr(tesseract, "recognize_line", lambda im: seen.append(im.size) or ("Hello", 99.0))
+    assert trocr.latin_fallback(img, "Hel1o") == "Hello"
+    assert seen and seen[0][0] < 330  # cropped to the text, avatar left out
+    seen.clear()
+    trocr.latin_fallback(img, "កខ")
+    assert not seen  # Khmer lines never pay for the crop

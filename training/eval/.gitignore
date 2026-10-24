@@ -1,5 +1,6 @@
 results/*.csv
 fixtures_real/
 fixtures_screen/
+fixtures_noisy/
 screen_text.jsonl
 fixtures_slices/

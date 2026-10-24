@@ -160,7 +160,7 @@ enum TrOCREngine {
             // ponytail: one tesseract process per Latin-only strip (~90ms each).
             var text = line
             if !containsKhmer(line),
-               let tess = try? await TesseractEngine.recognizeLine(in: strip),
+               let tess = try? await TesseractEngine.recognizeLine(in: contentCrop(strip)),
                !tess.text.isEmpty, tess.minConfidence >= tesseractMinConfidence {
                 text = tess.text
             }
@@ -278,7 +278,7 @@ enum TrOCREngine {
     /// light-mode clips); any pixel differing from it by > 40/255 on any RGB
     /// channel counts as ink. `scale` maps mask coordinates back to full-res.
     private struct InkMask {
-        let ink: [Bool]
+        var ink: [Bool]
         let width: Int, height: Int, scale: Int
         subscript(x: Int, y: Int) -> Bool { ink[y * width + x] }
     }
@@ -300,11 +300,8 @@ enum TrOCREngine {
             let p = (y * sw + x) * 4
             return (Int(px[p]), Int(px[p + 1]), Int(px[p + 2]))
         }
-        let corners = [rgb(0, 0), rgb(sw - 1, 0), rgb(0, sh - 1), rgb(sw - 1, sh - 1)]
-        let bg = (corners.map(\.0).reduce(0, +) / 4,
-                  corners.map(\.1).reduce(0, +) / 4,
-                  corners.map(\.2).reduce(0, +) / 4)
-        let threshold = 40
+        let bg = clipBackground(px, width: sw, height: sh)
+        let threshold = inkThreshold
 
         var ink = [Bool](repeating: false, count: sw * sh)
         for y in 0..<sh {
@@ -314,6 +311,228 @@ enum TrOCREngine {
             }
         }
         return InkMask(ink: ink, width: sw, height: sh, scale: scale)
+    }
+
+    static let inkThreshold = 40
+
+    /// Background RGB of a clip: its most common colour (channels binned to 16
+    /// levels, averaged within the bin) in the band around the edge, min(h, w) / 8
+    /// px deep. Survives an icon in a corner, a box border on the edge and glyphs
+    /// touching a tight crop. `px` is RGBA. Mirrors pipeline.background_color.
+    static func backgroundColor(_ px: [UInt8], width w: Int, height h: Int) -> (Int, Int, Int) {
+        let d = max(1, min(h, w) / 8)
+        var count = [Int](repeating: 0, count: 4096)
+        var sum = [(Int, Int, Int)](repeating: (0, 0, 0), count: 4096)
+        func add(_ x: Int, _ y: Int) {
+            let p = (y * w + x) * 4
+            let r = Int(px[p]), g = Int(px[p + 1]), b = Int(px[p + 2])
+            let key = (r / 16) * 256 + (g / 16) * 16 + b / 16
+            count[key] += 1
+            sum[key] = (sum[key].0 + r, sum[key].1 + g, sum[key].2 + b)
+        }
+        for y in 0..<h {
+            if y < d || y >= h - d {
+                for x in 0..<w { add(x, y) }
+            } else {
+                for x in 0..<d { add(x, y) }
+                for x in (w - d)..<w { add(x, y) }
+            }
+        }
+        var top = 0
+        for k in 1..<4096 where count[k] > count[top] { top = k }  // first max, as numpy argmax
+        let n = Double(count[top])
+        func mean(_ v: Int) -> Int { Int((Double(v) / n).rounded(.toNearestOrEven)) }
+        return (mean(sum[top].0), mean(sum[top].1), mean(sum[top].2))
+    }
+
+    /// The background inkMask measures against: the corner mean, overruled by
+    /// backgroundColor when the two disagree by more than the ink threshold (a
+    /// corner sits on an icon, avatar or border). Mirrors pipeline.clip_background.
+    static func clipBackground(_ px: [UInt8], width w: Int, height h: Int) -> (Int, Int, Int) {
+        func rgb(_ x: Int, _ y: Int) -> (Int, Int, Int) {
+            let p = (y * w + x) * 4
+            return (Int(px[p]), Int(px[p + 1]), Int(px[p + 2]))
+        }
+        let c = [rgb(0, 0), rgb(w - 1, 0), rgb(0, h - 1), rgb(w - 1, h - 1)]
+        let corner = (c.map(\.0).reduce(0, +) / 4, c.map(\.1).reduce(0, +) / 4, c.map(\.2).reduce(0, +) / 4)
+        let band = backgroundColor(px, width: w, height: h)
+        let diff = max(abs(band.0 - corner.0), abs(band.1 - corner.1), abs(band.2 - corner.2))
+        guard diff > inkThreshold else { return corner }
+        // ...and only when it explains more of the clip as background: on a noisy photo or
+        // gradient, flat bold text can win the band's colour mode instead (review I1).
+        func inkCount(_ bg: (Int, Int, Int)) -> Int {
+            var n = 0
+            for i in 0..<(w * h) {
+                let p = i * 4
+                if abs(Int(px[p]) - bg.0) > inkThreshold || abs(Int(px[p + 1]) - bg.1) > inkThreshold
+                    || abs(Int(px[p + 2]) - bg.2) > inkThreshold { n += 1 }
+            }
+            return n
+        }
+        return inkCount(band) < inkCount(corner) ? band : corner
+    }
+
+    // Non-text components (noise spec step 3). ponytail: fixed cutoffs tuned on
+    // the eval sets (training/eval/results/noise_preprocessing.md); same values as
+    // pipeline.py and apps/desktop preprocess.py.
+    static let lineAspect = 8.0, lineThick = 3, lineThickRel = 0.2
+    static let blockFill = 0.6, blockHeight = 1.8, ruleLength = 3.0
+    static let maxInk = 0.3, minKept = 0.3, heightPct = 90.0
+    static let edgeFragment = 0.6, edgeCut = 0.5
+
+    typealias Box = (x0: Int, y0: Int, x1: Int, y1: Int, area: Int)
+
+    /// 8-connected components: labels (0 = none, k + 1 = boxes[k]) and inclusive
+    /// boxes. Row runs joined with union-find. Mirrors pipeline.components.
+    static func components(_ m: [Bool], width w: Int, height h: Int) -> (labels: [Int32], boxes: [Box]) {
+        var parent: [Int] = []
+        func find(_ a: Int) -> Int {
+            var a = a
+            while parent[a] != a { parent[a] = parent[parent[a]]; a = parent[a] }
+            return a
+        }
+        var runs: [(y: Int, x0: Int, x1: Int, id: Int)] = []
+        var prev: [(x0: Int, x1: Int, id: Int)] = []
+        for y in 0..<h {
+            var cur: [(x0: Int, x1: Int, id: Int)] = []
+            var x = 0, j = 0
+            while x < w {
+                guard m[y * w + x] else { x += 1; continue }
+                let x0 = x
+                while x < w, m[y * w + x] { x += 1 }
+                let x1 = x - 1, rid = parent.count
+                parent.append(rid)
+                while j < prev.count, prev[j].x1 < x0 - 1 { j += 1 }
+                var k = j
+                while k < prev.count, prev[k].x0 <= x1 + 1 {
+                    let a = find(prev[k].id), b = find(rid)
+                    if a != b { parent[max(a, b)] = min(a, b) }
+                    k += 1
+                }
+                cur.append((x0, x1, rid))
+                runs.append((y, x0, x1, rid))
+            }
+            prev = cur
+        }
+        var labels = [Int32](repeating: 0, count: w * h)
+        var index: [Int: Int] = [:]
+        var boxes: [Box] = []
+        for r in runs {
+            let root = find(r.id)
+            let i: Int
+            if let found = index[root] { i = found } else { i = boxes.count; index[root] = i; boxes.append((r.x0, r.y, r.x1, r.y, 0)) }
+            boxes[i] = (min(boxes[i].x0, r.x0), min(boxes[i].y0, r.y), max(boxes[i].x1, r.x1), max(boxes[i].y1, r.y),
+                        boxes[i].area + r.x1 - r.x0 + 1)
+            for x in r.x0...r.x1 { labels[r.y * w + x] = Int32(i + 1) }
+        }
+        return (labels, boxes)
+    }
+
+    /// numpy.percentile (linear), bit for bit: index = (p / 100) * (n - 1) and numpy's
+    /// two-sided lerp, so threshold comparisons can't flip between platforms (review M1).
+    static func percentile(_ v: [Int], _ p: Double) -> Double {
+        let s = v.sorted()
+        let pos = (p / 100) * Double(s.count - 1)
+        let lo = Int(pos.rounded(.down)), hi = min(lo + 1, s.count - 1)
+        let a = Double(s[lo]), b = Double(s[hi]), t = pos - Double(lo), d = b - a
+        return t >= 0.5 ? b - d * (1 - t) : a + d * t
+    }
+
+    /// Typical glyph height over components >= 3 px tall with 6+ px of ink.
+    static func glyphHeight(_ boxes: [Box]) -> Double {
+        let hs = boxes.filter { $0.y1 - $0.y0 >= 2 && $0.area >= 6 }.map { $0.y1 - $0.y0 + 1 }
+        return hs.isEmpty ? 0 : percentile(hs, heightPct)
+    }
+
+    static func lineThickness(_ med: Double) -> Int {
+        max(lineThick, Int((lineThickRel * med).rounded(.toNearestOrEven)))
+    }
+
+    /// Pixels of long thin horizontal or vertical strokes. Mirrors pipeline.rules.
+    static func rules(_ m: [Bool], width w: Int, height h: Int, med: Double) -> [Bool] {
+        let thick = lineThickness(med)
+        let long = max(ruleLength * med, lineAspect * Double(thick))
+        var hLen = [Int32](repeating: 0, count: w * h), vLen = [Int32](repeating: 0, count: w * h)
+        for y in 0..<h {
+            var x = 0
+            while x < w {
+                guard m[y * w + x] else { x += 1; continue }
+                let x0 = x
+                while x < w, m[y * w + x] { x += 1 }
+                for i in x0..<x { hLen[y * w + i] = Int32(x - x0) }
+            }
+        }
+        for x in 0..<w {
+            var y = 0
+            while y < h {
+                guard m[y * w + x] else { y += 1; continue }
+                let y0 = y
+                while y < h, m[y * w + x] { y += 1 }
+                for i in y0..<y { vLen[i * w + x] = Int32(y - y0) }
+            }
+        }
+        return (0..<(w * h)).map { i in
+            m[i] && ((Double(hLen[i]) >= long && Int(vLen[i]) <= thick) || (Double(vLen[i]) >= long && Int(hLen[i]) <= thick))
+        }
+    }
+
+    /// Splits an ink mask into (kept, removed): borders, underlines and grid lines
+    /// and solid image or avatar blocks are removed; glyphs and Khmer marks stay.
+    /// Mirrors pipeline.text_mask.
+    static func textMask(_ m: [Bool], width w: Int, height h: Int) -> (kept: [Bool], removed: [Bool]) {
+        let none = [Bool](repeating: false, count: m.count)
+        let inked = m.reduce(0) { $0 + ($1 ? 1 : 0) }
+        guard Double(inked) <= maxInk * Double(m.count) else { return (m, none) }
+        let first = components(m, width: w, height: h).boxes
+        guard !first.isEmpty else { return (m, none) }
+        let med0 = glyphHeight(first)
+        let ruled = rules(m, width: w, height: h, med: med0)
+        let (labels, boxes) = components(zip(m, ruled).map { $0 && !$1 }, width: w, height: h)
+        guard !boxes.isEmpty else { return (m, none) }
+        var drop = Set<Int>()
+        let thick = lineThickness(med0)
+        for (k, b) in boxes.enumerated() {
+            let bw = b.x1 - b.x0 + 1, bh = b.y1 - b.y0 + 1
+            // Long as well as thin: "=", "-" and the Khmer full stop are thin but short.
+            if min(bw, bh) <= thick, Double(max(bw, bh)) >= max(lineAspect * Double(min(bw, bh)), ruleLength * med0) {
+                drop.insert(k)
+            }
+        }
+        let med = glyphHeight(boxes.enumerated().filter { !drop.contains($0.offset) }.map(\.element))
+        func onEdge(_ b: Box) -> Bool { b.x0 == 0 || b.y0 == 0 || b.x1 == w - 1 || b.y1 == h - 1 }
+        for (k, b) in boxes.enumerated() where !drop.contains(k) && med > 0 && !onEdge(b) {
+            let bw = b.x1 - b.x0 + 1, bh = b.y1 - b.y0 + 1
+            if Double(b.area) >= blockFill * Double(bw * bh), Double(bh) > blockHeight * med { drop.insert(k) }
+        }
+        guard drop.count < boxes.count else { return (m, none) }
+        let removed = (0..<m.count).map { ruled[$0] || (labels[$0] > 0 && drop.contains(Int(labels[$0]) - 1)) }
+        let kept = zip(m, removed).map { $0 && !$1 }
+        guard Double(kept.reduce(0) { $0 + ($1 ? 1 : 0) }) >= minKept * Double(inked) else { return (m, none) }
+        return (kept, removed)
+    }
+
+    /// Drops the first run when it touches the top edge, and the last when it
+    /// touches the bottom, if shorter than edgeFragment x the median of the other
+    /// runs: what is left of a line the selection sliced through. Never drops the
+    /// only line or a full-height one. Mirrors pipeline.drop_edge_fragments.
+    static func dropEdgeFragments(_ runs: [(lo: Int, hi: Int)], height: Int, profile: [Double]?) -> [(lo: Int, hi: Int)] {
+        let inner = runs.enumerated().filter { k, r in
+            !(k == 0 && r.lo == 0) && !(k == runs.count - 1 && r.hi == height - 1)
+        }.map { $0.element.hi - $0.element.lo + 1 }
+        guard !inner.isEmpty else { return runs }
+        let cut = edgeFragment * percentile(inner, 50)
+        // A cut line's edge row slices through glyph bodies; a real short line in a tight crop
+        // ends in sparse stroke tips (review I2).
+        func sliced(_ r: (lo: Int, hi: Int), _ edge: Int) -> Bool {
+            guard let profile else { return true }
+            return profile[edge] >= edgeCut * profile[r.lo...r.hi].max()!
+        }
+        var out = runs
+        if let last = out.last, last.hi == height - 1, Double(last.hi - last.lo + 1) < cut, sliced(last, height - 1) {
+            out.removeLast()
+        }
+        if let first = out.first, first.lo == 0, Double(first.hi - first.lo + 1) < cut, sliced(first, 0) { out.removeFirst() }
+        return out.isEmpty ? runs : out
     }
 
     /// Splits a clip into horizontal text-line strips by row ink projection:
@@ -331,7 +550,8 @@ enum TrOCREngine {
     /// 0.314 -> 0.046 (training/eval/results/accuracy_v3.md).
     static func lineStrips(_ image: CGImage) -> [CGImage] {
         // Full resolution: line pitch on small screen text is only ~20 rows.
-        guard let mask = inkMask(image, scanMax: max(image.width, image.height)) else { return [image] }
+        guard var mask = inkMask(image, scanMax: max(image.width, image.height)) else { return [image] }
+        mask.ink = textMask(mask.ink, width: mask.width, height: mask.height).kept  // borders, avatars, stray icons out
         var counts = [Double](repeating: 0, count: mask.height)
         var runs: [(lo: Int, hi: Int)] = []
         for y in 0..<mask.height {
@@ -363,9 +583,12 @@ enum TrOCREngine {
             }
         }
         runs = mergeMarks(runs)
+        let keep = dropEdgeFragments(runs, height: mask.height, profile: counts)  // lines the selection sliced through
         guard runs.count > 1 else { return [image] }
 
         return runs.indices.compactMap { k in
+            // Strips are still cut halfway to a dropped fragment.
+            guard keep.contains(where: { $0 == runs[k] }) else { return nil }
             let top = k == 0 ? 0 : (runs[k - 1].hi + runs[k].lo + 1) / 2
             let bottom = k == runs.count - 1 ? mask.height : (runs[k].hi + runs[k + 1].lo + 1) / 2
             let rect = CGRect(x: 0, y: top * mask.scale, width: image.width,
@@ -476,7 +699,8 @@ enum TrOCREngine {
     /// background collapses the box to a sliver (< 1/20 of a side): keep the
     /// image then. Port of apps/desktop preprocess.content_crop.
     static func contentCrop(_ image: CGImage) -> CGImage {
-        guard let mask = inkMask(image) else { return image }
+        guard var mask = inkMask(image) else { return image }
+        mask.ink = textMask(mask.ink, width: mask.width, height: mask.height).kept
         var minX = Int.max, maxX = -1, minY = Int.max, maxY = -1
         for y in 0..<mask.height {
             for x in 0..<mask.width where mask[x, y] {

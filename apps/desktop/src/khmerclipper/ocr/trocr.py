@@ -13,7 +13,7 @@ from PIL import Image
 
 from khmerclipper.errors import Cancelled, EngineUnavailable, KhmerClipperError
 from khmerclipper.ocr import trocr_models
-from khmerclipper.ocr.preprocess import line_strips, pixel_values, split_wide
+from khmerclipper.ocr.preprocess import content_crop, line_strips, pixel_values, split_wide
 from khmerclipper.ocr.tokenizer import TrOCRTokenizer
 
 # Total decoded ids incl. the start token; matches training MAX_LABEL_LEN and the mac
@@ -49,7 +49,8 @@ def latin_fallback(strip: Image.Image, line: str) -> str:
     from khmerclipper.ocr import tesseract
 
     try:
-        text, min_conf = tesseract.recognize_line(strip)
+        # The noise-free crop the model saw (avatars, borders left out); only for Latin lines.
+        text, min_conf = tesseract.recognize_line(content_crop(strip))
     except KhmerClipperError:
         return line
     return text if text and min_conf >= TESSERACT_MIN_CONFIDENCE else line

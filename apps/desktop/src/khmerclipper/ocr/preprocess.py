@@ -22,6 +22,22 @@ class InkMask:
     scale: int       # mask coords * scale = full-res coords
 
 
+def background_color(px: np.ndarray) -> np.ndarray:
+    """Background RGB of a clip: the most common colour (each channel binned to 16 levels,
+    averaged within the bin) in the band around its edge, min(h, w) // 8 px deep. Unlike the
+    four-corner mean it survives an icon or avatar in a corner, a box border drawn on the edge
+    (the band is deeper than the border) and glyphs touching the edge of a tight crop; a solid
+    image block inside the clip never enters the band."""
+    h, w = px.shape[:2]
+    d = max(1, min(h, w) // 8)
+    band = np.concatenate([px[:d].reshape(-1, 3), px[-d:].reshape(-1, 3),
+                           px[d:-d, :d].reshape(-1, 3), px[d:-d, -d:].reshape(-1, 3)])
+    bins = band // 16
+    keys = bins[:, 0] * 256 + bins[:, 1] * 16 + bins[:, 2]
+    top = np.bincount(keys).argmax()
+    return band[keys == top].mean(axis=0).round().astype(int)
+
+
 def ink_mask(image: Image.Image, scan_max: int = SCAN_MAX) -> InkMask | None:
     w, h = image.size
     if w <= 1 or h <= 1:
@@ -31,9 +47,25 @@ def ink_mask(image: Image.Image, scan_max: int = SCAN_MAX) -> InkMask | None:
     if sw <= 1 or sh <= 1:
         return None
     px = np.asarray(image.convert("RGB").resize((sw, sh), Image.BILINEAR), dtype=np.int32)
-    corners = np.stack([px[0, 0], px[0, -1], px[-1, 0], px[-1, -1]])
-    bg = corners.sum(axis=0) // 4
+    bg = clip_background(px)
     return InkMask((np.abs(px - bg) > THRESHOLD).any(axis=2), scale)
+
+
+def clip_background(px: np.ndarray, robust_bg: bool = True) -> np.ndarray:
+    """The background `ink_mask` measures ink against: the mean corner colour, overruled with
+    robust_bg by `background_color` when the two disagree by more than the ink threshold (a
+    corner sits on an icon, avatar or border). Clean and scanned clips, where they differ by a
+    few levels, keep the corner estimate."""
+    bg = np.stack([px[0, 0], px[0, -1], px[-1, 0], px[-1, -1]]).sum(axis=0) // 4
+    if robust_bg:
+        band = background_color(px)
+        # ...and only when it explains more of the clip as background: on a noisy photo or
+        # gradient, flat bold text can win the band's colour mode instead (review I1).
+        if np.abs(band - bg).max() > THRESHOLD and \
+                (np.abs(px - band) > THRESHOLD).any(axis=2).sum() < (np.abs(px - bg) > THRESHOLD).any(axis=2).sum():
+            bg = band
+    return bg
+
 
 
 PITCH_STRENGTH = 0.1   # autocorrelation peak a line pitch needs
@@ -117,6 +149,179 @@ def merge_marks(runs: list[list[int]]) -> list[list[int]]:
     return runs
 
 
+# Non-text components (noise-robust spec step 3). ponytail: fixed cutoffs, tuned on the eval sets
+# (results/noise_preprocessing.md); same values in apps/desktop preprocess.py and TrOCREngine.swift.
+LINE_ASPECT = 8      # a component this many times longer than thick ...
+LINE_THICK = 3       # ... and at most max(this, LINE_THICK_REL x median height) mask px thick is a border /
+LINE_THICK_REL = 0.2  # underline / grid line (a 2 px CSS border is 4 px at 2x)
+BLOCK_FILL = 0.6     # a component filling this share of its box ...
+BLOCK_HEIGHT = 1.8   # ... and taller than this x the median component height is an image / avatar
+RULE_LENGTH = 3.0    # a <= LINE_THICK-thick ink run this many x the median height long is a rule
+MAX_INK = 0.3        # a mask more than this share ink means the background was misread or is a noisy
+                     # scan: filter nothing (frozen 200: 23 -> 16 clips losing ink at 0.5 -> 0.3)
+MIN_KEPT = 0.3       # filtering that would keep less than this share of the ink is a misread: undo
+HEIGHT_PCT = 90      # "typical glyph height" = this percentile of component heights; the median is
+                     # dragged down by marks and scan speckle (frozen 200: 50 clips lost > 2% ink at 50, 25 at 90)
+def glyph_height(boxes) -> float:
+    """Typical glyph height: the HEIGHT_PCT percentile over components at least 3 px tall with 6+ px
+    of ink, so scan speckle and dots don't drag it down. 0 when there are none."""
+    hs = [b[3] - b[1] + 1 for b in boxes if b[3] - b[1] >= 2 and b[4] >= 6]
+    return float(np.percentile(hs, HEIGHT_PCT)) if hs else 0.0
+
+
+
+
+def run_lengths(mask: np.ndarray) -> np.ndarray:
+    """Per ink pixel, the length of the horizontal ink run it belongs to (0 off ink)."""
+    d = np.diff(np.pad(mask.view(np.int8), ((0, 0), (1, 1))), axis=1)
+    lengths = np.nonzero(d.ravel() == -1)[0] - np.nonzero(d.ravel() == 1)[0]  # runs in row-major order
+    out = np.zeros(mask.shape, np.int32)
+    out[mask] = np.repeat(lengths, lengths)
+    return out
+
+
+def line_thick(med: float) -> int:
+    return max(LINE_THICK, round(LINE_THICK_REL * med))
+
+
+def rules(mask: np.ndarray, med: float) -> np.ndarray:
+    """Pixels of long thin horizontal or vertical strokes (borders, frames, underlines, dividers),
+    even where they touch glyphs or images."""
+    thick = line_thick(med)
+    long = max(RULE_LENGTH * med, LINE_ASPECT * thick)
+    h_len, v_len = run_lengths(mask), run_lengths(mask.T).T
+    return mask & (((h_len >= long) & (v_len <= thick)) | ((v_len >= long) & (h_len <= thick)))
+
+
+def components(mask: np.ndarray) -> tuple[np.ndarray, list[tuple[int, int, int, int, int]]]:
+    """8-connected components of a bool mask: label image (0 = none, k + 1 = boxes[k]) and boxes
+    (x0, y0, x1, y1, area), inclusive. Row runs joined with union-find, no scipy."""
+    h, w = mask.shape
+    parent: list[int] = []
+
+    def find(a: int) -> int:
+        while parent[a] != a:
+            parent[a] = parent[parent[a]]
+            a = parent[a]
+        return a
+
+    runs: list[tuple[int, int, int, int]] = []  # (y, x0, x1, run id)
+    prev: list[tuple[int, int, int]] = []
+    for y in range(h):
+        row = mask[y]
+        if not row.any():
+            prev = []
+            continue
+        d = np.diff(np.concatenate(([0], row.view(np.int8), [0])))
+        starts, ends = np.nonzero(d == 1)[0], np.nonzero(d == -1)[0] - 1
+        cur = []
+        j = 0
+        for x0, x1 in zip(starts.tolist(), ends.tolist()):
+            rid = len(parent)
+            parent.append(rid)
+            while j < len(prev) and prev[j][1] < x0 - 1:
+                j += 1
+            k = j
+            while k < len(prev) and prev[k][0] <= x1 + 1:
+                a, b = find(prev[k][2]), find(rid)
+                if a != b:
+                    parent[max(a, b)] = min(a, b)
+                k += 1
+            cur.append((x0, x1, rid))
+            runs.append((y, x0, x1, rid))
+        prev = cur
+    labels = np.zeros((h, w), np.int32)
+    index: dict[int, int] = {}
+    boxes: list[list[int]] = []
+    for y, x0, x1, rid in runs:
+        r = find(rid)
+        if r not in index:
+            index[r] = len(boxes)
+            boxes.append([x0, y, x1, y, 0])
+        b = boxes[index[r]]
+        b[0], b[1], b[2], b[3] = min(b[0], x0), min(b[1], y), max(b[2], x1), max(b[3], y)
+        b[4] += x1 - x0 + 1
+        labels[y, x0:x1 + 1] = index[r] + 1
+    return labels, [tuple(b) for b in boxes]
+
+
+def text_mask(mask: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Split an ink mask into (kept, removed): borders, underlines and grid lines and solid image or
+    avatar blocks are removed; glyphs and Khmer marks stay. (A stray-blob rule was dropped: it never
+    helped the icon clips and deleted lone digits, review I3/I4.)"""
+    kept, ruled, dropped = text_mask_parts(mask)
+    return kept, ruled | dropped
+
+
+def text_mask_parts(mask: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """`text_mask` with the removed ink split into (kept, ruled, dropped): rule pixels (long thin
+    strokes) and dropped components (blocks, short lines)."""
+    none = np.zeros_like(mask)
+    if mask.mean() > MAX_INK:
+        return mask.copy(), none, none
+    _, first = components(mask)
+    if not first:
+        return mask.copy(), none, none
+    med0 = glyph_height(first)
+    ruled = rules(mask, med0)
+    labels, boxes = components(mask & ~ruled)
+    if not boxes:
+        return mask.copy(), none, none
+    drop = set()
+    thick = line_thick(med0)
+    for k, (x0, y0, x1, y1, area) in enumerate(boxes):
+        bw, bh = x1 - x0 + 1, y1 - y0 + 1
+        # Long as well as thin: "=", "-" and the Khmer full stop "។" are thin but short.
+        if min(bw, bh) <= thick and max(bw, bh) >= max(LINE_ASPECT * min(bw, bh), RULE_LENGTH * med0):
+            drop.add(k)
+    rest = [b for k, b in enumerate(boxes) if k not in drop]
+    med = glyph_height(rest)
+    h, w = mask.shape
+
+    def on_edge(b) -> bool:  # background leaking in (gradients, textures) reaches the clip edge
+        return b[0] == 0 or b[1] == 0 or b[2] == w - 1 or b[3] == h - 1
+
+    for k, (x0, y0, x1, y1, area) in enumerate(boxes):
+        if k in drop or not med or on_edge(boxes[k]):
+            continue
+        bw, bh = x1 - x0 + 1, y1 - y0 + 1
+        if area >= BLOCK_FILL * bw * bh and bh > BLOCK_HEIGHT * med:
+            drop.add(k)
+    if len(drop) == len(boxes):  # nothing text-like left: keep the clip as it was
+        return mask.copy(), none, none
+    dropped = np.isin(labels, [k + 1 for k in drop])
+    if (mask & ~(ruled | dropped)).sum() < MIN_KEPT * mask.sum():
+        return mask.copy(), none, none
+    return mask & ~(ruled | dropped), ruled, dropped
+
+
+EDGE_FRAGMENT = 0.6  # an edge-touching run shorter than this x the median other run is a cut-off line ...
+EDGE_CUT = 0.5       # ... if its edge row is this dense vs its densest row (the cut sliced through glyphs)
+
+
+def drop_edge_fragments(runs: list[list[int]], height: int, profile: np.ndarray | None = None) -> list[list[int]]:
+    """Drop the first run when it touches the top edge, and the last when it touches the bottom,
+    if it is shorter than EDGE_FRAGMENT x the median height of the runs not on an edge and (given
+    the row-ink `profile`) its edge row is dense: what is left of a line the selection sliced
+    through. A real short line in a tight crop ends in sparse stroke tips (review I2). Never drops
+    the only line or a full-height one."""
+    inner = [hi - lo + 1 for k, (lo, hi) in enumerate(runs)
+             if not (k == 0 and lo == 0) and not (k == len(runs) - 1 and hi == height - 1)]
+    if not inner:
+        return runs
+    cut = EDGE_FRAGMENT * float(np.median(inner))
+
+    def sliced(lo: int, hi: int, edge: int) -> bool:
+        return profile is None or profile[edge] >= EDGE_CUT * profile[lo:hi + 1].max()
+
+    out = list(runs)
+    if out[-1][1] == height - 1 and out[-1][1] - out[-1][0] + 1 < cut and sliced(*out[-1], height - 1):
+        out.pop()
+    if out and out[0][0] == 0 and out[0][1] - out[0][0] + 1 < cut and sliced(*out[0], 0):
+        out.pop(0)
+    return out or runs
+
+
 def line_strips(image: Image.Image) -> list[Image.Image]:
     """Split a clip into horizontal text-line strips by row ink projection (mac lineStrips).
 
@@ -125,6 +330,7 @@ def line_strips(image: Image.Image) -> list[Image.Image]:
     mask = ink_mask(image, scan_max=max(image.size))
     if mask is None:
         return [image]
+    mask = InkMask(text_mask(mask.ink)[0], mask.scale)  # borders, underlines, avatars, stray icons out
     counts = mask.ink.sum(axis=1)
     runs: list[list[int]] = []
     for y, n in enumerate(counts):
@@ -148,6 +354,7 @@ def line_strips(image: Image.Image) -> list[Image.Image]:
             split += [[edges[k], edges[k + 1] - 1] for k in range(len(edges) - 1)]
         runs = split
     runs = merge_marks(runs)
+    keep = drop_edge_fragments(runs, mask.ink.shape[0], counts)  # lines the selection sliced through
     if len(runs) <= 1:
         return [image]
 
@@ -156,7 +363,8 @@ def line_strips(image: Image.Image) -> list[Image.Image]:
     for k in range(len(runs)):
         top = 0 if k == 0 else (runs[k - 1][1] + runs[k][0] + 1) // 2
         bottom = mh if k == len(runs) - 1 else (runs[k][1] + runs[k + 1][0] + 1) // 2
-        strips.append(image.crop((0, top * s, image.width, min(image.height, bottom * s))))
+        if runs[k] in keep:  # strips are still cut halfway to a dropped fragment
+            strips.append(image.crop((0, top * s, image.width, min(image.height, bottom * s))))
     return strips
 
 
@@ -222,6 +430,7 @@ def content_crop(image: Image.Image) -> Image.Image:
     mask = ink_mask(image)
     if mask is None:
         return image
+    mask = InkMask(text_mask(mask.ink)[0], mask.scale)
     ys, xs = np.nonzero(mask.ink)
     if xs.size == 0:
         return image
