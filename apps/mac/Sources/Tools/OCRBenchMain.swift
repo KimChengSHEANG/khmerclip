@@ -6,6 +6,24 @@ struct OCRBenchMain {
     static func main() async {
         do {
             let arguments = CommandLine.arguments
+            // Parity dump: `OCRBench --boxes <images...>` prints, per decoded piece,
+            // "<path> <k> <piece w>x<h> <crop w>x<h>" (the eval pipeline and desktop
+            // print the same to diff against).
+            if arguments.count >= 3, arguments[1] == "--boxes" {
+                for path in arguments.dropFirst(2) {
+                    guard let image = NSImage(contentsOf: URL(fileURLWithPath: path))?
+                        .cgImage(forProposedRect: nil, context: nil, hints: nil) else { throw CLIError.imageUnreadable(path) }
+                    var k = 0
+                    for strip in TrOCREngine.lineStrips(image) {
+                        for piece in TrOCREngine.splitWide(strip, maxAspect: TrOCREngine.wideSplitAspect) {
+                            let crop = TrOCREngine.contentCrop(piece.image)
+                            print("\(path) \(k) \(piece.image.width)x\(piece.image.height) \(crop.width)x\(crop.height)")
+                            k += 1
+                        }
+                    }
+                }
+                return
+            }
             guard arguments.count >= 4, arguments[1] == "--engine" else {
                 throw CLIError.usage
             }

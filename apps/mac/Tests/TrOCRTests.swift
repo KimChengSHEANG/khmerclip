@@ -343,3 +343,79 @@ extension TrOCREndToEndTests {
         XCTAssertFalse(first.isEmpty)
     }
 }
+
+/// Noise-robust preprocessing (spec 2026-10-23), mirrored from training/eval/tests/test_noise.py
+/// and apps/desktop/tests/test_noise.py with the same synthetic masks.
+final class TrOCRNoiseTests: XCTestCase {
+    /// A width x height mask with the given (x0, y0, x1, y1) half-open boxes set.
+    private func mask(_ w: Int, _ h: Int, _ boxes: [(Int, Int, Int, Int)]) -> [Bool] {
+        var m = [Bool](repeating: false, count: w * h)
+        for (x0, y0, x1, y1) in boxes { for y in y0..<y1 { for x in x0..<x1 { m[y * w + x] = true } } }
+        return m
+    }
+
+    private func allSet(_ m: [Bool], _ w: Int, _ box: (Int, Int, Int, Int)) -> Bool {
+        (box.1..<box.3).allSatisfy { y in (box.0..<box.2).allSatisfy { m[y * w + $0] } }
+    }
+
+    func testBackgroundIgnoresAnIconInACorner() {
+        let w = 200, h = 40
+        var px = [UInt8](repeating: 250, count: w * h * 4)
+        for y in 0..<12 { for x in 0..<12 { let p = (y * w + x) * 4; px[p] = 200; px[p + 1] = 30; px[p + 2] = 30 } }
+        let bg = TrOCREngine.backgroundColor(px, width: w, height: h)
+        XCTAssertTrue(bg == (250, 250, 250))
+    }
+
+    func testTextMaskDropsLinesAndBlocksButKeepsGlyphs() {
+        let w = 300, h = 60
+        var boxes = stride(from: 10, to: 200, by: 9).map { ($0, 20, $0 + 5, 30) }
+        boxes += [(20, 16, 22, 18), (0, 45, 300, 46), (250, 5, 290, 55)]
+        let (kept, removed) = TrOCREngine.textMask(mask(w, h, boxes), width: w, height: h)
+        XCTAssertTrue(allSet(kept, w, (10, 20, 15, 30)) && allSet(kept, w, (20, 16, 22, 18)))
+        XCTAssertTrue(allSet(removed, w, (0, 45, 300, 46)) && allSet(removed, w, (250, 5, 290, 55)))
+    }
+
+    func testTextMaskKeepsTiny1xGlyphs() {
+        let m = mask(80, 12, stride(from: 2, to: 78, by: 5).map { ($0, 3, $0 + 3, 8) })
+        XCTAssertEqual(TrOCREngine.textMask(m, width: 80, height: 12).kept, m)
+    }
+
+    func testTextMaskKeepsShortThinStrokesLikeKhanAndEquals() {
+        let w = 200, h = 50
+        var boxes = stride(from: 10, to: 120, by: 12).map { ($0, 15, $0 + 7, 35) }
+        boxes += [(130, 14, 132, 36), (145, 22, 160, 24), (145, 27, 160, 29)]
+        let kept = TrOCREngine.textMask(mask(w, h, boxes), width: w, height: h).kept
+        XCTAssertTrue(allSet(kept, w, (130, 14, 132, 36)) && allSet(kept, w, (145, 22, 160, 24)))
+    }
+
+    func testTextMaskKeepsASmallMarkSetApartFromItsWord() {
+        let w = 120, h = 40
+        let kept = TrOCREngine.textMask(mask(w, h, [(10, 15, 18, 30), (22, 15, 30, 30), (34, 15, 42, 30), (100, 8, 103, 12)]),
+                                        width: w, height: h).kept
+        XCTAssertTrue(allSet(kept, w, (100, 8, 103, 12)))
+    }
+
+    func testTextMaskKeepsADenseBlobTouchingTheClipEdge() {
+        let w = 300, h = 60
+        var boxes = stride(from: 40, to: 280, by: 12).map { ($0, 20, $0 + 7, 32) }
+        boxes.append((0, 0, 46, 50))
+        XCTAssertTrue(allSet(TrOCREngine.textMask(mask(w, h, boxes), width: w, height: h).kept, w, (40, 20, 47, 32)))
+    }
+
+    func testTextMaskLeavesAMaskThatIsMostlyInkAlone() {
+        let w = 200, h = 40
+        var m = [Bool](repeating: true, count: w * h)
+        for y in 0..<h { for x in stride(from: 0, to: w, by: 7) { m[y * w + x] = false } }
+        let (kept, removed) = TrOCREngine.textMask(m, width: w, height: h)
+        XCTAssertEqual(kept, m)
+        XCTAssertFalse(removed.contains(true))
+    }
+
+    func testDropEdgeFragments() {
+        func pairs(_ r: [(lo: Int, hi: Int)]) -> [[Int]] { r.map { [$0.lo, $0.hi] } }
+        XCTAssertEqual(pairs(TrOCREngine.dropEdgeFragments([(0, 4), (10, 30), (40, 60), (70, 79)], height: 80)), [[10, 30], [40, 60]])
+        XCTAssertEqual(pairs(TrOCREngine.dropEdgeFragments([(0, 22)], height: 23)), [[0, 22]])
+        XCTAssertEqual(pairs(TrOCREngine.dropEdgeFragments([(0, 20), (30, 50)], height: 51)), [[0, 20], [30, 50]])
+        XCTAssertEqual(pairs(TrOCREngine.dropEdgeFragments([(0, 4), (70, 79)], height: 80)), [[0, 4], [70, 79]])
+    }
+}
