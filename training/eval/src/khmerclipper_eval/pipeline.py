@@ -70,15 +70,34 @@ def ink_mask(image: Image.Image, scan_max: int | None = 512,
         return None
     rgb = image.convert("RGB")
     px = np.asarray(rgb if scale == 1 else rgb.resize((sw, sh), Image.BILINEAR), dtype=np.int32)
+    bg = clip_background(px, robust_bg)
+    return (np.abs(px - bg) > THRESHOLD).any(axis=2), scale
+
+
+def clip_background(px: np.ndarray, robust_bg: bool = False) -> np.ndarray:
+    """The background `ink_mask` measures ink against: the mean corner colour, overruled with
+    robust_bg by `background_color` when the two disagree by more than the ink threshold (a
+    corner sits on an icon, avatar or border). Clean and scanned clips, where they differ by a
+    few levels, keep the corner estimate."""
     bg = np.stack([px[0, 0], px[0, -1], px[-1, 0], px[-1, -1]]).sum(axis=0) // 4
     if robust_bg:
-        # Only overrule the corners when they disagree with the edge band by more than the ink
-        # threshold, i.e. a corner sits on an icon, avatar or border. Clean and scanned clips,
-        # where the two differ by a few levels, keep the corner estimate unchanged.
         band = background_color(px)
         if np.abs(band - bg).max() > THRESHOLD:
             bg = band
-    return (np.abs(px - bg) > THRESHOLD).any(axis=2), scale
+    return bg
+
+
+def fill_removed(image: Image.Image, removed: np.ndarray, scale: int, bg: np.ndarray) -> Image.Image:
+    """Paint the full-resolution pixels under `removed` (a mask at 1/scale, grown by one mask
+    pixel to cover anti-aliasing) with the background colour, so the model never sees the noise."""
+    grown = removed.copy()
+    grown[1:] |= removed[:-1]; grown[:-1] |= removed[1:]
+    grown[:, 1:] |= grown[:, :-1].copy(); grown[:, :-1] |= grown[:, 1:].copy()
+    full = np.repeat(np.repeat(grown, scale, axis=0), scale, axis=1)
+    px = np.array(image.convert("RGB"))
+    h, w = min(px.shape[0], full.shape[0]), min(px.shape[1], full.shape[1])
+    px[:h, :w][full[:h, :w]] = np.asarray(bg, dtype=np.uint8)
+    return Image.fromarray(px)
 
 
 PITCH_STRENGTH = 0.1  # autocorrelation peak a line pitch needs
@@ -281,8 +300,13 @@ def text_mask(mask: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
             drop.add(k)
     rest = [b for k, b in enumerate(boxes) if k not in drop]
     med = glyph_height(rest)
+    h, w = mask.shape
+
+    def on_edge(b) -> bool:  # background leaking in (gradients, textures) reaches the clip edge
+        return b[0] == 0 or b[1] == 0 or b[2] == w - 1 or b[3] == h - 1
+
     for k, (x0, y0, x1, y1, area) in enumerate(boxes):
-        if k in drop or not med:
+        if k in drop or not med or on_edge(boxes[k]):
             continue
         bw, bh = x1 - x0 + 1, y1 - y0 + 1
         if area >= BLOCK_FILL * bw * bh and bh > BLOCK_HEIGHT * med:
@@ -291,7 +315,7 @@ def text_mask(mask: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     if len(live) > 1:
         for k in live:
             x0, y0, x1, y1, _ = boxes[k]
-            if y1 - y0 + 1 < ISOLATED_SIZE * med:
+            if y1 - y0 + 1 < ISOLATED_SIZE * med or on_edge(boxes[k]):
                 continue
             gap = min(max(boxes[o][0] - x1, x0 - boxes[o][2], boxes[o][1] - y1, y0 - boxes[o][3], 0)
                       for o in live if o != k)
@@ -326,7 +350,7 @@ def drop_edge_fragments(runs: list[list[int]], height: int) -> list[list[int]]:
 
 
 def line_strips(image: Image.Image, split_touching: bool = False, robust_bg: bool = False,
-                drop_noise: bool = False, drop_edge: bool = False) -> list[Image.Image]:
+                drop_noise: bool = False, drop_edge: bool = False, fill_noise: bool = False) -> list[Image.Image]:
     """Port of Swift `TrOCREngine.lineStrips`: runs of inked rows, detached marks merged in,
     strips extended halfway into the gaps.
 
@@ -338,7 +362,12 @@ def line_strips(image: Image.Image, split_touching: bool = False, robust_bg: boo
         return [image]
     mask, s = m
     if drop_noise:
-        mask = text_mask(mask)[0]
+        mask, removed = text_mask(mask)
+        if fill_noise and removed.any():
+            small = image.convert("RGB")
+            if s > 1:
+                small = small.resize((image.width // s, image.height // s), Image.BILINEAR)
+            image = fill_removed(image, removed, s, clip_background(np.asarray(small, dtype=np.int32), robust_bg))
     runs: list[list[int]] = []
     for y, inked in enumerate(mask.any(axis=1)):
         if inked:
@@ -374,8 +403,7 @@ def line_strips(image: Image.Image, split_touching: bool = False, robust_bg: boo
 
 
 def split_wide(strip: Image.Image, max_aspect: float, space_gap: float = 0.25,
-               window: float = 0.25, robust_bg: bool = False,
-               drop_noise: bool = False) -> list[tuple[str, Image.Image]]:
+               window: float = 0.25, robust_bg: bool = False) -> list[tuple[str, Image.Image]]:
     """Cut a line strip whose *line* is wider than `max_aspect` x the strip height into ~equal
     pieces at blank-column runs.
 
@@ -390,8 +418,6 @@ def split_wide(strip: Image.Image, max_aspect: float, space_gap: float = 0.25,
     if w <= max_aspect * h:
         return [("", strip)]
     m = ink_mask(strip, scan_max=None, robust_bg=robust_bg)
-    if m is not None and drop_noise:
-        m = (text_mask(m[0])[0], m[1])
     if m is None:
         return [("", strip)]
     mask = m[0]
@@ -521,15 +547,18 @@ def decode(images: list[Image.Image], model_dir: Path, device: str, beams: int =
 def recognize(image: Image.Image, model_dir: Path, device: str | None = None, *, split_wide_at: float | None = None,
               crop: bool = False, beam_gate: float | None = None, normalize: bool = False,
               split_touching: bool = False, cycle_cap: bool = False, robust_bg: bool = False,
-              drop_noise: bool = False, drop_edge: bool = False) -> str:
+              drop_noise: bool = False, drop_edge: bool = False, fill_noise: bool = False) -> str:
     device = device or default_device()
     units: list[tuple[str, Image.Image]] = []  # (separator before, image to decode)
     for k, strip in enumerate(line_strips(image, split_touching, robust_bg=robust_bg, drop_noise=drop_noise,
-                                               drop_edge=drop_edge)):
-        pieces = (split_wide(strip, split_wide_at, robust_bg=robust_bg, drop_noise=drop_noise)
-                  if split_wide_at else [("", strip)])
+                                               drop_edge=drop_edge, fill_noise=fill_noise)):
+        # No drop_noise here: noise filtering in split_wide changed no crop on the screen set and
+        # doubled preprocessing time (results/noise_preprocessing.md).
+        pieces = split_wide(strip, split_wide_at, robust_bg=robust_bg) if split_wide_at else [("", strip)]
         units += [((" " if k else "") if i == 0 else sep, p) for i, (sep, p) in enumerate(pieces)]
-    images = [content_crop(p, robust_bg=robust_bg, drop_noise=drop_noise) if crop else p for _, p in units]
+    # With fill_noise the strips are already clean, so the crop needs no second noise pass.
+    images = [content_crop(p, robust_bg=robust_bg, drop_noise=drop_noise and not fill_noise) if crop else p
+              for _, p in units]
     results = decode(images, model_dir, device, cycle_cap=cycle_cap)
     if beam_gate is not None:
         redo = [i for i, (_, p) in enumerate(results) if p < beam_gate]

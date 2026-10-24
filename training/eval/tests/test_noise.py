@@ -153,3 +153,38 @@ def test_text_mask_keeps_short_thin_strokes_like_khan_and_equals():
     m[22:24, 145:160] = m[27:29, 145:160] = True  # "=": two short thin bars
     kept, _ = P.text_mask(m)
     assert kept[14:36, 130:132].all() and kept[22:24, 145:160].all() and kept[27:29, 145:160].all()
+
+
+def test_text_mask_keeps_a_dense_blob_touching_the_clip_edge():
+    m = np.zeros((60, 300), bool)
+    for x in range(40, 280, 12):
+        m[20:32, x:x + 7] = True  # glyphs
+    m[0:50, 0:46] = True  # background patch leaking in from the left edge, merged with the first glyph
+    kept, _ = P.text_mask(m)
+    assert kept[20:32, 40:47].all()  # the glyph fused to the patch survives
+
+
+def test_fill_removed_paints_only_removed_pixels():
+    img = Image.new("RGB", (40, 20), (255, 255, 255))
+    img.putpixel((5, 5), (0, 0, 0))
+    img.putpixel((30, 10), (0, 0, 0))
+    removed = np.zeros((20, 40), bool)
+    removed[10, 30] = True
+    out = P.fill_removed(img, removed, 1, np.array([255, 255, 255]))
+    assert out.getpixel((30, 10)) == (255, 255, 255) and out.getpixel((5, 5)) == (0, 0, 0)
+
+
+def test_fill_noise_is_identical_on_a_clean_clip():
+    img = draw_line("ការអប់រំ និងបច្ចេកវិទ្យា")
+    flags = dict(split_touching=True, robust_bg=True, drop_noise=True)
+    assert [s.tobytes() for s in P.line_strips(img, fill_noise=True, **flags)] == \
+           [s.tobytes() for s in P.line_strips(img, **flags)]
+
+
+def test_fill_noise_paints_out_an_underline_in_the_strip():
+    img = draw_line("ការអប់រំ និងបច្ចេកវិទ្យា")
+    w, h = img.size
+    ImageDraw.Draw(img).line((0, h - 6, w - 1, h - 6), fill="black", width=2)  # underline across the clip
+    strip = P.line_strips(img, split_touching=True, robust_bg=True, drop_noise=True, fill_noise=True)[0]
+    row = np.asarray(strip.convert("L"))[h - 6]
+    assert row.min() > 200  # the underline row is background now
