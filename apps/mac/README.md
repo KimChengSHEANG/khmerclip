@@ -116,9 +116,9 @@ What's still unconfirmed: the *exact string* a live capture returns landing in t
 ```bash
 # once: a Developer ID Application certificate in the keychain (Xcode → Settings → Accounts → Manage Certificates),
 # and notarytool credentials (prompts for an app-specific password from appleid.apple.com)
-xcrun notarytool store-credentials khmerclipper --apple-id <apple-id> --team-id <TEAMID>
+xcrun notarytool store-credentials KhmerClipper --apple-id <apple-id> --team-id <TEAMID>
 
-SIGN_ID="Developer ID Application: <Name> (<TEAMID>)" NOTARY_PROFILE=khmerclipper make release-mac
+SIGN_ID="Developer ID Application: <Name> (<TEAMID>)" NOTARY_PROFILE=KhmerClipper make release-mac
 ```
 
 Without `SIGN_ID` the dmg is ad-hoc signed and Gatekeeper blocks it on other Macs.

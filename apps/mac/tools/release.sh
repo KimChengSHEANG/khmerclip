@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Build a distributable KhmerClipper-<version>.dmg (Tesseract + TrOCR bundled).
 #
-#   SIGN_ID="Developer ID Application: Name (TEAMID)" NOTARY_PROFILE=khmerclipper tools/release.sh
+#   SIGN_ID="Developer ID Application: Name (TEAMID)" NOTARY_PROFILE=KhmerClipper tools/release.sh
 #
 # SIGN_ID defaults to "-" (ad-hoc: runs only after the user clears Gatekeeper). With a real
 # Developer ID it signs every nested Mach-O with the hardened runtime and a secure timestamp,
 # then, if NOTARY_PROFILE is set, notarizes and staples the dmg. Create the profile once with
-#   xcrun notarytool store-credentials khmerclipper --apple-id <id> --team-id <TEAMID>
+#   xcrun notarytool store-credentials KhmerClipper --apple-id <id> --team-id <TEAMID>
 # (it prompts for an app-specific password and keeps it in the keychain).
 set -euo pipefail
 cd "$(dirname "$0")/.."

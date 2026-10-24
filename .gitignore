@@ -8,7 +8,8 @@ Thumbs.db
 *~
 
 # Agent / local tooling
-.claude/
+.claude/*
+!.claude/skills/
 .cursor/
 .devswarm-temp/
 .superpowers/
