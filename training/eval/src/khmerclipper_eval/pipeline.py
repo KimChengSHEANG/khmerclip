@@ -170,8 +170,18 @@ BLOCK_FILL = 0.6     # a component filling this share of its box ...
 BLOCK_HEIGHT = 1.8   # ... and taller than this x the median component height is an image / avatar
 ISOLATED_GAP = 2.0   # a component farther than this x the median height from every other is stray
 RULE_LENGTH = 3.0    # a <= LINE_THICK-thick ink run this many x the median height long is a rule
-MAX_INK = 0.5        # a mask more than half ink means the background was misread: filter nothing
+MAX_INK = 0.3        # a mask more than this share ink means the background was misread or is a noisy
+                     # scan: filter nothing (frozen 200: 23 -> 16 clips losing ink at 0.5 -> 0.3)
 MIN_KEPT = 0.3       # filtering that would keep less than this share of the ink is a misread: undo
+HEIGHT_PCT = 90      # "typical glyph height" = this percentile of component heights; the median is
+                     # dragged down by marks and scan speckle (frozen 200: 50 clips lost > 2% ink at 50, 25 at 90)
+def glyph_height(boxes) -> float:
+    """Typical glyph height: the HEIGHT_PCT percentile over components at least 3 px tall with 6+ px
+    of ink, so scan speckle and dots don't drag it down. 0 when there are none."""
+    hs = [b[3] - b[1] + 1 for b in boxes if b[3] - b[1] >= 2 and b[4] >= 6]
+    return float(np.percentile(hs, HEIGHT_PCT)) if hs else 0.0
+
+
 ISOLATED_SIZE = 0.8  # only components at least this x the median height can be stray icons (marks are small)
 
 
@@ -257,7 +267,7 @@ def text_mask(mask: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     _, first = components(mask)
     if not first:
         return mask.copy(), np.zeros_like(mask)
-    med0 = float(np.median([b[3] - b[1] + 1 for b in first]))
+    med0 = glyph_height(first)
     ruled = rules(mask, med0)
     labels, boxes = components(mask & ~ruled)
     if not boxes:
@@ -266,10 +276,11 @@ def text_mask(mask: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     thick = line_thick(med0)
     for k, (x0, y0, x1, y1, area) in enumerate(boxes):
         bw, bh = x1 - x0 + 1, y1 - y0 + 1
-        if min(bw, bh) <= thick and max(bw, bh) >= LINE_ASPECT * min(bw, bh):
+        # Long as well as thin: "=", "-" and the Khmer full stop "។" are thin but short.
+        if min(bw, bh) <= thick and max(bw, bh) >= max(LINE_ASPECT * min(bw, bh), RULE_LENGTH * med0):
             drop.add(k)
     rest = [b for k, b in enumerate(boxes) if k not in drop]
-    med = float(np.median([b[3] - b[1] + 1 for b in rest])) if rest else 0.0
+    med = glyph_height(rest)
     for k, (x0, y0, x1, y1, area) in enumerate(boxes):
         if k in drop or not med:
             continue

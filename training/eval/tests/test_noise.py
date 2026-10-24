@@ -143,3 +143,13 @@ def test_robust_bg_keeps_the_corner_estimate_when_corners_agree_with_the_edge():
     px[19, 30:70] = px[40, 30:70] = 185  # anti-aliased glyph edge: ink against 232, not against 219
     img = Image.fromarray(px)
     assert np.array_equal(P.ink_mask(img, None, robust_bg=True)[0], P.ink_mask(img, None)[0])
+
+
+def test_text_mask_keeps_short_thin_strokes_like_khan_and_equals():
+    m = np.zeros((50, 200), bool)
+    for x in range(10, 120, 12):
+        m[15:35, x:x + 7] = True  # glyphs, 20 px tall
+    m[14:36, 130:132] = True  # Khmer full stop "។": a thin vertical bar about one glyph tall
+    m[22:24, 145:160] = m[27:29, 145:160] = True  # "=": two short thin bars
+    kept, _ = P.text_mask(m)
+    assert kept[14:36, 130:132].all() and kept[22:24, 145:160].all() and kept[27:29, 145:160].all()
