@@ -84,3 +84,43 @@ On top of steps 2+3+4. Targets: icons, chrome.
 | paint dropped components only (keep rules) | 520 -> 539 (+3.7%) | 134 -> 138 (+3.0%) | -48.3% | -2.8% | drop: chrome regressed |
 
 Painting an underline out removes the descender pixels that cross it, and the model reads underlined text well anyway. Without painting frames, chrome gets worse. No version clears the bars, so the apps ship steps 2+3+4. `fill_noise` stays in the eval pipeline only, for the record. The avatar gain it would add (-48%) comes on top of step 3's -76%.
+
+## On device: Mac (CoreML `OCRBench`, Latin fallback included), main vs this branch
+
+| Set | main errors | errors | change | better / worse | median ms |
+|---|---:|---:|---:|---:|---|
+| frozen 200 | 11 | 11 | 0 | 0 / 0 | 101 -> 91 |
+| screen 450 | 734 | 734 | 0 | 0 / 0 | 382 -> 401 (+5%) |
+| slices 320 | 165 | 165 | 0 | 0 / 0 | 318 -> 285 |
+| **noisy 300** | 4368 | **3239** | **-25.8%** | 47 / 5 | 452 -> 416 |
+| - avatar | 966 | 240 | -75.2% | 26 / 1 | |
+| - underline | 217 | 135 | -37.8% | 6 / 1 | |
+| - chrome | 233 | 175 | -24.9% | 9 / 2 | |
+| - edgecut | 1124 | 889 | -20.9% | 4 / 0 | |
+| - background | 1473 | 1445 | -1.9% | 2 / 1 | |
+| - icons | 355 | 355 | 0 | 0 / 0 | |
+| real 4 | 12 | 12 | 0 | 0 / 0 | |
+
+Every bar met on device: clean sets identical, latency within +10% on every set.
+
+Parity: Swift and desktop give the same piece count on all 1276 fixtures. Piece and crop boxes are within 1 mask px on 1257, against 1256 on main. The rest is the existing CoreGraphics vs PIL downscaling of the 512 px crop mask, not this change.
+
+## On device: desktop (ONNX on CPU, Latin fallback included), main vs this branch
+
+CER here is a plain character edit distance (the desktop venv has no `jiwer`). It splits Khmer combining marks slightly differently, so compare within this table only.
+
+| Set | main errors | errors | change | better / worse |
+|---|---:|---:|---:|---:|
+| frozen 200 | 39 | 30 | -23.1% | 2 / 0 (Tesseract now gets the noise-free crop) |
+| screen 450 | 724 | 725 | +0.1% | 0 / 1 |
+| slices 320 | 164 | 164 | 0 | 0 / 0 |
+| **noisy 300** | 4349 | **3218** | **-26.0%** | 48 / 5 |
+| real 4 | 2 | 2 | 0 | 0 / 0 |
+
+Per kind on noisy: avatar -75.8%, underline -32.7%, chrome -27.2%, edgecut -21.1%, background -1.9%, icons 0. Latency is not worse on any set; main ran first and partly paid for warm-up, so its times are inflated.
+
+## Outcome
+
+Shipped in both apps: steps 2 (robust background), 3 (non-text components) and 4 (edge fragments). Dropped: step 5 (painting noise out). On device, errors on noisy screen captures fall about 26% (avatars -75%, underlines -33 to -38%, buttons/borders -25 to -27%, cut-off lines -21%). Clean text is unchanged, with one clip in 450 worse on desktop, and speed stays within budget.
+
+Not solved: text on photo and gradient backgrounds (-2%, the largest remaining error at 31% CER), because a single background colour can't describe them. Icons on the text line are untouched (0%). Both need per-region background estimation or model-side training, which is outside this spec.
