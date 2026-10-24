@@ -124,3 +124,20 @@ Per kind on noisy: avatar -75.8%, underline -32.7%, chrome -27.2%, edgecut -21.1
 Shipped in both apps: steps 2 (robust background), 3 (non-text components) and 4 (edge fragments). Dropped: step 5 (painting noise out). On device, errors on noisy screen captures fall about 26% (avatars -75%, underlines -33 to -38%, buttons/borders -25 to -27%, cut-off lines -21%). Clean text is unchanged, with one clip in 450 worse on desktop, and speed stays within budget.
 
 Not solved: text on photo and gradient backgrounds (-2%, the largest remaining error at 31% CER), because a single background colour can't describe them. Icons on the text line are untouched (0%). Both need per-region background estimation or model-side training, which is outside this spec.
+
+## Final review fixes (2026-10-24)
+
+A whole-branch review found four issues, each pinned by a test on all three platforms:
+- **I1:** the band background overrules the corners only if it leaves less ink. Bold light text on a noisy photo could win the band's colour mode.
+- **I2:** an edge fragment must also have a densely cut edge row. A short real first/last line in a tight crop was dropped.
+- **I3/I4:** the stray-blob rule is removed. It was quadratic in the component count (11.6 s on a 3000×1900 page) and deleted lone digits; it never helped the icon clips.
+- **M1, M3:** Swift's percentile is now numpy's formula exactly, and the desktop crops for the Latin fallback only on Latin lines.
+
+Re-checked on the final code:
+
+| Check | Result |
+|---|---|
+| PyTorch pipeline, noisy | 4349 -> 3208 (-26.2%, 49 better / 3 worse); clean sets identical |
+| On device (Mac), noisy | 4368 -> 3233 (-26.0%, 47 / 4); frozen 11, screen 734, slices 165, real 12 all identical to main |
+| On device (Mac), median ms | frozen 101 -> 95, screen 382 -> 364, slices 318 -> 278, noisy 452 -> 406 |
+| Eval vs desktop | 1276 / 1276 pixel-identical |
