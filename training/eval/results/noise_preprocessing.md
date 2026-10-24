@@ -72,3 +72,15 @@ On top of steps 2+3: `noisy_edgecut` 1119 -> 880 errors (-21.4%, 4 better / 0 wo
 | real 4 | 2 | 2 | 0 | 0 / 0 | |
 
 Clean text is unchanged on every set. PyTorch-runner latency is +9% on screen clips and +11% (+19 ms) on the short frozen clips; the binding latency check is on device (final section). Icons inside a line are untouched by design: they sit on the text rows, close to glyphs.
+
+## Step 5: paint removed noise with the background (`fill_noise`): dropped
+
+On top of steps 2+3+4. Targets: icons, chrome.
+
+| Version | icons + chrome | underline | avatar | noisy all | Verdict |
+|---|---:|---:|---:|---:|---|
+| paint everything removed (1 px growth) | 520 -> 490 (-5.8%, 9 / 7) | 134 -> 138 (+3.0%, 9 / 12) | -48.3% | -4.7% | drop: underline regressed |
+| same, no growth | 520 -> 485 | 134 -> 141 (+5.2%) | -48.3% | -4.7% | drop: growth was not the cause |
+| paint dropped components only (keep rules) | 520 -> 539 (+3.7%) | 134 -> 138 (+3.0%) | -48.3% | -2.8% | drop: chrome regressed |
+
+Painting an underline out removes the descender pixels that cross it, and the model reads underlined text well anyway. Without painting frames, chrome gets worse. No version clears the bars, so the apps ship steps 2+3+4. `fill_noise` stays in the eval pipeline only, for the record. The avatar gain it would add (-48%) comes on top of step 3's -76%.
